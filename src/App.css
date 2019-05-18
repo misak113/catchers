@@ -16,6 +16,15 @@
 
 .App-content {
 	margin-top: 1rem;
+	font-family: WorldOfWatter;
+}
+
+.App-content h1,
+.App-content h2,
+.App-content h3,
+.App-content h4,
+.App-content h5 {
+	font-family: BebasNeueRegular;
 }
 
 .bg-dark {

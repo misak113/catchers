@@ -5,6 +5,7 @@ import Anchor from './Components/Anchor';
 import Homepage from './Pages/Homepage';
 import Matches from './Pages/Matches';
 import logo from './logo.png';
+import 'moment/locale/cs';
 
 const pages = [
 	{

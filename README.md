@@ -1,3 +1,7 @@
+# SC Catchers
+
+This project is prepared for soccer team named SC Catchers mainly focusing to "Hanspaulská liga" managed by https://psmf.cz
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts

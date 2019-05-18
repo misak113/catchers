@@ -17,3 +17,11 @@
 .App-content {
 	margin-top: 1rem;
 }
+
+.bg-dark {
+	background-color: #4B5E6F !important;
+}
+
+.navbar-dark .navbar-brand {
+	color: #DBDFE1;
+}

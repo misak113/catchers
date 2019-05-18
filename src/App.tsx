@@ -1,26 +1,22 @@
 import React, { useState } from 'react';
 import classNames from 'classnames';
-import logo from './logo.png';
 import './App.css';
 import Anchor from './Components/Anchor';
+import Homepage from './Pages/Homepage';
+import Matches from './Pages/Matches';
+import logo from './logo.png';
 
 const pages = [
 	{
 		name: 'SC Catchers',
 		path: '/',
-		render: () => <>
-			<h1>SC Catchers</h1>
-			<img src={logo} className="App-logo" alt="logo" />
-		</>,
+		render: () => <Homepage/>,
 		hiddenInMenu: true,
 	},
 	{
 		name: 'Zápasy',
 		path: '/zapasy',
-		render: () => <>
-			<h1>Zápasy</h1>
-			<img src={logo} className="App-logo" alt="logo" />
-		</>,
+		render: () => <Matches/>,
 	},
 ];
 
@@ -32,7 +28,7 @@ const App: React.FC = () => {
 	return (
 		<div className="App">
 			<header className="App-header">
-				<nav className="navbar navbar-expand-lg navbar-light bg-light">
+				<nav className="navbar navbar-expand-lg navbar-dark bg-dark">
 					<Anchor className="navbar-brand" href="/">SC Catchers</Anchor>
 					<button className="navbar-toggler" type="button" onClick={() => setMenuOpen(!menuOpen)}>
 						<span className="navbar-toggler-icon"></span>

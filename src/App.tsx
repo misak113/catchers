@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import classNames from 'classnames';
-import logo from './logo.svg';
+import logo from './logo.png';
 import './App.css';
 import Anchor from './Components/Anchor';
 

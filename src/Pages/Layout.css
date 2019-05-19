@@ -1,0 +1,40 @@
+.Layout {
+	text-align: center;
+}
+
+.Layout-logo {
+	height: 40vmin;
+}
+
+.Layout-header {
+	color: #A5AFB5;
+}
+
+.Layout-header h1 {
+	text-transform: uppercase;
+}
+
+.Layout-content {
+	margin-top: 1rem;
+	font-family: WorldOfWatter;
+}
+
+.Layout-content h1,
+.Layout-content h2,
+.Layout-content h3,
+.Layout-content h4,
+.Layout-content h5 {
+	font-family: BebasNeueRegular;
+}
+
+.bg-dark {
+	background-color: #4B5E6F !important;
+}
+
+.navbar-dark .navbar-brand {
+	color: #DBDFE1;
+}
+
+.navbar .nav-link.external {
+	color: #DBDFE1;
+}

@@ -4,6 +4,10 @@ This project is prepared for soccer team named SC Catchers mainly focusing to "H
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Firebase Cloud
+
+To allow firbase in application you have to create src/firebase.json file in root directory of project. Content of JSON can be generated here: https://console.firebase.google.com/u/0/project/catchers-dff49
+
 ## Available Scripts
 
 In the project directory, you can run:

@@ -51,6 +51,9 @@ const App: React.FC = () => {
 								</li>
 							))}
 						</ul>
+						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href="http://www.psmf.cz">
+							PSMF <i className="fa fa-external-link"/>
+						</a>
 					</div>
 				</nav>
 			</header>

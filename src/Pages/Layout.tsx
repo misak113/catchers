@@ -6,6 +6,7 @@ import Homepage from './Homepage';
 import Matches from './Matches';
 import logo from '../logo.png';
 import 'moment/locale/cs';
+import { IAuthValue, withAuth } from '../Context/AuthContext';
 
 const pages = [
 	{
@@ -21,7 +22,9 @@ const pages = [
 	},
 ];
 
-const Layout: React.FC = () => {
+interface IProps {}
+
+const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [currentPath, changePath] = useState(window.location.pathname);
 	window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
@@ -51,6 +54,26 @@ const Layout: React.FC = () => {
 								</li>
 							))}
 						</ul>
+						{props.auth.signingIn ? (
+							<span className="nav-link">loading</span>
+						) : props.auth.userCredentials ? <span className="nav-link" title={props.auth.userCredentials.user!.email!}>
+							<img src={props.auth.userCredentials.user!.photoURL!} width={16} height={16}/> {props.auth.userCredentials.user!.displayName} <small><a
+								href="#"
+								onClick={(event) => {
+									event.preventDefault();
+									props.auth.logout();
+								}}
+							>
+								odhlásit
+							</a></small>
+						</span> : (
+							<a className="nav-link" href="#" onClick={(event) => {
+								event.preventDefault();
+								props.auth.loginFacebook();
+							}}>
+								<i className="fa fa-facebook"/> přihlásit
+							</a>
+						)}
 						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href="http://www.psmf.cz">
 							PSMF <i className="fa fa-external-link"/>
 						</a>
@@ -73,4 +96,4 @@ const Layout: React.FC = () => {
 	);
 }
 
-export default Layout;
+export default withAuth(Layout);

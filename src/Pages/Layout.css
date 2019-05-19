@@ -35,6 +35,10 @@
 	color: #DBDFE1;
 }
 
-.navbar .nav-link.external {
+.navbar .nav-link {
 	color: #DBDFE1;
+}
+
+.navbar .nav-link:hover {
+	color: #FFFFFF;
 }

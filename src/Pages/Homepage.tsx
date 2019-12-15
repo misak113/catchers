@@ -1,5 +1,6 @@
 import React from 'react';
-import logo from '../logo.png';
+import logo from '../logo-large.png';
+import './Homepage.css';
 
 const Homepage: React.FC = () => {
 	return <>

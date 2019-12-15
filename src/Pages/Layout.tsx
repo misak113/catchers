@@ -4,7 +4,7 @@ import './Layout.css';
 import Anchor from '../Components/Anchor';
 import Homepage from './Homepage';
 import Matches from './Matches';
-import logo from '../logo.png';
+import logo from '../logo-large.png';
 import 'moment/locale/cs';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 

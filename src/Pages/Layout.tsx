@@ -7,6 +7,8 @@ import Matches from './Matches';
 import logo from '../logo-large.png';
 import 'moment/locale/cs';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
+import LoginEmailPopover, { ICredentials } from '../Components/Login/LoginEmailPopover';
+import Register from './Register';
 
 const pages = [
 	{
@@ -20,12 +22,19 @@ const pages = [
 		path: '/zapasy',
 		render: () => <Matches/>,
 	},
+	{
+		name: 'Registrace',
+		path: '/registrace',
+		render: () => <Register/>,
+		hiddenInMenu: true,
+	},
 ];
 
 interface IProps {}
 
 const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 	const [menuOpen, setMenuOpen] = useState(false);
+	const [loginEmailShown, setShowLoginEmail] = useState(false);
 	const [currentPath, changePath] = useState(window.location.pathname);
 	window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
 	const currentPage = pages.find((page) => page.path === currentPath);
@@ -54,29 +63,39 @@ const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 								</li>
 							))}
 						</ul>
-						{props.auth.signingIn ? (
+						{props.auth.signingIn && (
 							<span className="nav-link">loading</span>
-						) : props.auth.userCredentials ? <span className="nav-link" title={props.auth.userCredentials.user!.email!}>
+						)}
+						{props.auth.userCredentials ? <span className={classNames("nav-link", { hidden: props.auth.signingIn })} title={props.auth.userCredentials.user!.email!}>
 							<img src={props.auth.userCredentials.user!.photoURL!} width={16} height={16} alt={props.auth.userCredentials.user!.displayName || undefined}/>
 							&nbsp;
 							{props.auth.userCredentials.user!.displayName}
 							&nbsp;
 							<small>
-								<button className="btn btn-link" onClick={(event) => {
-									event.preventDefault();
+								<button className="btn btn-link" onClick={() => {
 									props.auth.logout();
 								}}>
 									odhlásit
 								</button>
 							</small>
-						</span> : (
-							<button className="nav-link btn btn-link" onClick={(event) => {
-								event.preventDefault();
+						</span> : <>
+							<button className={classNames("nav-link btn btn-link login", { hidden: props.auth.signingIn })} onClick={() => {
 								props.auth.loginFacebook();
 							}}>
-								<i className="fa fa-facebook"/> přihlásit
+								<i className="fa fa-facebook"/> přihlásit facebookem
 							</button>
-						)}
+							<div className={classNames("nav-link btn btn-link login", { hidden: props.auth.signingIn })}>
+								<button className="btn btn-link" onClick={() => setShowLoginEmail(!loginEmailShown)}>
+									<i className="fa fa-sign-in"/> přihlásit e-mailem
+								</button>
+								{loginEmailShown && <LoginEmailPopover
+									onLogin={async (credentials: ICredentials) => {
+										await props.auth.loginEmail(credentials);
+									}}
+									onHide={() => setShowLoginEmail(false)}
+								/>}
+							</div>
+						</>}
 						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href="http://www.psmf.cz">
 							PSMF <i className="fa fa-external-link"/>
 						</a>

@@ -10,11 +10,18 @@ interface IState {
 	userCredentials: firebase.auth.UserCredential | null;
 }
 
+export interface ICredentials {
+	email: string;
+	password: string;
+}
+
 const AUTH_CREDENTIALS = 'Auth.AUTH_CREDENTIALS';
 
 export interface IAuthValue {
 	auth: {
 		loginFacebook(): Promise<void>;
+		loginEmail(credentials: ICredentials): Promise<void>;
+		registerEmail(credentials: ICredentials): Promise<void>;
 		logout(): Promise<void>;
 		userCredentials: firebase.auth.UserCredential | null;
 		signingIn: boolean;
@@ -57,6 +64,8 @@ class AuthProviderLOC extends React.Component<IProps, IState> {
 			<AuthContext.Provider value={{
 				auth: {
 					loginFacebook: () => this.loginFacebook(),
+					loginEmail: (credentials: ICredentials) => this.loginEmail(credentials),
+					registerEmail: (credentials: ICredentials) => this.registerEmail(credentials),
 					logout: () => this.logout(),
 					userCredentials: this.state.userCredentials,
 					signingIn: this.state.signingIn,
@@ -68,11 +77,39 @@ class AuthProviderLOC extends React.Component<IProps, IState> {
 	}
 
 	private async loginFacebook() {
-		this.setState({ signingIn: true });
-		const userCredentials = await this.props.firebaseApp.auth().signInWithPopup(this.facebookAuthProvider);
-		console.log(userCredentials);
-		localStorage.setItem(AUTH_CREDENTIALS, JSON.stringify(userCredentials.credential!.toJSON()));
-		this.setState({ userCredentials, signingIn: false });
+		try {
+			this.setState({ signingIn: true });
+			const userCredentials = await this.props.firebaseApp.auth().signInWithPopup(this.facebookAuthProvider);
+			console.log(userCredentials);
+			localStorage.setItem(AUTH_CREDENTIALS, JSON.stringify(userCredentials.credential!.toJSON()));
+			this.setState({ userCredentials });
+		} finally {
+			this.setState({ signingIn: false });
+		}
+	}
+
+	private async loginEmail(credentials: ICredentials) {
+		try {
+			this.setState({ signingIn: true });
+			const userCredentials = await this.props.firebaseApp.auth().signInWithEmailAndPassword(credentials.email, credentials.password);
+			console.log(userCredentials);
+			localStorage.setItem(AUTH_CREDENTIALS, JSON.stringify(userCredentials.credential!.toJSON()));
+			this.setState({ userCredentials });
+		} finally {
+			this.setState({ signingIn: false });
+		}
+	}
+
+	private async registerEmail(credentials: ICredentials) {
+		try {
+			this.setState({ signingIn: true });
+			const userCredentials = await this.props.firebaseApp.auth().createUserWithEmailAndPassword(credentials.email, credentials.password);
+			console.log(userCredentials);
+			localStorage.setItem(AUTH_CREDENTIALS, JSON.stringify(userCredentials.credential!.toJSON()));
+			this.setState({ userCredentials });
+		} finally {
+			this.setState({ signingIn: false });
+		}
 	}
 
 	private async logout() {

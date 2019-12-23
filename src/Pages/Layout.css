@@ -2,6 +2,10 @@
 	text-align: center;
 }
 
+.Layout .hidden {
+	display: none !important;
+}
+
 .Layout-logo {
 	height: 40vmin;
 }
@@ -35,10 +39,21 @@
 	color: #DBDFE1;
 }
 
-.navbar .nav-link {
+.navbar .nav-link,
+.navbar .btn-link {
 	color: #DBDFE1;
 }
 
-.navbar .nav-link:hover {
+.navbar .nav-link:hover,
+.navbar .btn-link:hover {
 	color: #FFFFFF;
+}
+
+.Layout-header .navbar .login {
+	position: relative;
+	display: inline-flex;
+}
+
+.Layout-header .navbar .login .popover {
+	top: 40px;
 }

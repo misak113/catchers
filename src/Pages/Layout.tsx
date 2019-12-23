@@ -57,22 +57,25 @@ const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 						{props.auth.signingIn ? (
 							<span className="nav-link">loading</span>
 						) : props.auth.userCredentials ? <span className="nav-link" title={props.auth.userCredentials.user!.email!}>
-							<img src={props.auth.userCredentials.user!.photoURL!} width={16} height={16}/> {props.auth.userCredentials.user!.displayName} <small><a
-								href="#"
-								onClick={(event) => {
+							<img src={props.auth.userCredentials.user!.photoURL!} width={16} height={16} alt={props.auth.userCredentials.user!.displayName || undefined}/>
+							&nbsp;
+							{props.auth.userCredentials.user!.displayName}
+							&nbsp;
+							<small>
+								<button className="btn btn-link" onClick={(event) => {
 									event.preventDefault();
 									props.auth.logout();
-								}}
-							>
-								odhlásit
-							</a></small>
+								}}>
+									odhlásit
+								</button>
+							</small>
 						</span> : (
-							<a className="nav-link" href="#" onClick={(event) => {
+							<button className="nav-link btn btn-link" onClick={(event) => {
 								event.preventDefault();
 								props.auth.loginFacebook();
 							}}>
 								<i className="fa fa-facebook"/> přihlásit
-							</a>
+							</button>
 						)}
 						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href="http://www.psmf.cz">
 							PSMF <i className="fa fa-external-link"/>

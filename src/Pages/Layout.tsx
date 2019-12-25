@@ -66,10 +66,10 @@ const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 						{props.auth.signingIn && (
 							<span className="nav-link">loading</span>
 						)}
-						{props.auth.userCredentials ? <span className={classNames("nav-link", { hidden: props.auth.signingIn })} title={props.auth.userCredentials.user!.email!}>
-							<img src={props.auth.userCredentials.user!.photoURL!} width={16} height={16} alt={props.auth.userCredentials.user!.displayName || undefined}/>
+						{props.auth.user ? <span className={classNames("nav-link", { hidden: props.auth.signingIn })} title={props.auth.user.email!}>
+							{props.auth.user.photoURL && <img src={props.auth.user.photoURL} width={16} height={16} alt={props.auth.user.displayName || undefined}/>}
 							&nbsp;
-							{props.auth.userCredentials.user!.displayName}
+							{props.auth.user.displayName || props.auth.user.email}
 							&nbsp;
 							<small>
 								<button className="btn btn-link" onClick={() => {

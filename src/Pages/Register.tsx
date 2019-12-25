@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import './Register.css';
 import { withAuth, IAuthValue } from '../Context/AuthContext';
+import { withRouter, IRouterValue } from '../Context/RouterContext';
 
 interface IProps {}
 
-const Register: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
+const Register: React.FC<IProps & IAuthValue & IRouterValue> = (props: IProps & IAuthValue & IRouterValue) => {
 	const emailRef = React.createRef<HTMLInputElement>();
 	const passwordRef = React.createRef<HTMLInputElement>();
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -18,7 +19,8 @@ const Register: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => 
                     await props.auth.registerEmail({
                         email: emailRef.current.value,
                         password: passwordRef.current.value,
-                    })
+                    });
+                    props.router.goPath('/');
                 } catch (error) {
                     console.error(error);
                     setErrorMessage(error.message);
@@ -44,4 +46,4 @@ const Register: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => 
         </form>
 	</>;
 };
-export default withAuth(Register);
+export default withAuth(withRouter(Register));

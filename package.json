@@ -12,7 +12,6 @@
     "@types/react-dom": "16.8.4",
     "bootstrap": "^4.3.1",
     "classnames": "^2.2.6",
-    "firebase": "^6.0.2",
     "font-awesome": "^4.7.0",
     "lodash": "^4.17.11",
     "moment": "^2.24.0",
@@ -46,6 +45,7 @@
     ]
   },
   "devDependencies": {
+    "firebase": "7.6.1",
     "now": "^15.2.0"
   }
 }

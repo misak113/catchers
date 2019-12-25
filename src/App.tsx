@@ -4,15 +4,18 @@ import 'moment/locale/cs';
 import Layout from './Pages/Layout';
 import { FirebaseProvider } from './Context/FirebaseContext';
 import { AuthProvider } from './Context/AuthContext';
+import { RouterProvider } from './Context/RouterContext';
 
 const App: React.FC = () => {
 	return (
 		<div className="App">
-			<FirebaseProvider>
-				<AuthProvider>
-					<Layout/>
-				</AuthProvider>
-			</FirebaseProvider>
+			<RouterProvider>
+				<FirebaseProvider>
+					<AuthProvider>
+						<Layout/>
+					</AuthProvider>
+				</FirebaseProvider>
+			</RouterProvider>
 		</div>
 	);
 }

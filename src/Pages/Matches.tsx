@@ -1,83 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import classNames from 'classnames';
 import Anchor from '../Components/Anchor';
+import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
+import { MATCHES, IMatch, mapMatch } from '../Model/collections';
+import Loading from '../Components/Loading';
 
-const Matches: React.FC = () => {
+interface IProps {}
+
+const Matches: React.FC<IProps & IFirebaseValue> = (props: IProps & IFirebaseValue) => {
+	const [errorMessage, setErrorMessage] = useState<string>();
+	const [matches, setMatches] = useState<IMatch[]>();
+
+	useEffect(() => {
+		(async () => {
+			try {
+				const { docs } = await props.firebaseApp.firestore().collection(MATCHES).get();
+				const matches = docs.map(mapMatch);
+				console.log(matches);
+				setMatches(matches);
+			} catch (error) {
+				console.error(error);
+				setErrorMessage(error.message);
+			}
+		})();
+	}, [props.firebaseApp]);
+
 	const now = new Date();
-	const matches = [
-		{
-			id: '1',
-			startsAt: new Date('2019-05-19T18:45:00'),
-			opponent: {
-				name: 'Kanalpucers PL',
-			},
-			playground: {
-				id: 'MIKU3',
-				name: 'Mikulovka',
-			},
-		},
-		{
-			id: '2',
-			startsAt: new Date('2019-05-26T17:30:00'),
-			opponent: {
-				name: 'Mestek FC',
-			},
-			playground: {
-				id: 'HANSP',
-				name: 'Hanspaulka',
-			},
-		},
-		{
-			id: '3',
-			startsAt: new Date('2019-06-01T10:00:00'),
-			referees: [
-				{
-					name: 'Tomáš Veselý',
-				},
-				{
-					name: 'Tomáš Pavlík',
-				},
-			],
-			playground: {
-				id: 'P2',
-				name: 'Pražačka',
-			},
-		},
-		{
-			id: '4',
-			startsAt: new Date('2019-06-02T15:00:00'),
-			opponent: {
-				name: 'Ameby FC A',
-			},
-			playground: {
-				id: 'P3',
-				name: 'Pražačka',
-			},
-		},
-		{
-			id: '5',
-			startsAt: new Date('2019-06-09T18:45:00'),
-			opponent: {
-				name: 's. Oliver A',
-			},
-			playground: {
-				id: 'ZABEH',
-				name: 'Záběhlice',
-			},
-		},
-		{
-			id: '6',
-			startsAt: new Date('2019-06-23T18:45:00'),
-			opponent: {
-				name: 'S. T. R. U. P.',
-			},
-			playground: {
-				id: 'MIKU3',
-				name: 'Mikulovka',
-			},
-		},
-	];
+
 	return <>
 		<h1>Zápasy</h1>
 		
@@ -92,7 +42,8 @@ const Matches: React.FC = () => {
 				</tr>
 			</thead>
 			<tbody>
-				{matches.map((match) => (
+				{matches
+				? matches.map((match) => (
 					<tr key={match.id} className={classNames({
 						'table-success': moment(match.startsAt).diff(now, 'days') < 6,
 						'table-dark': !!match.referees,
@@ -100,17 +51,20 @@ const Matches: React.FC = () => {
 						<td>{moment(match.startsAt).format('LL')} <small>{moment(match.startsAt).format('ddd')}</small></td>
 						<td>{moment(match.startsAt).format('LT')}</td>
 						<td>
-							{match.opponent && match.opponent.name.replace(' ', ' ')}
-							{match.referees && match.referees.map((referee) => referee.name.replace(' ', ' ')).join(', ')}
+							{match.opponent && match.opponent.replace(' ', ' ')}
+							{match.referees && match.referees.map((referee) => referee.replace(' ', ' ')).join(', ')}
 						</td>
-						<td>{match.playground.name.replace(' ', ' ')}</td>
+						<td>{match.field.replace(' ', ' ')}</td>
 						<td>
 							<Anchor href={`/zapas/${match.id}`}>detail</Anchor>
 						</td>
 					</tr>
-				))}
+				))
+				: errorMessage
+					? <tr><td colSpan={5}>{errorMessage}</td></tr>
+					: <tr><td colSpan={5}><Loading size='50px'/></td></tr>}
 			</tbody>
 		</table>
 	</>;
 };
-export default Matches;
+export default withFirebase(Matches);

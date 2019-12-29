@@ -3,7 +3,8 @@ import { MATCHES, IMatch, mapMatch } from "./collections";
 
 export function useMatches(
 	firebaseApp: firebase.app.App,
-	setErrorMessage: (errorMessage: string) => void,
+	user: firebase.User | null,
+	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [matches, setMatches] = useState<IMatch[]>();
 	useEffect(() => {
@@ -13,12 +14,13 @@ export function useMatches(
 				const matches = docs.map(mapMatch);
 				console.log('matches', matches);
 				setMatches(matches);
+				setErrorMessage(undefined);
 			} catch (error) {
 				console.error(error);
 				setErrorMessage(error.message);
 			}
 		})();
-	}, [firebaseApp, setErrorMessage]);
+	}, [firebaseApp, user, setErrorMessage]);
 
 	return [matches];
 }
@@ -26,7 +28,8 @@ export function useMatches(
 export function useMatch(
 	matchId: string,
 	firebaseApp: firebase.app.App,
-	setErrorMessage: (errorMessage: string) => void,
+	user: firebase.User | null,
+	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [match, setMatch] = useState<IMatch>();
 	useEffect(() => {
@@ -36,12 +39,13 @@ export function useMatch(
 				const match = doc.exists ? mapMatch(doc as firebase.firestore.QueryDocumentSnapshot) : undefined;
 				console.log('match', match);
 				setMatch(match);
+				setErrorMessage(undefined);
 			} catch (error) {
 				console.error(error);
 				setErrorMessage(error.message);
 			}
 		})();
-	}, [matchId, firebaseApp, setErrorMessage]);
+	}, [matchId, firebaseApp, user, setErrorMessage]);
 
 	return [match];
 }

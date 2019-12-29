@@ -5,15 +5,16 @@ import { usePossibleAttendees } from '../Model/userFacade';
 import { useMatch } from '../Model/matchFacade';
 import Attendees from '../Components/Match/Attendees';
 import Loading from '../Components/Loading';
+import { IAuthValue, withAuth } from '../Context/AuthContext';
 
 interface IProps {
 	matchId: string;
 }
 
-const Match: React.FC<IProps & IFirebaseValue> = (props: IProps & IFirebaseValue) => {
+const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & IFirebaseValue & IAuthValue) => {
 	const [errorMessage, setErrorMessage] = useState<string>();
-	const [possibleAttendees] = usePossibleAttendees(props.firebaseApp, setErrorMessage);
-	const [match] = useMatch(props.matchId, props.firebaseApp, setErrorMessage);
+	const [possibleAttendees] = usePossibleAttendees(props.firebaseApp, props.auth.user, setErrorMessage);
+	const [match] = useMatch(props.matchId, props.firebaseApp, props.auth.user, setErrorMessage);
 
 	const attendees = match?.attendees || [];
 	const nonAttendees = match?.nonAttendees || [];
@@ -67,4 +68,4 @@ const Match: React.FC<IProps & IFirebaseValue> = (props: IProps & IFirebaseValue
 		</>}
 	</>;
 };
-export default withFirebase(Match);
+export default withFirebase(withAuth(Match));

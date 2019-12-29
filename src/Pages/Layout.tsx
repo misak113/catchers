@@ -4,6 +4,7 @@ import './Layout.css';
 import Anchor from '../Components/Anchor';
 import Homepage from './Homepage';
 import Matches from './Matches';
+import Match from './Match';
 import logo from '../logo-large.png';
 import 'moment/locale/cs';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
@@ -23,12 +24,35 @@ const pages = [
 		render: () => <Matches/>,
 	},
 	{
+		name: 'Zápas',
+		path: /\/zapas\/(?<matchId>\w+)/,
+	render: (params: any) => { console.log(params); return <Match matchId={params.matchId}/> },
+		hiddenInMenu: true,
+	},
+	{
 		name: 'Registrace',
 		path: '/registrace',
 		render: () => <Register/>,
 		hiddenInMenu: true,
 	},
 ];
+
+function matchPage(path: string | RegExp, currentPath: string) {
+	if (path instanceof RegExp) {
+		return path.test(currentPath);
+	} else {
+		return path === currentPath;
+	}
+}
+
+function matchParams(path: string | RegExp, currentPath: string) {
+	if (path instanceof RegExp) {
+		const matches = currentPath.match(path);
+		return matches ? matches.groups : {};
+	} else {
+		return {};
+	}
+}
 
 interface IProps {}
 
@@ -37,7 +61,7 @@ const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 	const [loginEmailShown, setShowLoginEmail] = useState(false);
 	const [currentPath, changePath] = useState(window.location.pathname);
 	window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
-	const currentPage = pages.find((page) => page.path === currentPath);
+	const currentPage = pages.find((page) => matchPage(page.path, currentPath));
 	return (
 		<div className="Layout">
 			<header className="Layout-header">
@@ -50,12 +74,12 @@ const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 					<div className="collapse navbar-collapse" style={{ display: menuOpen ? 'block' : 'none' }}>
 						<ul className="navbar-nav mr-auto">
 							{pages.filter((page) => !page.hiddenInMenu).map((page) => (
-								<li key={page.path} className={classNames("nav-item", {
+								<li key={page.path.toString()} className={classNames("nav-item", {
 									'active': page.path === currentPath,
 								})}>
 									<Anchor
 										className="nav-link"
-										href={page.path}
+										href={page.path.toString()}
 									>
 										{page.name}
 										{page.path === currentPath ? <span className="sr-only">(current)</span> : null}
@@ -104,7 +128,7 @@ const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 			</header>
 			<section className="container Layout-content">
 				{currentPage ? (
-					currentPage.render && currentPage.render()
+					currentPage.render && currentPage.render(matchParams(currentPage.path, currentPath))
 				) : (
 					<>
 						<h1>SC Catchers - Stránka nenalezena</h1>

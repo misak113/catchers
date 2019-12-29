@@ -5,7 +5,7 @@
 }
 
 .Attendees .badge {
-	width: 18px;
+	min-width: 18px;
 }
 
 .Attendees .PeoplePopover {

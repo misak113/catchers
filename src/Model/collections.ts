@@ -4,7 +4,7 @@ import firebase from 'firebase';
 export const MATCHES = 'matches';
 
 export interface IPersonResult {
-	email: string;
+	userId: string;
 	resultAt: Date;
 }
 

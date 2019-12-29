@@ -32,11 +32,11 @@ const Attendees = (props: IProps) => (
 	<div>
 		<span className="Attendees confirmed">
 			<span className="badge badge-success">{props.attendees.length}</span>
-			{props.attendees.length > 0 && <AttendeesDetailPopover title='Potvrzení' className="bg-success text-white" people={props.attendees.map((person) => person.email)}/>}
+			{props.attendees.length > 0 && <AttendeesDetailPopover title='Potvrzení' className="bg-success text-white" people={props.attendees.map((person) => person.userId)}/>}
 		</span>
 		<span className="Attendees declined">
 			<span className="badge badge-danger">{props.nonAttendees.length}</span>
-			{props.nonAttendees.length > 0 && <AttendeesDetailPopover title="Odmítnutí" className="bg-danger text-white" people={props.nonAttendees.map((person) => person.email)}/>}
+			{props.nonAttendees.length > 0 && <AttendeesDetailPopover title="Odmítnutí" className="bg-danger text-white" people={props.nonAttendees.map((person) => person.userId)}/>}
 		</span>
 		<span className="Attendees waiting">
 			{props.possibleAttendees

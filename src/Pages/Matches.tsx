@@ -1,46 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import moment from 'moment';
 import classNames from 'classnames';
 import Anchor from '../Components/Anchor';
 import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
-import { MATCHES, IMatch, mapMatch, USERS, mapUser } from '../Model/collections';
 import Loading from '../Components/Loading';
 import Attendees from '../Components/Match/Attendees';
+import { useMatches } from '../Model/matchFacade';
+import { usePossibleAttendees } from '../Model/userFacade';
 
 interface IProps {}
 
 const Matches: React.FC<IProps & IFirebaseValue> = (props: IProps & IFirebaseValue) => {
 	const [errorMessage, setErrorMessage] = useState<string>();
-	const [matches, setMatches] = useState<IMatch[]>();
-	const [possibleAttendees, setPossibleAttendees] = useState<string[]>();
-
-	useEffect(() => {
-		(async () => {
-			try {
-				const { docs } = await props.firebaseApp.firestore().collection(USERS).get();
-				const users = docs.map(mapUser);
-				console.log('users', users);
-				setPossibleAttendees(users.filter((user) => user.player).map((user) => user.name || user.email));
-			} catch (error) {
-				console.error(error);
-				setErrorMessage(error.message);
-			}
-		})();
-	}, [props.firebaseApp]);
-
-	useEffect(() => {
-		(async () => {
-			try {
-				const { docs } = await props.firebaseApp.firestore().collection(MATCHES).get();
-				const matches = docs.map(mapMatch);
-				console.log('matches', matches);
-				setMatches(matches);
-			} catch (error) {
-				console.error(error);
-				setErrorMessage(error.message);
-			}
-		})();
-	}, [props.firebaseApp]);
+	const [possibleAttendees] = usePossibleAttendees(props.firebaseApp, setErrorMessage);
+	const [matches] = useMatches(props.firebaseApp, setErrorMessage);
 
 	const now = new Date();
 

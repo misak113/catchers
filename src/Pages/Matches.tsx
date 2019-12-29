@@ -8,6 +8,8 @@ import Attendees from '../Components/Match/Attendees';
 import { useMatches } from '../Model/matchFacade';
 import { usePossibleAttendees } from '../Model/userFacade';
 import { withAuth, IAuthValue } from '../Context/AuthContext';
+import MatchDate from '../Components/Match/MatchDate';
+import MatchTime from '../Components/Match/MatchTime';
 
 interface IProps {}
 
@@ -42,10 +44,10 @@ const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps &
 						})}>
 							<td>
 								<Anchor href={`/zapas/${match.id}`}>
-									{moment(match.startsAt).format('LL')} <small>{moment(match.startsAt).format('ddd')}</small>
+									<MatchDate startsAt={match.startsAt}/>
 								</Anchor>
 							</td>
-							<td>{moment(match.startsAt).format('LT')}</td>
+							<td><MatchTime startsAt={match.startsAt}/></td>
 							<td>
 								{match.opponent && match.opponent.replace(' ', ' ')}
 								{match.referees && match.referees.map((referee) => referee.replace(' ', ' ')).join(', ')}

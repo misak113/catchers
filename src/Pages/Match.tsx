@@ -6,6 +6,9 @@ import { useMatch } from '../Model/matchFacade';
 import Attendees from '../Components/Match/Attendees';
 import Loading from '../Components/Loading';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
+import TeamCard from '../Components/Match/TeamCard';
+import FieldCard from '../Components/Match/FieldCard';
+import MatchTimeCard from '../Components/Match/MatchTimeCard';
 
 interface IProps {
 	matchId: string;
@@ -22,6 +25,17 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 	return <>
 		<h1>Zápas</h1>
 		{errorMessage ? errorMessage : <>
+			<div className="row Match-cards">
+				<div className="col-md-4">
+					<MatchTimeCard startsAt={match?.startsAt}/>
+				</div>
+				<div className="col-md-4">
+					<TeamCard opponent={match?.opponent}/>
+				</div>
+				<div className="col-md-4">
+					<FieldCard field={match?.field}/>
+				</div>
+			</div>
 			<Attendees
 				possibleAttendees={possibleAttendees}
 				attendees={attendees}

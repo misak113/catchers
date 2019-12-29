@@ -6,6 +6,8 @@ interface IProps {
 }
 
 const Loading = (props: IProps) => (
-	<i className="fa fa-spinner Loading-rotateRight" style={{ fontSize: props.size }}/>
+	<div className="spinner-border" style={{ width: props.size, height: props.size }} role="status">
+		<span className="sr-only">Loading...</span>
+	</div>
 );
 export default Loading;

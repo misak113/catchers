@@ -44,7 +44,7 @@ const Attendees = (props: IProps) => (
 					<span className="badge badge-secondary">{props.possibleAttendees.length - props.nonAttendees.length - props.attendees.length}</span>
 					{props.possibleAttendees.length > 0 && <AttendeesDetailPopover title="Nevyjádření" className="" people={props.possibleAttendees}/>}
 				</>
-				: <span className="badge badge-secondary"><Loading/></span>
+				: <span className="badge badge-secondary"><Loading size='9px'/></span>
 			}
 		</span>
 	</div>

@@ -1,0 +1,24 @@
+
+.Attendees {
+	position: relative;
+	margin-right: 3px;
+}
+
+.Attendees .badge {
+	width: 18px;
+}
+
+.Attendees .PeoplePopover {
+	display: none;
+	position: absolute;
+	top: 20px;
+	left: -5px;
+}
+
+.Attendees .PeoplePopover .popover-body {
+	white-space: nowrap;
+}
+
+.Attendees:hover .PeoplePopover {
+	display: block;
+}

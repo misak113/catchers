@@ -3,21 +3,37 @@ import moment from 'moment';
 import classNames from 'classnames';
 import Anchor from '../Components/Anchor';
 import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
-import { MATCHES, IMatch, mapMatch } from '../Model/collections';
+import { MATCHES, IMatch, mapMatch, USERS, mapUser } from '../Model/collections';
 import Loading from '../Components/Loading';
+import Attendees from '../Components/Match/Attendees';
 
 interface IProps {}
 
 const Matches: React.FC<IProps & IFirebaseValue> = (props: IProps & IFirebaseValue) => {
 	const [errorMessage, setErrorMessage] = useState<string>();
 	const [matches, setMatches] = useState<IMatch[]>();
+	const [possibleAttendees, setPossibleAttendees] = useState<string[]>();
+
+	useEffect(() => {
+		(async () => {
+			try {
+				const { docs } = await props.firebaseApp.firestore().collection(USERS).get();
+				const users = docs.map(mapUser);
+				console.log('users', users);
+				setPossibleAttendees(users.filter((user) => user.player).map((user) => user.name || user.email));
+			} catch (error) {
+				console.error(error);
+				setErrorMessage(error.message);
+			}
+		})();
+	}, [props.firebaseApp]);
 
 	useEffect(() => {
 		(async () => {
 			try {
 				const { docs } = await props.firebaseApp.firestore().collection(MATCHES).get();
 				const matches = docs.map(mapMatch);
-				console.log(matches);
+				console.log('matches', matches);
 				setMatches(matches);
 			} catch (error) {
 				console.error(error);
@@ -38,7 +54,7 @@ const Matches: React.FC<IProps & IFirebaseValue> = (props: IProps & IFirebaseVal
 					<th>Čas</th>
 					<th>Soupeř</th>
 					<th>Hřiště</th>
-					<th>Detail</th>
+					<th>Účastníci</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -48,7 +64,11 @@ const Matches: React.FC<IProps & IFirebaseValue> = (props: IProps & IFirebaseVal
 						'table-success': moment(match.startsAt).diff(now, 'days') < 6,
 						'table-dark': !!match.referees,
 					})}>
-						<td>{moment(match.startsAt).format('LL')} <small>{moment(match.startsAt).format('ddd')}</small></td>
+						<td>
+							<Anchor href={`/zapas/${match.id}`}>
+								{moment(match.startsAt).format('LL')} <small>{moment(match.startsAt).format('ddd')}</small>
+							</Anchor>
+						</td>
 						<td>{moment(match.startsAt).format('LT')}</td>
 						<td>
 							{match.opponent && match.opponent.replace(' ', ' ')}
@@ -56,7 +76,11 @@ const Matches: React.FC<IProps & IFirebaseValue> = (props: IProps & IFirebaseVal
 						</td>
 						<td>{match.field.replace(' ', ' ')}</td>
 						<td>
-							<Anchor href={`/zapas/${match.id}`}>detail</Anchor>
+							<Attendees
+								attendees={match.attendees || []}
+								nonAttendees={match.nonAttendees || []}
+								possibleAttendees={possibleAttendees}
+							/>
 						</td>
 					</tr>
 				))

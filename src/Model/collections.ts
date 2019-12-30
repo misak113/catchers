@@ -1,4 +1,4 @@
-
+import _ from 'lodash';
 import firebase from 'firebase';
 
 export const MATCHES = 'matches';
@@ -6,6 +6,7 @@ export const MATCHES = 'matches';
 export interface IPersonResult {
 	userId: string;
 	resultAt: Date;
+	note?: string;
 }
 
 export interface IMatch {
@@ -16,13 +17,17 @@ export interface IMatch {
 	referees?: string[];
 	attendees?: IPersonResult[];
 	nonAttendees?: IPersonResult[];
+	maybeAttendees?: IPersonResult[];
+	attendeesResultLog?: (IPersonResult & { type: 'attendee' | 'nonAttendee' | 'maybeAttendee' })[];
 }
 
 function mapPersonResult(doc: any) {
-	return {
-		email: doc.email,
+	return _.omitBy({
+		userId: doc.userId,
 		resultAt: doc.resultAt.toDate(),
-	};
+		note: doc.note,
+		type: doc.type,
+	}, _.isUndefined);
 }
 
 export function mapMatch(doc: firebase.firestore.QueryDocumentSnapshot): IMatch {
@@ -35,6 +40,8 @@ export function mapMatch(doc: firebase.firestore.QueryDocumentSnapshot): IMatch 
 		referees: data.referees,
 		attendees: data.attendees?.map(mapPersonResult),
 		nonAttendees: data.nonAttendees?.map(mapPersonResult),
+		maybeAttendees: data.maybeAttendees?.map(mapPersonResult),
+		attendeesResultLog: data.attendeesResultLog?.map(mapPersonResult),
 	};
 }
 
@@ -45,6 +52,7 @@ export interface IUser {
 	email: string;
 	name?: string;
 	player: boolean;
+	linkedUserUid?: string;
 }
 
 export function mapUser(doc: firebase.firestore.QueryDocumentSnapshot): IUser {
@@ -54,5 +62,6 @@ export function mapUser(doc: firebase.firestore.QueryDocumentSnapshot): IUser {
 		email: data.email,
 		name: data.name,
 		player: typeof data.player !== 'undefined' ? data.player : false,
+		linkedUserUid: data.linkedUserUid,
 	};
 }

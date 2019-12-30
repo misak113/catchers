@@ -6,6 +6,7 @@ import { IPersonResult } from '../../Model/collections';
 
 interface IProps {
 	attendees: IPersonResult[];
+	maybeAttendees: IPersonResult[];
 	nonAttendees: IPersonResult[];
 	possibleAttendees?: string[];
 }
@@ -34,6 +35,10 @@ const Attendees = (props: IProps) => (
 			<span className="badge badge-success">{props.attendees.length}</span>
 			{props.attendees.length > 0 && <AttendeesDetailPopover title='Potvrzení' className="bg-success text-white" people={props.attendees.map((person) => person.userId)}/>}
 		</span>
+		{props.maybeAttendees.length > 0 && <span className="Attendees maybe">
+			<span className="badge badge-warning">{props.maybeAttendees.length}</span>
+			<AttendeesDetailPopover title='Možná' className="bg-warning" people={props.maybeAttendees.map((person) => person.userId)}/>
+		</span>}
 		<span className="Attendees declined">
 			<span className="badge badge-danger">{props.nonAttendees.length}</span>
 			{props.nonAttendees.length > 0 && <AttendeesDetailPopover title="Odmítnutí" className="bg-danger text-white" people={props.nonAttendees.map((person) => person.userId)}/>}

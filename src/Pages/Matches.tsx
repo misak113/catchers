@@ -56,6 +56,7 @@ const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps &
 							<td>
 								<Attendees
 									attendees={match.attendees || []}
+									maybeAttendees={match.maybeAttendees || []}
 									nonAttendees={match.nonAttendees || []}
 									possibleAttendees={possibleAttendees}
 								/>

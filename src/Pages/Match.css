@@ -4,9 +4,13 @@
 }
 
 .Match-cards {
-	margin-bottom: 10px;
+	margin-bottom: 50px;
 }
 
 .Match-unresponded {
 	margin-bottom: 80px;
+}
+
+.Match-changeResponse {
+	margin-top: 80px;
 }

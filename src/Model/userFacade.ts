@@ -3,21 +3,48 @@ import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
 import { useEffect, useState } from "react";
 import { getErrorMessage } from "../Util/error";
-import { mapUser, IUser, getUsersCollection } from "./collections";
+import { mapUser, IUser, getUsersCollection, IPersonResult } from "./collections";
+
+export function getUserName(user: IUser) {
+	return user.name ?? user.email;
+}
+
+export const createMapPersonResultToUser = (possibleAttendees: IUser[] | undefined) => (personResult: IPersonResult): IUser => {
+	const user = possibleAttendees?.find((user) => user.id === personResult.userId);
+	return user ?? {
+		id: personResult.userId,
+		email: `user-${personResult.userId}@sccatchers.cz`, // This is only dummy replacement of User if not found in DB from any reason
+		player: false,
+	};
+};
+
+export function getUnrespondedUsers(props: {
+	attendees: IPersonResult[];
+	maybeAttendees: IPersonResult[];
+	nonAttendees: IPersonResult[];
+	possibleAttendees?: IUser[];
+}) {
+	const responded = [
+		...props.attendees,
+		...props.nonAttendees,
+		...props.maybeAttendees,
+	].map((response) => response.userId);
+	return props.possibleAttendees?.filter((user: IUser) => !responded.includes(user.id)) ?? [];
+}
 
 export function usePossibleAttendees(
 	firebaseApp: firebase.FirebaseApp,
 	user: FirebaseUser | null,
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
-	const [possibleAttendees, setPossibleAttendees] = useState<string[]>();
+	const [possibleAttendees, setPossibleAttendees] = useState<IUser[]>();
 	useEffect(() => {
 		(async () => {
 			try {
 				const { docs } = await firestore.getDocs(getUsersCollection(firebaseApp));
 				const users = docs.map(mapUser);
 				console.log('users', users);
-				setPossibleAttendees(users.filter((user) => user.player).map((user) => user.name || user.email));
+				setPossibleAttendees(users.filter((user) => user.player));
 				setErrorMessage(undefined);
 			} catch (error) {
 				console.error(error);

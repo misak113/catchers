@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Anchor from '../Anchor';
 import './LoginEmailPopover.css';
+import { getErrorMessage } from '../../Util/error';
 
 export interface ICredentials {
 	email: string;
@@ -30,7 +31,7 @@ export default function LoginEmailPopover(props: IProps) {
 							});
 						} catch (error) {
 							console.error(error);
-							setErrorMessage(error.message);
+							setErrorMessage(getErrorMessage(error));
 						}
 					}
 				}}>

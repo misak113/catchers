@@ -14,6 +14,7 @@ import { IAuthValue, withAuth } from '../Context/AuthContext';
 import TeamCard from '../Components/Match/TeamCard';
 import FieldCard from '../Components/Match/FieldCard';
 import MatchTimeCard from '../Components/Match/MatchTimeCard';
+import { getErrorMessage } from '../Util/error';
 
 interface IProps {
 	matchId: string;
@@ -48,7 +49,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 			setAttendeeErrorMessage(undefined);
 		} catch (error) {
 			console.error(error);
-			setAttendeeErrorMessage(error.message);
+			setAttendeeErrorMessage(getErrorMessage(error));
 		}
 	};
 

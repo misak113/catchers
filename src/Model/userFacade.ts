@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getErrorMessage } from "../Util/error";
 import { USERS, mapUser, IUser } from "./collections";
 
 export function usePossibleAttendees(
@@ -17,7 +18,7 @@ export function usePossibleAttendees(
 				setErrorMessage(undefined);
 			} catch (error) {
 				console.error(error);
-				setErrorMessage(error.message);
+				setErrorMessage(getErrorMessage(error));
 			}
 		})();
 	}, [firebaseApp, user, setErrorMessage]);
@@ -46,7 +47,7 @@ export function useCurrentUser(
 				setErrorMessage(undefined);
 			} catch (error) {
 				console.error(error);
-				setErrorMessage(error.message);
+				setErrorMessage(getErrorMessage(error));
 			}
 		})();
 	}, [firebaseApp, user, setErrorMessage]);

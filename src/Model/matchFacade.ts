@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { useEffect, useState } from "react";
+import { getErrorMessage } from '../Util/error';
 import { MATCHES, IMatch, mapMatch, IUser, IPersonResult } from "./collections";
 
 export function useMatches(
@@ -18,7 +19,7 @@ export function useMatches(
 				setErrorMessage(undefined);
 			} catch (error) {
 				console.error(error);
-				setErrorMessage(error.message);
+				setErrorMessage(getErrorMessage(error));
 			}
 		})();
 	}, [firebaseApp, user, setErrorMessage]);
@@ -44,7 +45,7 @@ export function useMatch(
 				setErrorMessage(undefined);
 			} catch (error) {
 				console.error(error);
-				setErrorMessage(error.message);
+				setErrorMessage(getErrorMessage(error));
 			}
 		})();
 	}, [matchId, firebaseApp, user, setErrorMessage, reloadIndex]);

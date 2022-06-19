@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './Register.css';
 import { withAuth, IAuthValue } from '../Context/AuthContext';
 import { withRouter, IRouterValue } from '../Context/RouterContext';
+import { getErrorMessage } from '../Util/error';
 
 interface IProps {}
 
@@ -23,7 +24,7 @@ const Register: React.FC<IProps & IAuthValue & IRouterValue> = (props: IProps & 
                     props.router.goPath('/');
                 } catch (error) {
                     console.error(error);
-                    setErrorMessage(error.message);
+                    setErrorMessage(getErrorMessage(error));
                 }
             }
         }}>

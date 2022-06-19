@@ -56,7 +56,7 @@ export function AttendanceResponseForm(props: IProps & IFirebaseValue & IAuthVal
 			</div>
 		<div className="row">
 		</div>
-			<div className="col-md-5">
+			<div className="col-md-6">
 				<button
 					className="btn btn-block btn-lg btn-success"
 					onClick={onClickRespond(addAttendee)}
@@ -69,7 +69,7 @@ export function AttendanceResponseForm(props: IProps & IFirebaseValue & IAuthVal
 					onClick={onClickRespond(addMaybeAttendee)}
 				>Možná</button>
 			</div>*/}
-			<div className="col-md-5">
+			<div className="col-md-6">
 				<button
 					className="btn btn-block btn-lg btn-danger"
 					onClick={onClickRespond(addNonAttendee)}

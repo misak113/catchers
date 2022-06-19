@@ -41,6 +41,7 @@ class AuthProviderLOC extends React.Component<IProps, IState> {
 		super(props);
 		firebase.auth().languageCode = 'cs_CZ';
 		this.facebookAuthProvider.addScope('email');
+		this.facebookAuthProvider.addScope('public_profile');
 	}
 
 	public componentDidMount() {

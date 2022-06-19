@@ -1,10 +1,10 @@
 import * as firebase from '@firebase/app';
 import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
-import _ from 'lodash';
 import { useEffect, useState } from "react";
 import { getErrorMessage } from '../Util/error';
-import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection, AttendeeType } from "./collections";
+import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection } from "./collections";
+import { safeObjectKeys } from '../Util/object';
 
 
 export function useMatches(
@@ -38,12 +38,12 @@ export function useMatch(
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [reloadIndex, setReloadIndex] = useState(0);
-	const [match, setMatch] = useState<IMatch>();
+	const [match, setMatch] = useState<IMatch | null>(null);
 	useEffect(() => {
 		(async () => {
 			try {
 				const doc = await firestore.getDoc(firestore.doc(getMatchesCollection(firebaseApp), matchId));
-				const match = doc.exists() ? mapMatch(doc as firestore.QueryDocumentSnapshot) : undefined;
+				const match = mapMatch(doc);
 				console.log('match', match);
 				setMatch(match);
 				setErrorMessage(undefined);
@@ -116,13 +116,15 @@ async function updateAttendees(
 	const currentAttendees = (match.attendees || []).filter(person => person.userId !== user.id);
 	const currentNonAttendees = (match.nonAttendees || []).filter(person => person.userId !== user.id);
 	const currentMaybeAttendees = (match.maybeAttendees || []).filter(person => person.userId !== user.id);
-	const currentResult = _.omitBy<IPersonResult>({
+	const currentResult: IPersonResult = {
 		userId: user.id,
 		resultAt: new Date(),
-		note,
-	}, _.isUndefined) as IPersonResult;
+	};
+	if (note) {
+		currentResult.note = note;
+	}
 	const result = updateCallback(currentResult);
-	const type = Object.keys(result)[0] as AttendeeType;
+	const type = safeObjectKeys(result)[0];
 	const attendees = [...currentAttendees, ...result.attendee ? [result.attendee] : []];
 	const nonAttendees = [...currentNonAttendees, ...result.nonAttendee ? [result.nonAttendee] : []];
 	const maybeAttendees = [...currentMaybeAttendees, ...result.maybeAttendee ? [result.maybeAttendee] : []];
@@ -142,5 +144,5 @@ async function getDocOfMatch(firebaseApp: firebase.FirebaseApp, match: IMatch) {
 	if (!doc.exists()) {
 		throw new Error(`Match ${match.id} was not found`);
 	}
-	return doc as firestore.QueryDocumentSnapshot;
+	return doc as firestore.QueryDocumentSnapshot<IMatch>;
 }

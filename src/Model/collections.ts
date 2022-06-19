@@ -40,7 +40,7 @@ function mapPersonResult(doc: any) {
 
 export function mapMatch<T extends firestore.DocumentSnapshot>(
 	doc: T
-): T extends firestore.QueryDocumentSnapshot ? IMatch : IMatch | null {
+): T extends firestore.QueryDocumentSnapshot<IMatch> ? IMatch : IMatch | null {
 	const data = doc.data();
 	if (!data) {
 		return null!; // as ReturnType<typeof mapMatch<T>>

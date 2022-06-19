@@ -12,6 +12,7 @@ import TeamCard from '../Components/Match/TeamCard';
 import FieldCard from '../Components/Match/FieldCard';
 import MatchTimeCard from '../Components/Match/MatchTimeCard';
 import AttendanceResponseForm from '../Components/Match/AttendenceResponseForm';
+import FormattedDateTime from '../Components/Util/FormattedDateTime';
 
 interface IProps {
 	matchId: string;
@@ -71,12 +72,14 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 							{match ? attendees.map((attendee) => (
 								<tr key={attendee.userId}><td>
 									{getUserName(mapPersonResultToUser(attendee))}<br/>
+									<footer className="blockquote-footer"><FormattedDateTime startsAt={attendee.resultAt}/></footer>
 									{attendee.note && <footer className="blockquote-footer">{attendee.note}</footer>}
 								</td></tr>
 							)) : <tr><td><Loading size='40px'/></td></tr>}
 							{match ? maybeAttendees.map((maybeAttendee) => (
 								<tr className="table-warning" key={maybeAttendee.userId}><td>
 									{getUserName(mapPersonResultToUser(maybeAttendee))}<br/>
+									<footer className="blockquote-footer"><FormattedDateTime startsAt={maybeAttendee.resultAt}/></footer>
 									{maybeAttendee.note && <footer className="blockquote-footer">{maybeAttendee.note}</footer>}
 								</td></tr>
 							)) : <tr className="table-warning"><td><Loading size='40px'/></td></tr>}
@@ -92,6 +95,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 							{match ? nonAttendees.map((nonAttendee) => (
 								<tr key={nonAttendee.userId}><td>
 									{getUserName(mapPersonResultToUser(nonAttendee))}<br/>
+									<footer className="blockquote-footer"><FormattedDateTime startsAt={nonAttendee.resultAt}/></footer>
 									{nonAttendee.note && <footer className="blockquote-footer">{nonAttendee.note}</footer>}
 								</td></tr>
 							)) : <tr><td><Loading size='40px'/></td></tr>}

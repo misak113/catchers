@@ -1,5 +1,5 @@
 import React from 'react';
-import firebase from 'firebase';
+import * as firebase from '@firebase/app';
 import firebaseConfig from '../firebase.json';
 
 interface IProps {
@@ -7,14 +7,14 @@ interface IProps {
 }
 
 export interface IFirebaseValue {
-	firebaseApp: firebase.app.App;
+	firebaseApp: firebase.FirebaseApp;
 }
 
 export const FirebaseContext = React.createContext<IFirebaseValue>({} as IFirebaseValue);
 
 export class FirebaseProvider extends React.Component<IProps> {
 
-	private firebaseApp: firebase.app.App;
+	private firebaseApp: firebase.FirebaseApp;
 
 	constructor(props: IProps) {
 		super(props);

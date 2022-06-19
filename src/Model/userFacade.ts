@@ -1,17 +1,20 @@
+import * as firebase from '@firebase/app';
+import * as firestore from '@firebase/firestore';
+import { User as FirebaseUser } from '@firebase/auth';
 import { useEffect, useState } from "react";
 import { getErrorMessage } from "../Util/error";
-import { USERS, mapUser, IUser } from "./collections";
+import { mapUser, IUser, getUsersCollection } from "./collections";
 
 export function usePossibleAttendees(
-	firebaseApp: firebase.app.App,
-	user: firebase.User | null,
+	firebaseApp: firebase.FirebaseApp,
+	user: FirebaseUser | null,
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [possibleAttendees, setPossibleAttendees] = useState<string[]>();
 	useEffect(() => {
 		(async () => {
 			try {
-				const { docs } = await firebaseApp.firestore().collection(USERS).get();
+				const { docs } = await firestore.getDocs(getUsersCollection(firebaseApp));
 				const users = docs.map(mapUser);
 				console.log('users', users);
 				setPossibleAttendees(users.filter((user) => user.player).map((user) => user.name || user.email));
@@ -26,8 +29,8 @@ export function usePossibleAttendees(
 }
 
 export function useCurrentUser(
-	firebaseApp: firebase.app.App,
-	user: firebase.User | null,
+	firebaseApp: firebase.FirebaseApp,
+	user: FirebaseUser | null,
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [currentUser, setCurrentUser] = useState<IUser>();
@@ -37,7 +40,7 @@ export function useCurrentUser(
 				return;
 			}
 			try {
-				const { docs } = await firebaseApp.firestore().collection(USERS).where('linkedUserUid', '==', user.uid).get();
+				const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp), firestore.where('linkedUserUid', '==', user.uid)));
 				if (docs.length < 1) {
 					return;
 				}

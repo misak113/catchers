@@ -1,5 +1,6 @@
+import * as firebase from '@firebase/app';
 import _ from 'lodash';
-import firebase from 'firebase';
+import * as firestore from '@firebase/firestore';
 
 export const MATCHES = 'matches';
 
@@ -8,6 +9,8 @@ export interface IPersonResult {
 	resultAt: Date;
 	note?: string;
 }
+
+export type AttendeeType = 'attendee' | 'nonAttendee' | 'maybeAttendee';
 
 export interface IMatch {
 	id: string;
@@ -18,7 +21,12 @@ export interface IMatch {
 	attendees?: IPersonResult[];
 	nonAttendees?: IPersonResult[];
 	maybeAttendees?: IPersonResult[];
-	attendeesResultLog?: (IPersonResult & { type: 'attendee' | 'nonAttendee' | 'maybeAttendee' })[];
+	attendeesResultLog?: (IPersonResult & { type: AttendeeType })[];
+}
+
+export function getMatchesCollection(firebaseApp: firebase.FirebaseApp) {
+	const matchesCollection = firestore.collection(firestore.getFirestore(firebaseApp), MATCHES);
+	return matchesCollection as firestore.CollectionReference<IMatch>;
 }
 
 function mapPersonResult(doc: any) {
@@ -30,8 +38,13 @@ function mapPersonResult(doc: any) {
 	}, _.isUndefined);
 }
 
-export function mapMatch(doc: firebase.firestore.QueryDocumentSnapshot): IMatch {
+export function mapMatch<T extends firestore.DocumentSnapshot>(
+	doc: T
+): T extends firestore.QueryDocumentSnapshot ? IMatch : IMatch | null {
 	const data = doc.data();
+	if (!data) {
+		return null!; // as ReturnType<typeof mapMatch<T>>
+	}
 	return {
 		id: doc.id,
 		startsAt: data.startsAt.toDate(),
@@ -55,7 +68,12 @@ export interface IUser {
 	linkedUserUid?: string;
 }
 
-export function mapUser(doc: firebase.firestore.QueryDocumentSnapshot): IUser {
+export function getUsersCollection(firebaseApp: firebase.FirebaseApp) {
+	const usersCollection = firestore.collection(firestore.getFirestore(firebaseApp), USERS);
+	return usersCollection as firestore.CollectionReference<IUser>;
+}
+
+export function mapUser(doc: firestore.QueryDocumentSnapshot): IUser {
 	const data = doc.data();
 	return {
 		id: doc.id,

@@ -40,12 +40,12 @@ export function useCurrentUser(
 				return;
 			}
 			try {
-				const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp), firestore.where('linkedUserUid', '==', user.uid)));
+				const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp), firestore.where('linkedUserUids', 'array-contains', user.uid)));
 				if (docs.length < 1) {
 					return;
 				}
 				const currentUser = mapUser(docs[0]);
-				console.log('currentUser', user);
+				console.log('currentUser', user, currentUser);
 				setCurrentUser(currentUser);
 				setErrorMessage(undefined);
 			} catch (error) {

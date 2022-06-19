@@ -65,7 +65,7 @@ export interface IUser {
 	email: string;
 	name?: string;
 	player: boolean;
-	linkedUserUid?: string;
+	linkedUserUids?: string[];
 }
 
 export function getUsersCollection(firebaseApp: firebase.FirebaseApp) {
@@ -80,6 +80,6 @@ export function mapUser(doc: firestore.QueryDocumentSnapshot): IUser {
 		email: data.email,
 		name: data.name,
 		player: typeof data.player !== 'undefined' ? data.player : false,
-		linkedUserUid: data.linkedUserUid,
+		linkedUserUids: data.linkedUserUids,
 	};
 }

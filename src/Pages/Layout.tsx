@@ -1,3 +1,4 @@
+import * as firebaseAuth from '@firebase/auth';
 import React, { useState } from 'react';
 import classNames from 'classnames';
 import './Layout.css';
@@ -16,24 +17,25 @@ const pages = [
 		name: 'SC Catchers',
 		path: '/',
 		render: () => <Homepage/>,
-		hiddenInMenu: true,
+		hiddenInMenu: () => true,
 	},
 	{
 		name: 'Zápasy',
 		path: '/zapasy',
 		render: () => <Matches/>,
+		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
 	},
 	{
 		name: 'Zápas',
 		path: /\/zapas\/(?<matchId>\w+)/,
 	render: (params: any) => { console.log(params); return <Match matchId={params.matchId}/> },
-		hiddenInMenu: true,
+		hiddenInMenu: () => true,
 	},
 	{
 		name: 'Registrace',
 		path: '/registrace',
 		render: () => <Register/>,
-		hiddenInMenu: true,
+		hiddenInMenu: () => true,
 	},
 ];
 
@@ -73,7 +75,7 @@ const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 
 					<div className="collapse navbar-collapse" style={{ display: menuOpen ? 'block' : 'none' }}>
 						<ul className="navbar-nav mr-auto">
-							{pages.filter((page) => !page.hiddenInMenu).map((page) => (
+							{pages.filter((page) => !page.hiddenInMenu?.(props.auth.user)).map((page) => (
 								<li key={page.path.toString()} className={classNames("nav-item", {
 									'active': page.path === currentPath,
 								})}>

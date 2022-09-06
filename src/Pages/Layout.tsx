@@ -11,6 +11,9 @@ import 'moment/locale/cs';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 import LoginEmailPopover, { ICredentials } from '../Components/Login/LoginEmailPopover';
 import Register from './Register';
+import { useShowPlayerLinkingModal } from '../Model/userFacade';
+import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
+import PlayerLinkModal from '../Components/PlayerLinking/PlayerLinkModal';
 
 const pages = [
 	{
@@ -58,12 +61,15 @@ function matchParams(path: string | RegExp, currentPath: string) {
 
 interface IProps {}
 
-const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
+const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & IFirebaseValue & IAuthValue) => {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [loginEmailShown, setShowLoginEmail] = useState(false);
 	const [currentPath, changePath] = useState(window.location.pathname);
 	window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
 	const currentPage = pages.find((page) => matchPage(page.path, currentPath));
+
+	const showPlayerLinkingModal = useShowPlayerLinkingModal(props.firebaseApp, props.auth.user, () => null);
+
 	return (
 		<div className="Layout">
 			<header className="Layout-header">
@@ -128,6 +134,7 @@ const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 					</div>
 				</nav>
 			</header>
+			{showPlayerLinkingModal && <PlayerLinkModal/>}
 			<section className="container Layout-content">
 				{currentPage ? (
 					currentPage.render && currentPage.render(matchParams(currentPage.path, currentPath))
@@ -144,4 +151,4 @@ const Layout: React.FC<IProps & IAuthValue> = (props: IProps & IAuthValue) => {
 	);
 }
 
-export default withAuth(Layout);
+export default withFirebase(withAuth(Layout));

@@ -1,0 +1,14 @@
+
+.PlayerLinkModal-modal {
+	display: block;
+	background-color: rgba(0, 0, 0, 0.5);
+	font-family: WorldOfWatter;
+}
+
+.PlayerLinkModal-modal .player-row .player-link-button {
+	opacity: 0.2;
+}
+
+.PlayerLinkModal-modal .player-row:hover .player-link-button {
+	opacity: 1;
+}

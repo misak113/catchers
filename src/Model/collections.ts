@@ -83,3 +83,50 @@ export function mapUser(doc: firestore.QueryDocumentSnapshot): IUser {
 		linkedUserUids: data.linkedUserUids,
 	};
 }
+
+export const MAILS = 'mail';
+
+export interface IMail {
+	to: string[];
+	message: {
+		subject: string;
+		text: string;
+		html: string;
+	};
+	delivery?: {
+		startTime: Date;
+		state: 'ERROR' | 'PROCESSING' | 'PENDING' | 'SUCCESS';
+		attempts: number;
+		endTime?: Date;
+		error?: string | null;
+		leaseExpireTime?: Date | null;
+		info?: {
+			messageId: string | null;
+			accepted: string[];
+			rejected: string[];
+			pending: string[];
+			response: string | null;
+		};
+	};
+}
+
+export function getMailsCollection(firebaseApp: firebase.FirebaseApp) {
+	const mailsCollection = firestore.collection(firestore.getFirestore(firebaseApp), MAILS);
+	return mailsCollection as firestore.CollectionReference<IMail>;
+}
+
+export const USER_PLAYER_LINK_REQUESTS = 'userPlayerLinkRequests';
+
+export interface IUserPlayerLinkRequest {
+	hash: string;
+	userUid: string;
+	/** The ID string from the collection key (not firebase auth user uid) */
+	playerId: string;
+	requestedAt: Date;
+	linkedAt?: Date;
+}
+
+export function getUserPlayerLinkRequestsCollection(firebaseApp: firebase.FirebaseApp) {
+	const requestsCollection = firestore.collection(firestore.getFirestore(firebaseApp), USER_PLAYER_LINK_REQUESTS);
+	return requestsCollection as firestore.CollectionReference<IUserPlayerLinkRequest>;
+}

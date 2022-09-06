@@ -118,15 +118,28 @@ export function getMailsCollection(firebaseApp: firebase.FirebaseApp) {
 export const USER_PLAYER_LINK_REQUESTS = 'userPlayerLinkRequests';
 
 export interface IUserPlayerLinkRequest {
+	id: string;
 	hash: string;
 	userUid: string;
 	/** The ID string from the collection key (not firebase auth user uid) */
 	playerId: string;
 	requestedAt: Date;
-	linkedAt?: Date;
+	linkedAt: Date | null;
 }
 
 export function getUserPlayerLinkRequestsCollection(firebaseApp: firebase.FirebaseApp) {
 	const requestsCollection = firestore.collection(firestore.getFirestore(firebaseApp), USER_PLAYER_LINK_REQUESTS);
 	return requestsCollection as firestore.CollectionReference<IUserPlayerLinkRequest>;
+}
+
+export function mapUserPlayerLinkRequest(doc: firestore.QueryDocumentSnapshot): IUserPlayerLinkRequest {
+	const data = doc.data();
+	return {
+		id: doc.id,
+		hash: data.hash,
+		playerId: data.playerId,
+		userUid: data.userUid,
+		requestedAt: data.requestedAt.toDate(),
+		linkedAt: data.linkedAt?.toDate(),
+	};
 }

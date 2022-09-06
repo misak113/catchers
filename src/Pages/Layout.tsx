@@ -14,6 +14,14 @@ import Register from './Register';
 import { useShowPlayerLinkingModal } from '../Model/userFacade';
 import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
 import PlayerLinkModal from '../Components/PlayerLinking/PlayerLinkModal';
+import LinkPlayer from './LinkPlayer';
+
+const PAGE_LINK_PLAYER = {
+	name: 'Spojení hráčů',
+	path: /\/spoj-hrace\/(?<requestHash>[\w-]+)/,
+	render: (params: { requestHash: string }) => <LinkPlayer requestHash={params.requestHash}/>,
+	hiddenInMenu: () => true,
+};
 
 const pages = [
 	{
@@ -31,7 +39,7 @@ const pages = [
 	{
 		name: 'Zápas',
 		path: /\/zapas\/(?<matchId>\w+)/,
-	render: (params: any) => { console.log(params); return <Match matchId={params.matchId}/> },
+		render: (params: { matchId: string }) => <Match matchId={params.matchId}/>,
 		hiddenInMenu: () => true,
 	},
 	{
@@ -40,6 +48,7 @@ const pages = [
 		render: () => <Register/>,
 		hiddenInMenu: () => true,
 	},
+	PAGE_LINK_PLAYER,
 ];
 
 function matchPage(path: string | RegExp, currentPath: string) {
@@ -50,10 +59,10 @@ function matchPage(path: string | RegExp, currentPath: string) {
 	}
 }
 
-function matchParams(path: string | RegExp, currentPath: string) {
+function matchParams(path: string | RegExp, currentPath: string): any {
 	if (path instanceof RegExp) {
 		const matches = currentPath.match(path);
-		return matches ? matches.groups : {};
+		return matches?.groups || {};
 	} else {
 		return {};
 	}
@@ -69,6 +78,7 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 	const currentPage = pages.find((page) => matchPage(page.path, currentPath));
 
 	const showPlayerLinkingModal = useShowPlayerLinkingModal(props.firebaseApp, props.auth.user, () => null);
+	const isLinkPlayerPage = currentPage === PAGE_LINK_PLAYER;
 
 	return (
 		<div className="Layout">
@@ -134,7 +144,7 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 					</div>
 				</nav>
 			</header>
-			{showPlayerLinkingModal && <PlayerLinkModal/>}
+			{showPlayerLinkingModal && !isLinkPlayerPage && <PlayerLinkModal/>}
 			<section className="container Layout-content">
 				{currentPage ? (
 					currentPage.render && currentPage.render(matchParams(currentPage.path, currentPath))

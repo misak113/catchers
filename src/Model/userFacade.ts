@@ -3,8 +3,10 @@ import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
 import { useEffect, useState } from "react";
 import { getErrorMessage } from "../Util/error";
-import { mapUser, IUser, getUsersCollection, IPersonResult, getMailsCollection, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest } from "./collections";
+import { mapUser, IUser, getUsersCollection, IPersonResult, getMailsCollection, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest } from "./collections";
 import { generateHash } from '../Components/Util/hash';
+import { Creatable } from './types';
+import moment from 'moment';
 
 export function getUserName(user: IUser) {
 	return user.name ?? user.email;
@@ -157,12 +159,64 @@ export async function createUserPlayerLinkRequest(
 	player: IUser,
 ) {
 	const hash = generateHash();
-	const userPlayerLinkRequest: IUserPlayerLinkRequest = {
+	const userPlayerLinkRequest: Creatable<IUserPlayerLinkRequest> = {
 		hash,
 		userUid: user.uid,
 		playerId: player.id,
 		requestedAt: new Date(),
+		linkedAt: null,
 	};
 	await firestore.addDoc(getUserPlayerLinkRequestsCollection(firebaseApp), userPlayerLinkRequest);
 	return userPlayerLinkRequest;
+}
+
+export function useLinkPlayer(
+	firebaseApp: firebase.FirebaseApp,
+	user: FirebaseUser | null,
+	requestHash: string,
+) {
+	const [linking, setLinking] = useState(true);
+	const [errorMessage, setErrorMessage] = useState<string | undefined>();
+
+	useEffect(() => {
+		setLinking(true);
+		(async () => {
+			if (!user) {
+				setErrorMessage('Nejprve se prosím přihlas');
+				setLinking(false);
+				return;
+			}
+			try {
+				const { docs } = await firestore.getDocs(firestore.query(
+					getUserPlayerLinkRequestsCollection(firebaseApp),
+					firestore.where('hash', '==', requestHash),
+					firestore.where('userUid', '==', user.uid),
+					firestore.where('linkedAt', '==', null),
+					firestore.where('requestedAt', '>', moment().subtract(1, 'day').toDate()),
+				));
+				if (docs.length < 1) {
+					setErrorMessage('Neplatný požadavek');
+					return;
+				}
+				const requestDoc = docs[0];
+				const userPlayerLinkRequest = mapUserPlayerLinkRequest(requestDoc);
+				const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), userPlayerLinkRequest.playerId));
+				console.log("User doc", userDoc.id);
+				await firestore.updateDoc(userDoc.ref, {
+					linkedUserUids: firestore.arrayUnion(userPlayerLinkRequest.userUid),
+				});
+				await firestore.updateDoc(requestDoc.ref, {
+					linkedAt: new Date(),
+				});
+				setErrorMessage(undefined);
+			} catch (error) {
+				console.error(error);
+				setErrorMessage(getErrorMessage(error));
+			} finally {
+				setLinking(false);
+			}
+		})();
+	}, [firebaseApp, user, requestHash]);
+
+	return [linking, errorMessage];
 }

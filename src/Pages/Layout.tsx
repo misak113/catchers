@@ -1,5 +1,5 @@
 import * as firebaseAuth from '@firebase/auth';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import classNames from 'classnames';
 import './Layout.css';
 import Anchor from '../Components/Anchor';
@@ -77,7 +77,8 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 	window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
 	const currentPage = pages.find((page) => matchPage(page.path, currentPath));
 
-	const showPlayerLinkingModal = useShowPlayerLinkingModal(props.firebaseApp, props.auth.user, () => null);
+	const setErrorMessageBlank = useCallback(() => null, []);
+	const showPlayerLinkingModal = useShowPlayerLinkingModal(props.firebaseApp, props.auth.user, setErrorMessageBlank);
 	const isLinkPlayerPage = currentPage === PAGE_LINK_PLAYER;
 
 	return (

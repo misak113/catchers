@@ -77,7 +77,7 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 	window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
 	const currentPage = pages.find((page) => matchPage(page.path, currentPath));
 
-	const setErrorMessageBlank = useCallback(() => null, []);
+	const setErrorMessageBlank = useCallback(() => null, [currentPath]); // The currentPath dep is hack to refresh useCurrentUser
 	const showPlayerLinkingModal = useShowPlayerLinkingModal(props.firebaseApp, props.auth.user, setErrorMessageBlank);
 	const isLinkPlayerPage = currentPage === PAGE_LINK_PLAYER;
 

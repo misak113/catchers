@@ -86,11 +86,13 @@ export function useCurrentUser(
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [currentUser, setCurrentUser] = useState<IUser>();
+	const [loading, setLoading] = useState<boolean>(true);
 	useEffect(() => {
 		(async () => {
 			if (!user) {
 				return;
 			}
+			setLoading(true);
 			try {
 				const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp), firestore.where('linkedUserUids', 'array-contains', user.uid)));
 				if (docs.length < 1) {
@@ -103,10 +105,12 @@ export function useCurrentUser(
 			} catch (error) {
 				console.error(error);
 				setErrorMessage(getErrorMessage(error));
+			} finally {
+				setLoading(false);
 			}
 		})();
 	}, [firebaseApp, user, setErrorMessage]);
-	return [currentUser];
+	return [currentUser, loading] as const;
 }
 
 export function useShowPlayerLinkingModal(
@@ -115,15 +119,15 @@ export function useShowPlayerLinkingModal(
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [showModal, setShowModal] = useState(false);
-	const [currentUser] = useCurrentUser(firebaseApp, user, setErrorMessage);
+	const [currentUser, loading] = useCurrentUser(firebaseApp, user, setErrorMessage);
 
 	useEffect(() => {
-		if (user && !currentUser) {
+		if (user && !currentUser && !loading) {
 			setShowModal(true);
 		} else {
 			setShowModal(false);
 		}
-	}, [firebaseApp, user, currentUser]);
+	}, [firebaseApp, user, currentUser, loading]);
 
 	return showModal;
 }

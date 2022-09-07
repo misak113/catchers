@@ -16,7 +16,8 @@ export function useMatches(
 	useEffect(() => {
 		(async () => {
 			try {
-				const { docs } = await firestore.getDocs(getMatchesCollection(firebaseApp));
+				const query = firestore.query(getMatchesCollection(firebaseApp), firestore.orderBy('startsAt', 'asc'));
+				const { docs } = await firestore.getDocs(query);
 				const matches = docs.map(mapMatch);
 				console.log('matches', matches);
 				setMatches(matches);

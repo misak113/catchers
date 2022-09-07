@@ -12,3 +12,8 @@
 .PlayerLinkModal-modal .player-row:hover .player-link-button {
 	opacity: 1;
 }
+
+.PlayerLinkModal-modal .modal-body {
+	overflow-y: auto;
+	max-height: calc(100vh - 120px);
+}

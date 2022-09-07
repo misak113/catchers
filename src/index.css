@@ -9,11 +9,6 @@
 		url('./Fonts/BebasNeue-Regular.otf') format("opentype");
 }
 
-@font-face {
-	font-family: WorldOfWatter;
-	src: url('./Fonts/WorldOfWatter.ttf') format('truetype');
-}
-
 body {
 	margin: 0;
 	font-family: -apple-system, BlinkMacSystemFont, BebasNeueRegular, 'Segoe UI', 'Roboto', 'Oxygen',

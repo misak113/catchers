@@ -2,7 +2,7 @@
 .PlayerLinkModal-modal {
 	display: block;
 	background-color: rgba(0, 0, 0, 0.5);
-	font-family: WorldOfWatter;
+	font-family: 'Roboto', sans-serif;
 }
 
 .PlayerLinkModal-modal .player-row .player-link-button {

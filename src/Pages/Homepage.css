@@ -1,4 +1,15 @@
 
-.App-logo {
+.Homepage .App-logo {
 	height: 40vmin;
+}
+
+.Homepage h3 {
+	margin-top: 100px;
+}
+
+.Homepage .history {
+	font-style: italic;
+	border: 1px solid #ccc;
+	padding: 35px 40px;
+	background-color: #ddd;
 }

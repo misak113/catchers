@@ -10,6 +10,7 @@ interface IProps {
 	maybeAttendees: IPersonResult[];
 	nonAttendees: IPersonResult[];
 	possibleAttendees?: IUser[];
+	children?: React.ReactNode;
 }
 
 interface IPopoverProps {
@@ -34,6 +35,7 @@ const Attendees = (props: IProps) => {
 	const mapPersonResultToUser = createMapPersonResultToUser(props.possibleAttendees);
 	const unrespondedUsers = getUnrespondedUsers(props);
 	return <div>
+		{props.children}
 		<span className="Attendees confirmed">
 			<span className="badge badge-success">{props.attendees.length}</span>
 			{props.attendees.length > 0 && <AttendeesDetailPopover title='Potvrzení' className="bg-success text-white" people={props.attendees.map(mapPersonResultToUser)}/>}

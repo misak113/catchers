@@ -5,8 +5,8 @@ import Anchor from '../Components/Anchor';
 import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
 import Loading from '../Components/Loading';
 import Attendees from '../Components/Match/Attendees';
-import { useMatches } from '../Model/matchFacade';
-import { usePossibleAttendees } from '../Model/userFacade';
+import { didUserRespondMatch, useMatches } from '../Model/matchFacade';
+import { useCurrentUser, usePossibleAttendees } from '../Model/userFacade';
 import { withAuth, IAuthValue } from '../Context/AuthContext';
 import MatchDate from '../Components/Match/MatchDate';
 import MatchTime from '../Components/Match/MatchTime';
@@ -18,6 +18,7 @@ interface IProps {}
 const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & IFirebaseValue & IAuthValue) => {
 	const [errorMessage, setErrorMessage] = useState<string>();
 	const [possibleAttendees] = usePossibleAttendees(props.firebaseApp, props.auth.user, setErrorMessage);
+	const [currentUser] = useCurrentUser(props.firebaseApp, props.auth.user, setErrorMessage);
 	const [matches] = useMatches(props.firebaseApp, props.auth.user, setErrorMessage);
 
 	const upcomingMatches = matches?.filter((match) => match.startsAt.valueOf() > new Date().valueOf());
@@ -27,10 +28,10 @@ const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps &
 		<h1>Zápasy</h1>
 
 		<h2>Nadcházející</h2>
-		<MatchesTable matches={upcomingMatches} possibleAttendees={possibleAttendees} errorMessage={errorMessage}/>
+		<MatchesTable matches={upcomingMatches} possibleAttendees={possibleAttendees} errorMessage={errorMessage} currentUser={currentUser}/>
 
 		<h2 className="Matches-pastHeader">Minulé</h2>
-		<MatchesTable matches={pastMatches} possibleAttendees={possibleAttendees} errorMessage={errorMessage}/>
+		<MatchesTable matches={pastMatches} possibleAttendees={possibleAttendees} errorMessage={errorMessage} currentUser={currentUser}/>
 	</>;
 };
 export default withFirebase(withAuth(Matches));
@@ -39,9 +40,10 @@ interface IMatchesTableProps {
 	matches: IMatch[] | undefined;
 	possibleAttendees: IUser[] | undefined;
 	errorMessage?: string;
+	currentUser: IUser | undefined;
 }
 
-function MatchesTable({ matches, possibleAttendees, errorMessage }: IMatchesTableProps) {
+function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }: IMatchesTableProps) {
 	const now = new Date();
 	return <table className="table table-light table-bordered table-hover table-striped table-responsive-md">
 		<thead>
@@ -57,8 +59,9 @@ function MatchesTable({ matches, possibleAttendees, errorMessage }: IMatchesTabl
 			{errorMessage
 			? <tr><td colSpan={5}>{errorMessage}</td></tr>
 			: matches
-				? matches.map((match) => (
-					<tr key={match.id} className={classNames({
+				? matches.map((match) => {
+					const currentUserResponded = didUserRespondMatch(match, currentUser);
+					return <tr key={match.id} className={classNames({
 						'table-dark': match.startsAt.valueOf() < now.valueOf(),
 						'table-success': match.startsAt.valueOf() > now.valueOf() && moment(match.startsAt).diff(now, 'days') < 7,
 						'table-secondary': Boolean(match.referees),
@@ -80,10 +83,18 @@ function MatchesTable({ matches, possibleAttendees, errorMessage }: IMatchesTabl
 								maybeAttendees={match.maybeAttendees || []}
 								nonAttendees={match.nonAttendees || []}
 								possibleAttendees={possibleAttendees}
-							/>
+							>
+								{
+									!currentUserResponded
+									? <span className="Attendees unresponded">
+										<span className="badge badge-warning">Ještě ses nevyjádřil</span>
+									</span>
+									: null
+								}
+							</Attendees>
 						</td>
-					</tr>
-				))
+					</tr>;
+				})
 				: <tr><td colSpan={5}><Loading size='50px'/></td></tr>}
 		</tbody>
 	</table>;

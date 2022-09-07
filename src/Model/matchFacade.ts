@@ -103,6 +103,12 @@ export async function addMaybeAttendee(
 	);
 }
 
+export function didUserRespondMatch(match: IMatch | null, currentUser: IUser | undefined) {
+	return match?.attendees?.some((person) => person.userId === currentUser?.id)
+		|| match?.nonAttendees?.some((person) => person.userId === currentUser?.id)
+		|| match?.maybeAttendees?.some((person) => person.userId === currentUser?.id);
+}
+
 async function updateAttendees(
 	firebaseApp: firebase.FirebaseApp,
 	match: IMatch,

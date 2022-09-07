@@ -3,6 +3,7 @@ import './Match.css';
 import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
 import { usePossibleAttendees, useCurrentUser, getUserName, createMapPersonResultToUser, getUnrespondedUsers } from '../Model/userFacade';
 import {
+	didUserRespondMatch,
 	useMatch,
 } from '../Model/matchFacade';
 import Attendees from '../Components/Match/Attendees';
@@ -28,9 +29,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 	const attendees = match?.attendees || [];
 	const maybeAttendees = match?.maybeAttendees || [];
 	const nonAttendees = match?.nonAttendees || [];
-	const currentUserResponded = match?.attendees?.some((person) => person.userId === currentUser?.id)
-		|| match?.nonAttendees?.some((person) => person.userId === currentUser?.id)
-		|| match?.maybeAttendees?.some((person) => person.userId === currentUser?.id);
+	const currentUserResponded = didUserRespondMatch(match, currentUser);
 
 	const unrespondedUsers = getUnrespondedUsers({ attendees, maybeAttendees, nonAttendees, possibleAttendees});
 

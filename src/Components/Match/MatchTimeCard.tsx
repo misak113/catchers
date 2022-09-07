@@ -14,7 +14,8 @@ function MatchTimeCard(props: IProps) {
 
 	return (
 		<div className={classNames('card', {
-			'bg-success text-white': props.startsAt && moment(props.startsAt).diff(now, 'days') < 6 && moment(props.startsAt).diff(now, 'days') > -1,
+			'bg-success text-white': props.startsAt && moment(props.startsAt).diff(now, 'days') < 7 && moment(props.startsAt).diff(now, 'days') > -1,
+			'bg-secondary text-white': moment(props.startsAt).diff(now, 'days') <= -1,
 		})}>
 			<div className="card-header">
 				Čas zápasu

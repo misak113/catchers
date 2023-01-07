@@ -1,10 +1,11 @@
 import * as firebase from '@firebase/app';
 import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getErrorMessage } from '../Util/error';
 import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection } from "./collections";
 import { safeObjectKeys } from '../Util/object';
+import { useAsyncEffect } from '../React/async';
 
 
 export function useMatches(
@@ -13,20 +14,18 @@ export function useMatches(
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [matches, setMatches] = useState<IMatch[]>();
-	useEffect(() => {
-		(async () => {
-			try {
-				const query = firestore.query(getMatchesCollection(firebaseApp), firestore.orderBy('startsAt', 'asc'));
-				const { docs } = await firestore.getDocs(query);
-				const matches = docs.map(mapMatch);
-				console.log('matches', matches);
-				setMatches(matches);
-				setErrorMessage(undefined);
-			} catch (error) {
-				console.error(error);
-				setErrorMessage(getErrorMessage(error));
-			}
-		})();
+	useAsyncEffect(async () => {
+		try {
+			const query = firestore.query(getMatchesCollection(firebaseApp), firestore.orderBy('startsAt', 'asc'));
+			const { docs } = await firestore.getDocs(query);
+			const matches = docs.map(mapMatch);
+			console.log('matches', matches);
+			setMatches(matches);
+			setErrorMessage(undefined);
+		} catch (error) {
+			console.error(error);
+			setErrorMessage(getErrorMessage(error));
+		}
 	}, [firebaseApp, user, setErrorMessage]);
 
 	return [matches];
@@ -40,19 +39,17 @@ export function useMatch(
 ) {
 	const [reloadIndex, setReloadIndex] = useState(0);
 	const [match, setMatch] = useState<IMatch | null>(null);
-	useEffect(() => {
-		(async () => {
-			try {
-				const doc = await firestore.getDoc(firestore.doc(getMatchesCollection(firebaseApp), matchId));
-				const match = mapMatch(doc);
-				console.log('match', match);
-				setMatch(match);
-				setErrorMessage(undefined);
-			} catch (error) {
-				console.error(error);
-				setErrorMessage(getErrorMessage(error));
-			}
-		})();
+	useAsyncEffect(async () => {
+		try {
+			const doc = await firestore.getDoc(firestore.doc(getMatchesCollection(firebaseApp), matchId));
+			const match = mapMatch(doc);
+			console.log('match', match);
+			setMatch(match);
+			setErrorMessage(undefined);
+		} catch (error) {
+			console.error(error);
+			setErrorMessage(getErrorMessage(error));
+		}
 	}, [matchId, firebaseApp, user, setErrorMessage, reloadIndex]);
 
 	return { match, reloadMatch: () => setReloadIndex(reloadIndex + 1) };

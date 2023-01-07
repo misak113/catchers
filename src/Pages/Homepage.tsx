@@ -27,8 +27,8 @@ const Homepage: React.FC<IAuthValue> = (props: IAuthValue) => {
 				SC Catchers tě vítá na svých oficiálních stránkách. Stránky se v našem týmu používají především na <strong>přihlašování na zápasy</strong>.
 			</p>
 			<p>
-				Po příhlášení je k dispozici sekce <strong>"Zápasy"</strong> a v ní seznam všech zápasů pro aktuálně probíhající sezónu Hanspaulské ligy.<br/>
-				Pokud zrovna neprobíhá sezóna, tak neleníme a účastníme se různých turnajů a soutěží. Mezi ně patří například letní/zimní turnaj HL a nebo Memoriál Marka Šišáka.
+				Po přihlášení je k dispozici sekce <strong>"Zápasy"</strong> a v ní seznam všech zápasů pro aktuálně probíhající sezónu Hanspaulské ligy.<br/>
+				Pokud zrovna neprobíhá sezóna, tak neleníme a účastníme se různých turnajů a soutěží. Mezi ně patří například letní/zimní turnaj HL anebo Memoriál Marka Šišáka.
 				Všechny najdeš také v sekci "Zápasy".
 			</p>
 			<p>

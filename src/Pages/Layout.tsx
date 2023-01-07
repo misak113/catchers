@@ -5,6 +5,7 @@ import './Layout.css';
 import Anchor from '../Components/Anchor';
 import Homepage from './Homepage';
 import Matches from './Matches';
+import Accounting from './Accounting';
 import Match from './Match';
 import logo from '../logo-large.png';
 import 'moment/locale/cs';
@@ -41,6 +42,12 @@ const pages = [
 		path: /\/zapas\/(?<matchId>\w+)/,
 		render: (params: { matchId: string }) => <Match matchId={params.matchId}/>,
 		hiddenInMenu: () => true,
+	},
+	{
+		name: 'Účetnictví',
+		path: '/ucetnictvi',
+		render: () => <Accounting/>,
+		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
 	},
 	{
 		name: 'Registrace',

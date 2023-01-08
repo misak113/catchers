@@ -1,0 +1,13 @@
+
+.Accounting .logout-settleUp {
+	margin-top: 100px;
+	opacity: 0.2;
+}
+
+.Accounting .logout-settleUp:hover {
+	opacity: 1;
+}
+
+.Accounting .settle-up-link {
+	margin: 20px 10px;
+}

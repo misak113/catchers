@@ -5,15 +5,18 @@ import Layout from './Pages/Layout';
 import { FirebaseProvider } from './Context/FirebaseContext';
 import { AuthProvider } from './Context/AuthContext';
 import { RouterProvider } from './Context/RouterContext';
+import { SettleUpProvider } from './Context/SettleUpContext';
 
 const App: React.FC = () => {
 	return (
 		<div className="App">
 			<RouterProvider>
 				<FirebaseProvider>
-					<AuthProvider>
-						<Layout/>
-					</AuthProvider>
+					<SettleUpProvider>
+						<AuthProvider>
+							<Layout/>
+						</AuthProvider>
+					</SettleUpProvider>
 				</FirebaseProvider>
 			</RouterProvider>
 		</div>

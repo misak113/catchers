@@ -1,0 +1,13 @@
+{
+	"firebase": {
+		"apiKey": "AIzaSyCBsW4lveImpcB92c-cnNg2VQgx9JdijU8",
+		"authDomain": "settle-up-sandbox.firebaseapp.com",
+		"databaseURL": "https://settle-up-sandbox.firebaseio.com",
+		"projectId": "settle-up-sandbox",
+		"storageBucket": "settle-up-sandbox.appspot.com",
+		"messagingSenderId": "84712828597",
+		"appId": "1:84712828597:web:72709d65a119d453a958fc"
+	},
+	"groupId": "-NLB_azTLoehyTxeumXN",
+	"baseUrl": "https://settle-up-sandbox-app.web.app"
+}

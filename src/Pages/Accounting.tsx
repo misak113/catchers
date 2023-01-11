@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import FormattedDateTime from '../Components/Util/FormattedDateTime';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 import { ISettleUpValue, withSettleUp } from '../Context/SettleUpContext';
-import { useSettleUpTransactions, useSettleUpAuth, getSettleUpGroupUrl, calculateTotalAmount, transactionDescDateSorter, useSettleUpMembers, SettleUpMembers, SettleUpTransactionParticipant, CurrencyMap } from '../Model/settleUpFacade';
+import { useSettleUpTransactions, useSettleUpAuth, getSettleUpGroupUrl, calculateTotalAmount, transactionDescDateSorter, useSettleUpMembers, SettleUpMembers, SettleUpTransactionParticipant, CurrencyMap, useSettleUpDebts, debtsDescAmountSorter, DEFAULT_CURRENCY_CODE } from '../Model/settleUpFacade';
 import { safeObjectKeys } from '../Util/object';
 import './Accounting.css';
 
@@ -11,6 +11,7 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue> = (props: IAuthValue & I
 	const { loading, user, login, loggingIn, logout, loggingOut, errorMessage: authErrorMessage } = useSettleUpAuth(props.settleUp);
 	const { transactions, errorMessage: transactionsErrorMessage } = useSettleUpTransactions(props.settleUp, user);
 	const { members, errorMessage: membersErrorMessage } = useSettleUpMembers(props.settleUp, user);
+	const { debts, errorMessage: debtsErrorMessage } = useSettleUpDebts(props.settleUp, user);
 
 	return <div className='Accounting'>
 		<h1>Účetnictví</h1>
@@ -18,6 +19,7 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue> = (props: IAuthValue & I
 		{authErrorMessage && <div className='alert alert-danger'>{authErrorMessage}</div>}
 		{transactionsErrorMessage && <div className='alert alert-danger'>{transactionsErrorMessage}</div>}
 		{membersErrorMessage && <div className='alert alert-danger'>{membersErrorMessage}</div>}
+		{debtsErrorMessage && <div className='alert alert-danger'>{debtsErrorMessage}</div>}
 
 		{!loading && !user && safeObjectKeys(props.settleUp.firebaseAuthProviders).map((providerName) => (
 			<button key={providerName} className='btn btn-primary' disabled={loggingIn} onClick={() => login(providerName)}>
@@ -26,6 +28,29 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue> = (props: IAuthValue & I
 		))}
 
 		{user && <>
+			<h2>Dluhy</h2>
+			<table className="table table-light table-bordered table-hover table-striped table-responsive-md">
+				<thead>
+					<tr>
+						<th>Kdo</th>
+						<th>Komu</th>
+						<th>Kolik</th>
+					</tr>
+				</thead>
+				<tbody>
+					{debts.sort(debtsDescAmountSorter).map((debt) => {
+						const humanizedCurrency = CurrencyMap[DEFAULT_CURRENCY_CODE] ?? DEFAULT_CURRENCY_CODE;
+						return (
+							<tr key={debt.from + '-' + debt.to} className={'table-danger'}>
+								<td className='font-weight-bold'>{members[debt.from]?.name}</td>
+								<td>{members[debt.to]?.name}</td>
+								<td className='font-weight-bold'>{parseFloat(debt.amount).toFixed(0)} {humanizedCurrency}</td>
+							</tr>
+						);
+					})}
+				</tbody>
+			</table>
+
 			<h2>Transakce</h2>
 			<table className="table table-light table-bordered table-hover table-striped table-responsive-md">
 				<thead>

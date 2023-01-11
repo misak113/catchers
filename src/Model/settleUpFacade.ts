@@ -10,6 +10,8 @@ import settleProdConfig from '../settleUp.prod.json';
 const settleUpConfig = process.env.NODE_ENV === 'production' ? settleProdConfig : settleUpDevConfig;
 export const { baseUrl, groupId, firebase } = settleUpConfig;
 
+export const DEFAULT_CURRENCY_CODE = 'CZK';
+
 export function getSettleUpGroupUrl() {
 	return `${baseUrl}/group/${groupId}/join`;
 }
@@ -23,6 +25,7 @@ export const CurrencyMap: { [currencyCode: string]: string } = {
 enum Collection {
 	Transactions = 'transactions',
 	Members = 'members',
+	Debts = 'debts',
 }
 
 export type SettleUpTransactionType = 'expense' | 'income';
@@ -61,6 +64,14 @@ export interface SettleUpMember {
 export interface SettleUpMembers {
 	[memberId: string]: SettleUpMember;
 }
+
+export interface SettleUpDebt {
+	from: string;
+	to: string;
+	amount: string;
+}
+
+export type SettleUpDebts = SettleUpDebt[];
 
 type SettleUpTransactionEntry = [transactionId: string, transaction: SettleUpTransaction];
 
@@ -160,6 +171,29 @@ export function useSettleUpMembers(
 	return { members, errorMessage };
 }
 
+export function useSettleUpDebts(
+	settleUp: SettleUp,
+	user: firebaseAuth.User | null,
+) {
+	const [errorMessage, setErrorMessage] = useState<string>();
+	const [debts, setDebts] = useState<SettleUpDebts>([]);
+
+	useAsyncEffect(async () => {
+		if (user) {
+			try {
+				const debts = await getSettleUpDebts(settleUp)
+				setDebts(debts);
+				setErrorMessage(undefined);
+			} catch (error) {
+				console.error(error);
+				setErrorMessage(getErrorMessage(error));
+			}
+		}
+	}, [settleUp, user]);
+
+	return { debts, errorMessage };
+}
+
 export async function getSettleUpTransactions(
 	settleUp: SettleUp,
 ) {
@@ -182,10 +216,25 @@ export async function getSettleUpMembers(
 	return members;
 }
 
+export async function getSettleUpDebts(
+	settleUp: SettleUp,
+) {
+	const db = database.getDatabase(settleUp.firebaseApp);
+	const debtsRef = database.ref(db, `${Collection.Debts}/${groupId}`);
+	const debtsSnapshot = await database.get(debtsRef);
+	const debts: SettleUpDebts = debtsSnapshot.val();
+	console.info('settleUp.debts', debts);
+	return debts;
+}
+
 export function calculateTotalAmount(transaction: SettleUpTransaction): number {
 	return transaction.items.reduce((sum, item) => sum + parseFloat(item.amount), 0);
 }
 
 export function transactionDescDateSorter(transactionEntry1: SettleUpTransactionEntry, transactionEntry2: SettleUpTransactionEntry) {
 	return transactionEntry2[1].dateTime - transactionEntry1[1].dateTime;
+}
+
+export function debtsDescAmountSorter(debt1: SettleUpDebt, debt2: SettleUpDebt) {
+	return parseFloat(debt2.amount) - parseFloat(debt1.amount);
 }

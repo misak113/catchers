@@ -14,8 +14,15 @@ export function getSettleUpGroupUrl() {
 	return `${baseUrl}/group/${groupId}/join`;
 }
 
+export const CurrencyMap: { [currencyCode: string]: string } = {
+	CZK: 'Kč',
+	EUR: '€',
+	USD: '$',
+};
+
 enum Collection {
 	Transactions = 'transactions',
+	Members = 'members',
 }
 
 export type SettleUpTransactionType = 'expense' | 'income';
@@ -42,6 +49,17 @@ export interface SettleUpTransaction {
 
 export interface SettleUpTransactions {
 	[transactionId: string]: SettleUpTransaction;
+}
+
+export interface SettleUpMember {
+	action: boolean;
+	defaultWeight: string;
+	name: string;
+	photoUrl: string;
+}
+
+export interface SettleUpMembers {
+	[memberId: string]: SettleUpMember;
 }
 
 type SettleUpTransactionEntry = [transactionId: string, transaction: SettleUpTransaction];
@@ -119,6 +137,29 @@ export function useSettleUpTransactions(
 	return { transactions, errorMessage };
 }
 
+export function useSettleUpMembers(
+	settleUp: SettleUp,
+	user: firebaseAuth.User | null,
+) {
+	const [errorMessage, setErrorMessage] = useState<string>();
+	const [members, setMembers] = useState<SettleUpMembers>({});
+
+	useAsyncEffect(async () => {
+		if (user) {
+			try {
+				const members = await getSettleUpMembers(settleUp)
+				setMembers(members);
+				setErrorMessage(undefined);
+			} catch (error) {
+				console.error(error);
+				setErrorMessage(getErrorMessage(error));
+			}
+		}
+	}, [settleUp, user]);
+
+	return { members, errorMessage };
+}
+
 export async function getSettleUpTransactions(
 	settleUp: SettleUp,
 ) {
@@ -128,6 +169,17 @@ export async function getSettleUpTransactions(
 	const transactions: SettleUpTransactions = transactionsSnapshot.val();
 	console.info('settleUp.transactions', transactions);
 	return transactions;
+}
+
+export async function getSettleUpMembers(
+	settleUp: SettleUp,
+) {
+	const db = database.getDatabase(settleUp.firebaseApp);
+	const membersRef = database.ref(db, `${Collection.Members}/${groupId}`);
+	const membersSnapshot = await database.get(membersRef);
+	const members: SettleUpMembers = membersSnapshot.val();
+	console.info('settleUp.members', members);
+	return members;
 }
 
 export function calculateTotalAmount(transaction: SettleUpTransaction): number {

@@ -44,6 +44,8 @@ export interface SettleUpTransactions {
 	[transactionId: string]: SettleUpTransaction;
 }
 
+type SettleUpTransactionEntry = [transactionId: string, transaction: SettleUpTransaction];
+
 export function useSettleUpAuth(
 	settleUp: SettleUp,
 ) {
@@ -126,4 +128,12 @@ export async function getSettleUpTransactions(
 	const transactions: SettleUpTransactions = transactionsSnapshot.val();
 	console.info('settleUp.transactions', transactions);
 	return transactions;
+}
+
+export function calculateTotalAmount(transaction: SettleUpTransaction): number {
+	return transaction.items.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+}
+
+export function transactionDescDateSorter(transactionEntry1: SettleUpTransactionEntry, transactionEntry2: SettleUpTransactionEntry) {
+	return transactionEntry2[1].dateTime - transactionEntry1[1].dateTime;
 }

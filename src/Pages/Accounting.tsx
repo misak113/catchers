@@ -2,7 +2,7 @@ import React from 'react';
 import FormattedDateTime from '../Components/Util/FormattedDateTime';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 import { ISettleUpValue, withSettleUp } from '../Context/SettleUpContext';
-import { useSettleUpTransactions, useSettleUpAuth, getSettleUpGroupUrl } from '../Model/settleUpFacade';
+import { useSettleUpTransactions, useSettleUpAuth, getSettleUpGroupUrl, calculateTotalAmount, transactionDescDateSorter } from '../Model/settleUpFacade';
 import { safeObjectKeys } from '../Util/object';
 import './Accounting.css';
 
@@ -34,9 +34,9 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue> = (props: IAuthValue & I
 					</tr>
 				</thead>
 				<tbody>
-					{Object.entries(transactions).map(([transactionId, transaction]) => (
-						<tr key={transactionId} className={transaction.type === 'expense' ? 'table-warning' : 'table-success'}>
-							<td>{transaction.items.reduce((sum, item) => sum + parseFloat(item.amount), 0)}</td>
+					{Object.entries(transactions).sort(transactionDescDateSorter).map(([transactionId, transaction]) => (
+						<tr key={transactionId} className={transaction.type === 'expense' ? 'table-danger' : 'table-success'}>
+							<td>{calculateTotalAmount(transaction)}</td>
 							<td>{transaction.currencyCode}</td>
 							<td><FormattedDateTime startsAt={new Date(transaction.dateTime)}/></td>
 							<td>{transaction.purpose}</td>

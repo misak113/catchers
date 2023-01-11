@@ -8,6 +8,7 @@ import { generateHash } from '../Components/Util/hash';
 import { Creatable } from './types';
 import moment from 'moment';
 import { useAsyncEffect } from '../React/async';
+import { AuthProviderName } from '../Context/SettleUpContext';
 
 export function getUserName(user: IUser) {
 	return user.name ?? user.email;
@@ -216,4 +217,21 @@ export function useLinkPlayer(
 	}, [firebaseApp, user, requestHash]);
 
 	return [linking, errorMessage];
+}
+
+export async function setUserSettleUpProviderName(
+	firebaseApp: firebase.FirebaseApp,
+	player: IUser,
+	settleUpProviderName: AuthProviderName | null,
+) {
+	const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), player.id));
+	if (settleUpProviderName) {
+		await firestore.updateDoc(userDoc.ref, {
+			settleUpProviderName,
+		});
+	} else {
+		await firestore.updateDoc(userDoc.ref, {
+			settleUpProviderName: firestore.deleteField(),
+		});
+	}
 }

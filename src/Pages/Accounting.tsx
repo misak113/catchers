@@ -1,28 +1,71 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import classNames from 'classnames';
 import FormattedDateTime from '../Components/Util/FormattedDateTime';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
-import { ISettleUpValue, withSettleUp } from '../Context/SettleUpContext';
-import { useSettleUpTransactions, useSettleUpAuth, getSettleUpGroupUrl, calculateTotalAmount, transactionDescDateSorter, useSettleUpMembers, SettleUpMembers, SettleUpTransactionParticipant, CurrencyMap, useSettleUpDebts, debtsDescAmountSorter, DEFAULT_CURRENCY_CODE } from '../Model/settleUpFacade';
+import { AuthProviderName, ISettleUpValue, withSettleUp } from '../Context/SettleUpContext';
+import {
+	useSettleUpTransactions,
+	useSettleUpAuth,
+	getSettleUpGroupUrl,
+	calculateTotalAmount,
+	transactionDescDateSorter,
+	useSettleUpMembers,
+	SettleUpMembers,
+	SettleUpTransactionParticipant,
+	CurrencyMap,
+	useSettleUpDebts,
+	debtsDescAmountSorter,
+	DEFAULT_CURRENCY_CODE,
+} from '../Model/settleUpFacade';
 import { safeObjectKeys } from '../Util/object';
 import './Accounting.css';
+import { setUserSettleUpProviderName, useCurrentUser } from '../Model/userFacade';
+import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
+import { useAsyncEffect } from '../React/async';
 
-const Accounting: React.FC<IAuthValue & ISettleUpValue> = (props: IAuthValue & ISettleUpValue) => {
+const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (props: IAuthValue & ISettleUpValue & IFirebaseValue) => {
 	const { loading, user, login, loggingIn, logout, loggingOut, errorMessage: authErrorMessage } = useSettleUpAuth(props.settleUp);
 	const { transactions, errorMessage: transactionsErrorMessage } = useSettleUpTransactions(props.settleUp, user);
 	const { members, errorMessage: membersErrorMessage } = useSettleUpMembers(props.settleUp, user);
 	const { debts, errorMessage: debtsErrorMessage } = useSettleUpDebts(props.settleUp, user);
 
+	const [errorMessage, setErrorMessage] = useState<string>();
+	const [currentUser] = useCurrentUser(props.firebaseApp, props.auth.user, setErrorMessage)
+
+	const [isUnlinked, setIsUnlinked] = useState<boolean>(false);
+
+	useAsyncEffect(async () => {
+		if (!isUnlinked &&!user && currentUser?.settleUpProviderName) {
+			await login(currentUser.settleUpProviderName);
+		}
+	}, [user, currentUser]);
+
+	const loginAndUpdateProviderName = useCallback(async (providerName: AuthProviderName) => {
+		await login(providerName);
+		if (currentUser) {
+			await setUserSettleUpProviderName(props.firebaseApp, currentUser, providerName);
+		}
+	}, [props.firebaseApp, currentUser, login]);
+
+	const logoutAndUnsetProviderName = useCallback(async () => {
+		setIsUnlinked(true);
+		if (currentUser) {
+			await setUserSettleUpProviderName(props.firebaseApp, currentUser, null);
+		}
+		await logout();
+	}, [props.firebaseApp, currentUser, logout]);
+
 	return <div className='Accounting'>
 		<h1>Účetnictví</h1>
 
+		{errorMessage && <div className='alert alert-danger'>{errorMessage}</div>}
 		{authErrorMessage && <div className='alert alert-danger'>{authErrorMessage}</div>}
 		{transactionsErrorMessage && <div className='alert alert-danger'>{transactionsErrorMessage}</div>}
 		{membersErrorMessage && <div className='alert alert-danger'>{membersErrorMessage}</div>}
 		{debtsErrorMessage && <div className='alert alert-danger'>{debtsErrorMessage}</div>}
 
 		{!loading && !user && safeObjectKeys(props.settleUp.firebaseAuthProviders).map((providerName) => (
-			<button key={providerName} className='btn btn-primary' disabled={loggingIn} onClick={() => login(providerName)}>
+			<button key={providerName} className='btn btn-primary' disabled={loggingIn} onClick={() => loginAndUpdateProviderName(providerName)}>
 				Login Settle Up with {providerName}
 			</button>
 		))}
@@ -90,13 +133,13 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue> = (props: IAuthValue & I
 				</a>
 			</div>
 
-			<button className='btn btn-danger logout-settleUp' disabled={loggingOut} onClick={() => logout()}>
-				Logout Settle Up
+			<button className='btn btn-danger logout-settleUp' disabled={loggingOut} onClick={() => logoutAndUnsetProviderName()}>
+				Unlink Settle Up account
 			</button>
 		</>}
 	</div>
 };
-export default withAuth(withSettleUp(Accounting));
+export default withAuth(withSettleUp(withFirebase(Accounting)));
 
 interface IPopoverProps {
 	title: string;

@@ -1,6 +1,7 @@
 import * as firebase from '@firebase/app';
 import _ from 'lodash';
 import * as firestore from '@firebase/firestore';
+import { AuthProviderName } from '../Context/SettleUpContext';
 
 export const MATCHES = 'matches';
 
@@ -66,6 +67,7 @@ export interface IUser {
 	name?: string;
 	player: boolean;
 	linkedUserUids?: string[];
+	settleUpProviderName?: AuthProviderName;
 }
 
 export function getUsersCollection(firebaseApp: firebase.FirebaseApp) {
@@ -81,6 +83,7 @@ export function mapUser(doc: firestore.QueryDocumentSnapshot): IUser {
 		name: data.name,
 		player: typeof data.player !== 'undefined' ? data.player : false,
 		linkedUserUids: data.linkedUserUids,
+		settleUpProviderName: data.settleUpProviderName,
 	};
 }
 

@@ -28,7 +28,7 @@ enum Collection {
 	Debts = 'debts',
 }
 
-export type SettleUpTransactionType = 'expense' | 'income';
+export type SettleUpTransactionType = 'expense' | 'transfer';
 
 export type SettleUpTransactionParticipant = {
 	memberId: string;
@@ -55,7 +55,7 @@ export interface SettleUpTransactions {
 }
 
 export interface SettleUpMember {
-	action: boolean;
+	active: boolean;
 	defaultWeight: string;
 	name: string;
 	photoUrl: string;

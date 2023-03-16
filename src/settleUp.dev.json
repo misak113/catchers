@@ -9,5 +9,6 @@
 		"appId": "1:84712828597:web:72709d65a119d453a958fc"
 	},
 	"groupId": "-NLB_azTLoehyTxeumXN",
-	"baseUrl": "https://settle-up-sandbox-app.web.app"
+	"baseUrl": "https://settle-up-sandbox-app.web.app",
+	"shareLinkUrl": "https://settle-up-sandbox-app.web.app/group/-NLB_azTLoehyTxeumXN/join"
 }

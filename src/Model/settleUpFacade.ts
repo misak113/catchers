@@ -8,12 +8,12 @@ import settleUpDevConfig from '../settleUp.dev.json';
 import settleProdConfig from '../settleUp.prod.json';
 
 const settleUpConfig = process.env.NODE_ENV === 'production' ? settleProdConfig : settleUpDevConfig;
-export const { baseUrl, groupId, firebase } = settleUpConfig;
+export const { baseUrl, groupId, firebase, shareLinkUrl } = settleUpConfig;
 
 export const DEFAULT_CURRENCY_CODE = 'CZK';
 
 export function getSettleUpGroupUrl() {
-	return `${baseUrl}/group/${groupId}/join`;
+	return shareLinkUrl;
 }
 
 export const CurrencyMap: { [currencyCode: string]: string } = {

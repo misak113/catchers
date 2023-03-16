@@ -26,3 +26,6 @@ yarn-error.log*
 /src/firebase.json
 
 .vercel
+
+# Custom
+/config.json

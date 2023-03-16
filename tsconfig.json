@@ -17,7 +17,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "downlevelIteration": true,
   },
   "include": [
     "src"

@@ -86,7 +86,7 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (prop
 						return (
 							<tr key={debt.from + '-' + debt.to} className={'table-danger'}>
 								<td className='font-weight-bold'>{members[debt.from]?.name}</td>
-								<td>{members[debt.to]?.name}</td>
+								<td>{members[debt.to]?.name} <small>{members[debt.to]?.bankAccount ?? ''}</small></td>
 								<td className='font-weight-bold'>{parseFloat(debt.amount).toFixed(0)} {humanizedCurrency}</td>
 							</tr>
 						);

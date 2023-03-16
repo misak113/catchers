@@ -59,6 +59,7 @@ export interface SettleUpMember {
 	defaultWeight: string;
 	name: string;
 	photoUrl: string;
+	bankAccount?: string;
 }
 
 export interface SettleUpMembers {
@@ -158,7 +159,7 @@ export function useSettleUpMembers(
 	useAsyncEffect(async () => {
 		if (user) {
 			try {
-				const members = await getSettleUpMembers(settleUp)
+				const members = await getSettleUpMembers(settleUp);
 				setMembers(members);
 				setErrorMessage(undefined);
 			} catch (error) {

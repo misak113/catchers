@@ -22,6 +22,7 @@ import './Accounting.css';
 import { setUserSettleUpProviderName, useCurrentUser } from '../Model/userFacade';
 import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
 import { useAsyncEffect } from '../React/async';
+import { formatCurrencyAmount } from '../Util/currency';
 
 const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (props: IAuthValue & ISettleUpValue & IFirebaseValue) => {
 	const { loading, user, login, loggingIn, logout, loggingOut, errorMessage: authErrorMessage } = useSettleUpAuth(props.settleUp);
@@ -87,7 +88,7 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (prop
 							<tr key={debt.from + '-' + debt.to} className={'table-danger'}>
 								<td className='font-weight-bold'>{members[debt.from]?.name}</td>
 								<td>{members[debt.to]?.name} <small>{members[debt.to]?.bankAccount ?? ''}</small></td>
-								<td className='font-weight-bold'>{parseFloat(debt.amount).toFixed(0)} {humanizedCurrency}</td>
+								<td className='font-weight-bold'>{formatCurrencyAmount(debt.amount)} {humanizedCurrency}</td>
 							</tr>
 						);
 					})}
@@ -109,7 +110,7 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (prop
 						const humanizedCurrency = CurrencyMap[transaction.currencyCode] ?? transaction.currencyCode;
 						return (
 							<tr key={transactionId} className={transaction.type === 'expense' ? 'table-primary' : 'table-success'}>
-								<td className='font-weight-bold'>{calculateTotalAmount(transaction)} {humanizedCurrency}</td>
+								<td className='font-weight-bold'>{formatCurrencyAmount(calculateTotalAmount(transaction))} {humanizedCurrency}</td>
 								<td><FormattedDateTime startsAt={new Date(transaction.dateTime)}/></td>
 								<td>
 									{transaction.whoPaid.map((participant) => members[participant.memberId]?.name).join(', ')}

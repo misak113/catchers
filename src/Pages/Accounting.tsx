@@ -22,7 +22,9 @@ import './Accounting.css';
 import { setUserSettleUpProviderName, useCurrentUser } from '../Model/userFacade';
 import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
 import { useAsyncEffect } from '../React/async';
-import { formatCurrencyAmount } from '../Util/currency';
+import { formatCurrencyAmount, generateQrCode } from '../Util/currency';
+import QRCode from 'react-qr-code';
+import qrIcon from './qr.png';
 
 const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (props: IAuthValue & ISettleUpValue & IFirebaseValue) => {
 	const { loading, user, login, loggingIn, logout, loggingOut, errorMessage: authErrorMessage } = useSettleUpAuth(props.settleUp);
@@ -83,11 +85,17 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (prop
 				</thead>
 				<tbody>
 					{debts.sort(debtsDescAmountSorter).map((debt) => {
+						const targetMember = members[debt.to];
+						const sepaQrCode = targetMember?.bankAccount ? generateQrCode({
+							bankAccount: targetMember.bankAccount,
+							amount: parseInt(debt.amount),
+							name: targetMember.name,
+						}) : null;
 						const humanizedCurrency = CurrencyMap[DEFAULT_CURRENCY_CODE] ?? DEFAULT_CURRENCY_CODE;
 						return (
 							<tr key={debt.from + '-' + debt.to} className={'table-danger'}>
 								<td className='font-weight-bold'>{members[debt.from]?.name}</td>
-								<td>{members[debt.to]?.name} <small>{members[debt.to]?.bankAccount ?? ''}</small></td>
+								<td>{members[debt.to]?.name} <small>{members[debt.to]?.bankAccount ?? ''}</small> {sepaQrCode && <QRPopover sepaQrCode={sepaQrCode}/>}</td>
 								<td className='font-weight-bold'>{formatCurrencyAmount(debt.amount)} {humanizedCurrency}</td>
 							</tr>
 						);
@@ -159,6 +167,21 @@ const ParticipantPopover = (props: IPopoverProps) => {
 					{props.participants.map((participant) => (
 						<div key={participant.memberId}>{props.members[participant.memberId]?.name}</div>
 					))}
+				</div>
+			</div>
+		</span>
+	);
+};
+
+const QRPopover = ({ sepaQrCode }: { sepaQrCode: string }) => {
+	return (
+		<span className="QR confirmed">
+			<span className="badge badge-light"><img className="qr-icon" src={qrIcon} alt='QR kód'/></span>
+			<div className="QRPopover popover fade show bs-popover-bottom">
+				<div className="arrow"></div>
+				<h3 className={classNames("popover-header", 'bg-light')}>QR kód</h3>
+				<div className="popover-body">
+					<QRCode value={sepaQrCode} size={256} />
 				</div>
 			</div>
 		</span>

@@ -36,3 +36,33 @@
 .Accounting .Participants:hover .ParticipantsPopover {
 	display: block;
 }
+
+
+.Accounting .QR {
+	position: relative;
+	margin-right: 3px;
+}
+
+.Accounting .QR .qr-icon {
+	width: 20px;
+	height: 20px;
+}
+
+.Accounting .QR .badge {
+	min-width: 18px;
+}
+
+.Accounting .QR .QRPopover {
+	display: none;
+	position: absolute;
+	top: 20px;
+	left: -5px;
+}
+
+.Accounting .QR .QRPopover .popover-body {
+	white-space: nowrap;
+}
+
+.Accounting .QR:hover .QRPopover {
+	display: block;
+}

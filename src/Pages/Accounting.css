@@ -43,26 +43,23 @@
 	margin-right: 3px;
 }
 
-.Accounting .QR .qr-icon {
+.Accounting .QR .btn {
+	min-width: 18px;
+}
+
+.Accounting .QR .btn .qr-icon {
 	width: 20px;
 	height: 20px;
 }
 
-.Accounting .QR .badge {
-	min-width: 18px;
-}
-
-.Accounting .QR .QRPopover {
+.Accounting .QR .QRModal {
 	display: none;
-	position: absolute;
-	top: 20px;
-	left: -5px;
 }
 
-.Accounting .QR .QRPopover .popover-body {
-	white-space: nowrap;
+.Accounting .QR .qr-code {
+	margin: 20px 10px;
 }
 
-.Accounting .QR:hover .QRPopover {
+.Accounting .QR .QRModal.show {
 	display: block;
 }

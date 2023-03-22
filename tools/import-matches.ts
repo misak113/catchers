@@ -4,7 +4,7 @@ import * as FirebaseAuth from '@firebase/auth';
 import fetch from 'node-fetch';
 import JSDOM from 'jsdom';
 import { getMatchesCollection, IMatch, mapMatch } from '../src/Model/collections';
-import config from '../config.json';
+import config from '../src/config.json';
 import firebaseConfig from '../src/firebase.json';
 
 type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt'>

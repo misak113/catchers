@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import moment from 'moment';
 import classNames from 'classnames';
+import { AddToCalendarButton } from 'add-to-calendar-button-react';
 import Anchor from '../Components/Anchor';
 import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
 import Loading from '../Components/Loading';
 import Attendees from '../Components/Match/Attendees';
-import { didUserRespondMatch, useMatches } from '../Model/matchFacade';
+import { didUserRespondMatch, getMatchEventName, useMatches } from '../Model/matchFacade';
 import { useCurrentUser, usePossibleAttendees } from '../Model/userFacade';
 import { withAuth, IAuthValue } from '../Context/AuthContext';
 import MatchDate from '../Components/Match/MatchDate';
 import MatchTime from '../Components/Match/MatchTime';
 import { IMatch, IUser } from '../Model/collections';
 import './Matches.css';
+import { formatDate, formatTime } from '../Util/datetime';
+import config from '../config.json';
 
 interface IProps {}
 
@@ -53,6 +56,7 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 				<th>Soupeř</th>
 				<th>Hřiště</th>
 				<th>Účastníci</th>
+				<th>Přidat do kalendáře</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -61,6 +65,7 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 			: matches
 				? matches.map((match) => {
 					const currentUserResponded = didUserRespondMatch(match, currentUser);
+					const endsAt = moment(match.startsAt).add(90, 'minutes').toDate();
 					return <tr key={match.id} className={classNames({
 						'table-dark': match.startsAt.valueOf() < now.valueOf(),
 						'table-success': match.startsAt.valueOf() > now.valueOf() && moment(match.startsAt).diff(now, 'days') < 7,
@@ -92,6 +97,20 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 									: null
 								}
 							</Attendees>
+						</td>
+						<td>
+						<AddToCalendarButton
+							name={getMatchEventName(match)}
+							startDate={formatDate(match.startsAt)}
+							startTime={formatTime(match.startsAt)}
+							endDate={formatDate(endsAt)}
+							endTime={formatTime(endsAt)}
+							timeZone={config.timezone}
+							size='1'
+							trigger='click'
+							label='Přidat do kalendáře'
+							options={['Apple','Google','Yahoo','iCal','Outlook.com','MicrosoftTeams','Microsoft365']}
+						/>
 						</td>
 					</tr>;
 				})

@@ -4,7 +4,8 @@ import * as FirebaseAuth from '@firebase/auth';
 import fetch from 'node-fetch';
 import JSDOM from 'jsdom';
 import { getMatchesCollection, IMatch, mapMatch } from '../src/Model/collections';
-import config from '../config.json';
+import config from '../src/config.json';
+import { email, password } from '../credentials.json';
 import firebaseConfig from '../src/firebase.json';
 
 type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt'>
@@ -21,7 +22,7 @@ const CURRENT_TIMEZONE_OFFSET = config.timezoneOffset ?? (- currentTimezoneOffse
 async function importMatches() {
 	const firebaseApp = FirebaseApp.initializeApp(firebaseConfig);
 	const firebaseAuth = FirebaseAuth.getAuth(firebaseApp);
-	const credentials = await FirebaseAuth.signInWithEmailAndPassword(firebaseAuth, config.email, config.password);
+	const credentials = await FirebaseAuth.signInWithEmailAndPassword(firebaseAuth, email, password);
 	console.log("Logged in", credentials);
 	const existingMatches = await getExistingMatches(firebaseApp);
 	console.log('Existing matches', existingMatches);

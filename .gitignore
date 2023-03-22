@@ -28,4 +28,4 @@ yarn-error.log*
 .vercel
 
 # Custom
-/config.json
+/credentials.json

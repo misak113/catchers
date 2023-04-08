@@ -12,5 +12,10 @@
 		"groupId": "-NLB_azTLoehyTxeumXN",
 		"baseUrl": "https://settle-up-sandbox-app.web.app",
 		"shareLinkUrl": "https://settle-up-sandbox-app.web.app/group/-NLB_azTLoehyTxeumXN/join"
+	},
+	"fines": {
+		"groupId": "-NSWBMtOcrhdDsIQ8Cyg",
+		"baseUrl": "https://settle-up-sandbox-app.web.app",
+		"shareLinkUrl": "https://settle-up-sandbox-app.web.app/group/-NSWBMtOcrhdDsIQ8Cyg/join"
 	}
 }

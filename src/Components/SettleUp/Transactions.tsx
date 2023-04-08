@@ -8,6 +8,7 @@ import './Transactions.css';
 interface ITransactionProps {
 	transactions: SettleUpTransactions;
 	members: SettleUpMembers;
+	paidLabel?: string;
 }
 
 const Transactions = (props: ITransactionProps) => {
@@ -18,7 +19,7 @@ const Transactions = (props: ITransactionProps) => {
 				<tr>
 					<th>Částka</th>
 					<th>Datum</th>
-					<th>Platil</th>
+					<th>{props.paidLabel || 'Platil'}</th>
 					<th>Popis</th>
 				</tr>
 			</thead>
@@ -29,7 +30,9 @@ const Transactions = (props: ITransactionProps) => {
 						<tr key={transactionId} className={transaction.type === 'expense' ? 'table-primary' : 'table-success'}>
 							<td className='font-weight-bold'>{formatCurrencyAmount(calculateTotalAmount(transaction))} {humanizedCurrency}</td>
 							<td><FormattedDateTime startsAt={new Date(transaction.dateTime)}/></td>
-							<td>
+							{props.paidLabel ? <td>
+								{transaction.items.flatMap((item) => item.forWhom).map((participant) => props.members[participant.memberId]?.name).join(', ')}
+							</td> : <td>
 								{transaction.whoPaid.map((participant) => props.members[participant.memberId]?.name).join(', ')}
 								&nbsp;
 								<ParticipantPopover
@@ -37,7 +40,7 @@ const Transactions = (props: ITransactionProps) => {
 									participants={transaction.items.flatMap((item) => item.forWhom)}
 									members={props.members}
 								/>
-							</td>
+							</td>}
 							<td>{transaction.purpose}</td>
 						</tr>
 					);

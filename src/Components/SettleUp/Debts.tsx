@@ -6,6 +6,7 @@ import QRModal from './QRModal';
 interface IDebtsProps {
 	debts: SettleUpDebts;
 	members: SettleUpMembers;
+	hideWho?: boolean;
 }
 
 const Debts = (props: IDebtsProps) => {
@@ -15,7 +16,7 @@ const Debts = (props: IDebtsProps) => {
 			<thead>
 				<tr>
 					<th>Kdo</th>
-					<th>Komu</th>
+					{!props.hideWho && <th>Komu</th>}
 					<th>Kolik</th>
 				</tr>
 			</thead>
@@ -33,13 +34,13 @@ const Debts = (props: IDebtsProps) => {
 					return (
 						<tr key={key} className={'table-danger'}>
 							<td className='font-weight-bold'>{props.members[debt.from]?.name}</td>
-							<td>
+							{!props.hideWho && <td>
 								{props.members[debt.to]?.name}
 								 
 								<small>{bankAcount}</small>
 								 
 								{sepaQrCode && <QRModal sepaQrCode={sepaQrCode} amount={debt.amount} bankAccount={bankAcount} humanizedCurrency={humanizedCurrency}/>}
-							</td>
+							</td>}
 							<td className='font-weight-bold'>{formatCurrencyAmount(debt.amount)} {humanizedCurrency}</td>
 						</tr>
 					);

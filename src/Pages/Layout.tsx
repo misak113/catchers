@@ -16,6 +16,7 @@ import { useShowPlayerLinkingModal } from '../Model/userFacade';
 import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
 import PlayerLinkModal from '../Components/PlayerLinking/PlayerLinkModal';
 import LinkPlayer from './LinkPlayer';
+import Fines from './Fines';
 
 const PAGE_LINK_PLAYER = {
 	name: 'Spojení hráčů',
@@ -47,6 +48,12 @@ const pages = [
 		name: 'Účetnictví',
 		path: '/ucetnictvi',
 		render: () => <Accounting/>,
+		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
+	},
+	{
+		name: 'Pokuty',
+		path: '/pokuty',
+		render: () => <Fines/>,
 		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
 	},
 	{

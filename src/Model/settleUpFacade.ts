@@ -9,6 +9,7 @@ import settleProdConfig from '../settleUp.prod.json';
 
 export enum SettleUpType {
 	Accounting = 'accounting',
+	Fines = 'fines',
 }
 
 const settleUpConfig = process.env.NODE_ENV === 'production' ? settleProdConfig : settleUpDevConfig;

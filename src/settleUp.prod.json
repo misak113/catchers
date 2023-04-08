@@ -6,7 +6,9 @@
 		"projectId": "settle-up-live",
 		"storageBucket": "settle-up-live.appspot.com"
 	},
-	"groupId": "-NBh-5qjYTV2zZFRftn4",
-	"baseUrl": "https://settleup.app",
-	"shareLinkUrl": "https://link.settleup.app/Zw6gwbyJvw1xP3Yh6"
+	"accounting": {
+		"groupId": "-NBh-5qjYTV2zZFRftn4",
+		"baseUrl": "https://settleup.app",
+		"shareLinkUrl": "https://link.settleup.app/Zw6gwbyJvw1xP3Yh6"
+	}
 }

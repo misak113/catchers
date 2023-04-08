@@ -4,6 +4,7 @@ import FormattedDateTime from '../Components/Util/FormattedDateTime';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 import { AuthProviderName, ISettleUpValue, withSettleUp } from '../Context/SettleUpContext';
 import {
+	SettleUpType,
 	useSettleUpTransactions,
 	useSettleUpAuth,
 	getSettleUpGroupUrl,
@@ -29,9 +30,9 @@ import qrIcon from './qr.png';
 
 const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (props: IAuthValue & ISettleUpValue & IFirebaseValue) => {
 	const { loading, user, login, loggingIn, logout, loggingOut, errorMessage: authErrorMessage } = useSettleUpAuth(props.settleUp);
-	const { transactions, errorMessage: transactionsErrorMessage } = useSettleUpTransactions(props.settleUp, user);
-	const { members, errorMessage: membersErrorMessage } = useSettleUpMembers(props.settleUp, user);
-	const { debts, errorMessage: debtsErrorMessage } = useSettleUpDebts(props.settleUp, user);
+	const { transactions, errorMessage: transactionsErrorMessage } = useSettleUpTransactions(props.settleUp, SettleUpType.Accounting, user);
+	const { members, errorMessage: membersErrorMessage } = useSettleUpMembers(props.settleUp, SettleUpType.Accounting, user);
+	const { debts, errorMessage: debtsErrorMessage } = useSettleUpDebts(props.settleUp, SettleUpType.Accounting, user);
 
 	const [errorMessage, setErrorMessage] = useState<string>();
 	const [currentUser] = useCurrentUser(props.firebaseApp, props.auth.user, setErrorMessage)
@@ -146,7 +147,7 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (prop
 			</table>
 
 			<div className='settle-up-link'>
-				<a className="external" target="_blank" rel="noopener noreferrer" href={getSettleUpGroupUrl()}>
+				<a className="external" target="_blank" rel="noopener noreferrer" href={getSettleUpGroupUrl(SettleUpType.Accounting)}>
 					Přejít na Settle Up (Dlužebníček) <i className="fa fa-external-link"/>
 				</a>
 			</div>

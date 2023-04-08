@@ -7,13 +7,17 @@ import { useAsyncEffect } from '../React/async';
 import settleUpDevConfig from '../settleUp.dev.json';
 import settleProdConfig from '../settleUp.prod.json';
 
+export enum SettleUpType {
+	Accounting = 'accounting',
+}
+
 const settleUpConfig = process.env.NODE_ENV === 'production' ? settleProdConfig : settleUpDevConfig;
-export const { baseUrl, groupId, firebase, shareLinkUrl } = settleUpConfig;
+export const firebase = settleUpConfig.firebase;
 
 export const DEFAULT_CURRENCY_CODE = 'CZK';
 
-export function getSettleUpGroupUrl() {
-	return shareLinkUrl;
+export function getSettleUpGroupUrl(type: SettleUpType) {
+	return settleUpConfig[type].shareLinkUrl;
 }
 
 export const CurrencyMap: { [currencyCode: string]: string } = {
@@ -128,6 +132,7 @@ export function useSettleUpAuth(
 
 export function useSettleUpTransactions(
 	settleUp: SettleUp,
+	type: SettleUpType,
 	user: firebaseAuth.User | null,
 ) {
 	const [errorMessage, setErrorMessage] = useState<string>();
@@ -136,7 +141,7 @@ export function useSettleUpTransactions(
 	useAsyncEffect(async () => {
 		if (user) {
 			try {
-				const transactions = await getSettleUpTransactions(settleUp)
+				const transactions = await getSettleUpTransactions(settleUp, type);
 				setTransactions(transactions);
 				setErrorMessage(undefined);
 			} catch (error) {
@@ -151,6 +156,7 @@ export function useSettleUpTransactions(
 
 export function useSettleUpMembers(
 	settleUp: SettleUp,
+	type: SettleUpType,
 	user: firebaseAuth.User | null,
 ) {
 	const [errorMessage, setErrorMessage] = useState<string>();
@@ -159,7 +165,7 @@ export function useSettleUpMembers(
 	useAsyncEffect(async () => {
 		if (user) {
 			try {
-				const members = await getSettleUpMembers(settleUp);
+				const members = await getSettleUpMembers(settleUp, type);
 				setMembers(members);
 				setErrorMessage(undefined);
 			} catch (error) {
@@ -174,6 +180,7 @@ export function useSettleUpMembers(
 
 export function useSettleUpDebts(
 	settleUp: SettleUp,
+	type: SettleUpType,
 	user: firebaseAuth.User | null,
 ) {
 	const [errorMessage, setErrorMessage] = useState<string>();
@@ -182,7 +189,7 @@ export function useSettleUpDebts(
 	useAsyncEffect(async () => {
 		if (user) {
 			try {
-				const debts = await getSettleUpDebts(settleUp)
+				const debts = await getSettleUpDebts(settleUp, type);
 				setDebts(debts);
 				setErrorMessage(undefined);
 			} catch (error) {
@@ -197,9 +204,10 @@ export function useSettleUpDebts(
 
 export async function getSettleUpTransactions(
 	settleUp: SettleUp,
+	type: SettleUpType,
 ) {
 	const db = database.getDatabase(settleUp.firebaseApp);
-	const transactionRef = database.ref(db, `${Collection.Transactions}/${groupId}`);
+	const transactionRef = database.ref(db, `${Collection.Transactions}/${settleUpConfig[type].groupId}`);
 	const transactionsSnapshot = await database.get(transactionRef);
 	const transactions: SettleUpTransactions = transactionsSnapshot.val();
 	console.info('settleUp.transactions', transactions);
@@ -208,9 +216,10 @@ export async function getSettleUpTransactions(
 
 export async function getSettleUpMembers(
 	settleUp: SettleUp,
+	type: SettleUpType,
 ) {
 	const db = database.getDatabase(settleUp.firebaseApp);
-	const membersRef = database.ref(db, `${Collection.Members}/${groupId}`);
+	const membersRef = database.ref(db, `${Collection.Members}/${settleUpConfig[type].groupId}`);
 	const membersSnapshot = await database.get(membersRef);
 	const members: SettleUpMembers = membersSnapshot.val();
 	console.info('settleUp.members', members);
@@ -219,9 +228,10 @@ export async function getSettleUpMembers(
 
 export async function getSettleUpDebts(
 	settleUp: SettleUp,
+	type: SettleUpType,
 ) {
 	const db = database.getDatabase(settleUp.firebaseApp);
-	const debtsRef = database.ref(db, `${Collection.Debts}/${groupId}`);
+	const debtsRef = database.ref(db, `${Collection.Debts}/${settleUpConfig[type].groupId}`);
 	const debtsSnapshot = await database.get(debtsRef);
 	const debts: SettleUpDebts = debtsSnapshot.val();
 	console.info('settleUp.debts', debts);

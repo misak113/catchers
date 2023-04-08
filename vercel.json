@@ -1,0 +1,17 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run start",
+  "installCommand": "npm install",
+  "framework": "create-react-app",
+  "outputDirectory": "build",
+  "rewrites": [
+    { "source": "/:basename.:extname", "destination": "/$1" },
+    { "source": "/:path", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/fines?key=3fdb9f6371244ea7c613e39f3e626771",
+      "schedule": "5 0 * * *"
+    }
+  ]
+}

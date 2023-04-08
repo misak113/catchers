@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import moment from 'moment';
 import { getErrorMessage } from '../../Util/error';
 import {
 	addAttendee,
@@ -37,6 +38,12 @@ export function AttendanceResponseForm(props: IProps & IFirebaseValue & IAuthVal
 			setAttendeeErrorMessage(getErrorMessage(error));
 		}
 	};
+
+	const now = new Date();
+
+	if (!props.match || moment(props.match.startsAt).diff(now, 'days') <= 0) {
+		return <p>Již není možné měnit svou účast na zápase po jeho započetí.</p>;
+	}
 
 	return <form onSubmit={(event) => event.preventDefault()}>
 		<h3>{props.title}</h3>

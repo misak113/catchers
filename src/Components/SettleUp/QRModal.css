@@ -1,0 +1,26 @@
+
+.QR {
+	position: relative;
+	margin-right: 3px;
+}
+
+.QR .btn {
+	min-width: 18px;
+}
+
+.QR .btn .qr-icon {
+	width: 20px;
+	height: 20px;
+}
+
+.QR .QRModal {
+	display: none;
+}
+
+.QR .qr-code {
+	margin: 20px 10px;
+}
+
+.QR .QRModal.show {
+	display: block;
+}

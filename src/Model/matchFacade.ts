@@ -106,6 +106,10 @@ export function didUserRespondMatch(match: IMatch | null, currentUser: IUser | u
 		|| match?.maybeAttendees?.some((person) => person.userId === currentUser?.id);
 }
 
+export function getMatchEventName(match: IMatch) {
+	return `Hanspaulka - ${match.opponent} - ${match.field}`;
+}
+
 async function updateAttendees(
 	firebaseApp: firebase.FirebaseApp,
 	match: IMatch,

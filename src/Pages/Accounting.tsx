@@ -22,6 +22,10 @@ import './Accounting.css';
 import { setUserSettleUpProviderName, useCurrentUser } from '../Model/userFacade';
 import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
 import { useAsyncEffect } from '../React/async';
+import { formatCurrencyAmount, generateQrCode } from '../Util/currency';
+import QRCode from 'react-qr-code';
+import qrcode from 'qrcode';
+import qrIcon from './qr.png';
 
 const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (props: IAuthValue & ISettleUpValue & IFirebaseValue) => {
 	const { loading, user, login, loggingIn, logout, loggingOut, errorMessage: authErrorMessage } = useSettleUpAuth(props.settleUp);
@@ -82,12 +86,26 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (prop
 				</thead>
 				<tbody>
 					{debts.sort(debtsDescAmountSorter).map((debt) => {
+						const targetMember = members[debt.to];
+						const sepaQrCode = targetMember?.bankAccount ? generateQrCode({
+							bankAccount: targetMember.bankAccount,
+							amount: parseInt(debt.amount),
+							name: targetMember.name,
+						}) : null;
 						const humanizedCurrency = CurrencyMap[DEFAULT_CURRENCY_CODE] ?? DEFAULT_CURRENCY_CODE;
+						const key = debt.from + '-' + debt.to;
+						const bankAcount = members[debt.to]?.bankAccount ?? '';
 						return (
-							<tr key={debt.from + '-' + debt.to} className={'table-danger'}>
+							<tr key={key} className={'table-danger'}>
 								<td className='font-weight-bold'>{members[debt.from]?.name}</td>
-								<td>{members[debt.to]?.name} <small>{members[debt.to]?.bankAccount ?? ''}</small></td>
-								<td className='font-weight-bold'>{parseFloat(debt.amount).toFixed(0)} {humanizedCurrency}</td>
+								<td>
+									{members[debt.to]?.name}
+									 
+									<small>{bankAcount}</small>
+									 
+									{sepaQrCode && <QRModal sepaQrCode={sepaQrCode} amount={debt.amount} bankAccount={bankAcount} humanizedCurrency={humanizedCurrency}/>}
+								</td>
+								<td className='font-weight-bold'>{formatCurrencyAmount(debt.amount)} {humanizedCurrency}</td>
 							</tr>
 						);
 					})}
@@ -109,7 +127,7 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (prop
 						const humanizedCurrency = CurrencyMap[transaction.currencyCode] ?? transaction.currencyCode;
 						return (
 							<tr key={transactionId} className={transaction.type === 'expense' ? 'table-primary' : 'table-success'}>
-								<td className='font-weight-bold'>{calculateTotalAmount(transaction)} {humanizedCurrency}</td>
+								<td className='font-weight-bold'>{formatCurrencyAmount(calculateTotalAmount(transaction))} {humanizedCurrency}</td>
 								<td><FormattedDateTime startsAt={new Date(transaction.dateTime)}/></td>
 								<td>
 									{transaction.whoPaid.map((participant) => members[participant.memberId]?.name).join(', ')}
@@ -160,6 +178,59 @@ const ParticipantPopover = (props: IPopoverProps) => {
 					))}
 				</div>
 			</div>
+		</span>
+	);
+};
+
+interface IQRModalProps {
+	sepaQrCode: string;
+	amount: string;
+	bankAccount: string;
+	humanizedCurrency: string;
+}
+
+const QRModal = ({ sepaQrCode, amount, bankAccount, humanizedCurrency }: IQRModalProps) => {
+	const [open, setOpen] = useState(false);
+
+	const downloadQRCode = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
+		e.preventDefault();
+		const link = document.createElement("a");
+		const qrCodeDataUrl = await qrcode.toDataURL(sepaQrCode);
+		link.href = qrCodeDataUrl;
+		link.download = `qr-${formatCurrencyAmount(amount)}-${DEFAULT_CURRENCY_CODE}-${bankAccount}.png`;
+		link.click();
+	}, [amount, bankAccount, sepaQrCode]);
+
+	return (
+		<span className="QR">
+			<button type="button" className="btn btn-light" onClick={() => setOpen(!open)}>
+				<img className="qr-icon" src={qrIcon} alt='QR kód'/>
+			</button>
+
+			<div className={classNames("QRModal modal fade", { show: open })} tabIndex={-1}>
+				<div className="modal-dialog">
+					<div className="modal-content">
+						<div className="modal-header">
+							<h5 className="modal-title">QR platba</h5>
+							<button type="button" className="close" onClick={() => setOpen(false)}>
+								<span>&times;</span>
+							</button>
+						</div>
+						<div className="modal-body">
+							<button className="qr-code btn btn-link" onClick={downloadQRCode}>
+								<QRCode value={sepaQrCode} size={256} />
+							</button>
+							<h4><small>Částka:</small> {formatCurrencyAmount(amount, 2)} {humanizedCurrency}</h4>
+							<h4><small>Číslo účtu:</small> {bankAccount}</h4>
+						</div>
+						<div className="modal-footer">
+							<button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>Close</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div className={classNames("QRModal modal-backdrop fade", { show: open })}></div>
 		</span>
 	);
 };

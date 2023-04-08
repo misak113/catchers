@@ -5,6 +5,7 @@ import './Layout.css';
 import Anchor from '../Components/Anchor';
 import Homepage from './Homepage';
 import Matches from './Matches';
+import Accounting from './Accounting';
 import Match from './Match';
 import logo from '../logo-large.png';
 import 'moment/locale/cs';
@@ -43,6 +44,12 @@ const pages = [
 		hiddenInMenu: () => true,
 	},
 	{
+		name: 'Účetnictví',
+		path: '/ucetnictvi',
+		render: () => <Accounting/>,
+		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
+	},
+	{
 		name: 'Registrace',
 		path: '/registrace',
 		render: () => <Register/>,
@@ -77,6 +84,7 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 	window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
 	const currentPage = pages.find((page) => matchPage(page.path, currentPath));
 
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const setErrorMessageBlank = useCallback(() => null, [currentPath]); // The currentPath dep is hack to refresh useCurrentUser
 	const showPlayerLinkingModal = useShowPlayerLinkingModal(props.firebaseApp, props.auth.user, setErrorMessageBlank);
 	const isLinkPlayerPage = currentPage === PAGE_LINK_PLAYER;

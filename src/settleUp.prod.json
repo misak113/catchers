@@ -1,0 +1,12 @@
+{
+	"firebase": {
+		"apiKey": "AIzaSyAXbtLjbScACKN8xf4_JMii4ipdrSFe67o",
+		"authDomain": "settle-up-live.firebaseapp.com",
+		"databaseURL": "https://settle-up-live.firebaseio.com",
+		"projectId": "settle-up-live",
+		"storageBucket": "settle-up-live.appspot.com"
+	},
+	"groupId": "-NBh-5qjYTV2zZFRftn4",
+	"baseUrl": "https://settleup.app",
+	"shareLinkUrl": "https://link.settleup.app/Zw6gwbyJvw1xP3Yh6"
+}

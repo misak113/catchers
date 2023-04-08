@@ -7,6 +7,8 @@ import { mapUser, IUser, getUsersCollection, IPersonResult, getMailsCollection, 
 import { generateHash } from '../Components/Util/hash';
 import { Creatable } from './types';
 import moment from 'moment';
+import { useAsyncEffect } from '../React/async';
+import { AuthProviderName } from '../Context/SettleUpContext';
 
 export function getUserName(user: IUser) {
 	return user.name ?? user.email;
@@ -41,19 +43,17 @@ export function usePossibleAttendees(
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [possibleAttendees, setPossibleAttendees] = useState<IUser[]>();
-	useEffect(() => {
-		(async () => {
-			try {
-				const { docs } = await firestore.getDocs(getUsersCollection(firebaseApp));
-				const users = docs.map(mapUser);
-				console.log('users', users);
-				setPossibleAttendees(users.filter((user) => user.player));
-				setErrorMessage(undefined);
-			} catch (error) {
-				console.error(error);
-				setErrorMessage(getErrorMessage(error));
-			}
-		})();
+	useAsyncEffect(async () => {
+		try {
+			const { docs } = await firestore.getDocs(getUsersCollection(firebaseApp));
+			const users = docs.map(mapUser);
+			console.log('users', users);
+			setPossibleAttendees(users.filter((user) => user.player));
+			setErrorMessage(undefined);
+		} catch (error) {
+			console.error(error);
+			setErrorMessage(getErrorMessage(error));
+		}
 	}, [firebaseApp, user, setErrorMessage]);
 	return [possibleAttendees];
 }
@@ -63,19 +63,17 @@ export function useAllUsers(
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [users, setUsers] = useState<IUser[]>();
-	useEffect(() => {
-		(async () => {
-			try {
-				const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp)));
-				const users = docs.map(mapUser);
-				console.log('users', users);
-				setUsers(users);
-				setErrorMessage(undefined);
-			} catch (error) {
-				console.error(error);
-				setErrorMessage(getErrorMessage(error));
-			}
-		})();
+	useAsyncEffect(async () => {
+		try {
+			const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp)));
+			const users = docs.map(mapUser);
+			console.log('users', users);
+			setUsers(users);
+			setErrorMessage(undefined);
+		} catch (error) {
+			console.error(error);
+			setErrorMessage(getErrorMessage(error));
+		}
 	}, [firebaseApp, setErrorMessage]);
 	return [users];
 }
@@ -87,28 +85,26 @@ export function useCurrentUser(
 ) {
 	const [currentUser, setCurrentUser] = useState<IUser>();
 	const [loading, setLoading] = useState<boolean>(true);
-	useEffect(() => {
-		(async () => {
-			if (!user) {
+	useAsyncEffect(async () => {
+		if (!user) {
+			return;
+		}
+		setLoading(true);
+		try {
+			const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp), firestore.where('linkedUserUids', 'array-contains', user.uid)));
+			if (docs.length < 1) {
 				return;
 			}
-			setLoading(true);
-			try {
-				const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp), firestore.where('linkedUserUids', 'array-contains', user.uid)));
-				if (docs.length < 1) {
-					return;
-				}
-				const currentUser = mapUser(docs[0]);
-				console.log('currentUser', user, currentUser);
-				setCurrentUser(currentUser);
-				setErrorMessage(undefined);
-			} catch (error) {
-				console.error(error);
-				setErrorMessage(getErrorMessage(error));
-			} finally {
-				setLoading(false);
-			}
-		})();
+			const currentUser = mapUser(docs[0]);
+			console.log('currentUser', user, currentUser);
+			setCurrentUser(currentUser);
+			setErrorMessage(undefined);
+		} catch (error) {
+			console.error(error);
+			setErrorMessage(getErrorMessage(error));
+		} finally {
+			setLoading(false);
+		}
 	}, [firebaseApp, user, setErrorMessage]);
 	return [currentUser, loading] as const;
 }
@@ -182,45 +178,60 @@ export function useLinkPlayer(
 	const [linking, setLinking] = useState(true);
 	const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-	useEffect(() => {
+	useAsyncEffect(async () => {
 		setLinking(true);
-		(async () => {
-			if (!user) {
-				setErrorMessage('Nejprve se prosím přihlas');
-				setLinking(false);
+		if (!user) {
+			setErrorMessage('Nejprve se prosím přihlas');
+			setLinking(false);
+			return;
+		}
+		try {
+			const { docs } = await firestore.getDocs(firestore.query(
+				getUserPlayerLinkRequestsCollection(firebaseApp),
+				firestore.where('hash', '==', requestHash),
+				firestore.where('userUid', '==', user.uid),
+				firestore.where('linkedAt', '==', null),
+				firestore.where('requestedAt', '>', moment().subtract(1, 'day').toDate()),
+			));
+			if (docs.length < 1) {
+				setErrorMessage('Neplatný požadavek');
 				return;
 			}
-			try {
-				const { docs } = await firestore.getDocs(firestore.query(
-					getUserPlayerLinkRequestsCollection(firebaseApp),
-					firestore.where('hash', '==', requestHash),
-					firestore.where('userUid', '==', user.uid),
-					firestore.where('linkedAt', '==', null),
-					firestore.where('requestedAt', '>', moment().subtract(1, 'day').toDate()),
-				));
-				if (docs.length < 1) {
-					setErrorMessage('Neplatný požadavek');
-					return;
-				}
-				const requestDoc = docs[0];
-				const userPlayerLinkRequest = mapUserPlayerLinkRequest(requestDoc);
-				const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), userPlayerLinkRequest.playerId));
-				console.log("User doc", userDoc.id);
-				await firestore.updateDoc(userDoc.ref, {
-					linkedUserUids: firestore.arrayUnion(userPlayerLinkRequest.userUid),
-				});
-				await firestore.updateDoc(requestDoc.ref, {
-					linkedAt: new Date(),
-				});
-				setErrorMessage(undefined);
-			} catch (error) {
-				console.error(error);
-				setErrorMessage(getErrorMessage(error));
-			} finally {
-				setLinking(false);
-			}
-		})();
+			const requestDoc = docs[0];
+			const userPlayerLinkRequest = mapUserPlayerLinkRequest(requestDoc);
+			const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), userPlayerLinkRequest.playerId));
+			console.log("User doc", userDoc.id);
+			await firestore.updateDoc(userDoc.ref, {
+				linkedUserUids: firestore.arrayUnion(userPlayerLinkRequest.userUid),
+			});
+			await firestore.updateDoc(requestDoc.ref, {
+				linkedAt: new Date(),
+			});
+			setErrorMessage(undefined);
+		} catch (error) {
+			console.error(error);
+			setErrorMessage(getErrorMessage(error));
+		} finally {
+			setLinking(false);
+		}
 	}, [firebaseApp, user, requestHash]);
 
 	return [linking, errorMessage];
+}
+
+export async function setUserSettleUpProviderName(
+	firebaseApp: firebase.FirebaseApp,
+	player: IUser,
+	settleUpProviderName: AuthProviderName | null,
+) {
+	const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), player.id));
+	if (settleUpProviderName) {
+		await firestore.updateDoc(userDoc.ref, {
+			settleUpProviderName,
+		});
+	} else {
+		await firestore.updateDoc(userDoc.ref, {
+			settleUpProviderName: firestore.deleteField(),
+		});
+	}
 }

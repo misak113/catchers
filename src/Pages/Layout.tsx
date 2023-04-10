@@ -1,5 +1,5 @@
 import * as firebaseAuth from '@firebase/auth';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import classNames from 'classnames';
 import './Layout.css';
 import Anchor from '../Components/Anchor';
@@ -16,6 +16,7 @@ import { useShowPlayerLinkingModal } from '../Model/userFacade';
 import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
 import PlayerLinkModal from '../Components/PlayerLinking/PlayerLinkModal';
 import LinkPlayer from './LinkPlayer';
+import Fines from './Fines';
 
 const PAGE_LINK_PLAYER = {
 	name: 'Spojení hráčů',
@@ -50,6 +51,12 @@ const pages = [
 		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
 	},
 	{
+		name: 'Pokuty',
+		path: '/pokuty',
+		render: () => <Fines/>,
+		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
+	},
+	{
 		name: 'Registrace',
 		path: '/registrace',
 		render: () => <Register/>,
@@ -81,7 +88,9 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [loginEmailShown, setShowLoginEmail] = useState(false);
 	const [currentPath, changePath] = useState(window.location.pathname);
-	window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
+	useEffect(() => {
+		window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
+	});
 	const currentPage = pages.find((page) => matchPage(page.path, currentPath));
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps

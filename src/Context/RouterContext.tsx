@@ -1,6 +1,8 @@
 import React from 'react';
 
-interface IProps {}
+interface IProps {
+	children: React.ReactNode;
+}
 
 interface IRouter {
 	goPath(path: string): void;

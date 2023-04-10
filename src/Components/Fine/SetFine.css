@@ -1,0 +1,8 @@
+
+.SetFine .SetFineModal {
+	display: none;
+}
+
+.SetFine .SetFineModal.show {
+	display: block;
+}

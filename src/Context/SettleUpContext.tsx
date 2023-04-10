@@ -4,7 +4,7 @@ import * as firebaseAuth from '@firebase/auth';
 import { firebase as firebaseConfig } from '../Model/settleUpFacade';
 
 interface IProps {
-
+	children: React.ReactNode;
 }
 
 export interface SettleUp {

@@ -14,6 +14,7 @@ import FieldCard from '../Components/Match/FieldCard';
 import MatchTimeCard from '../Components/Match/MatchTimeCard';
 import AttendanceResponseForm from '../Components/Match/AttendenceResponseForm';
 import FormattedDateTime from '../Components/Util/FormattedDateTime';
+import SetFine from '../Components/Fine/SetFine';
 
 interface IProps {
 	matchId: string;
@@ -70,6 +71,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 						<tbody>
 							{match ? attendees.map((attendee) => (
 								<tr key={attendee.userId}><td>
+									<SetFine userId={attendee.userId} users={possibleAttendees} currentUser={currentUser} match={match}/>
 									{getUserName(mapPersonResultToUser(attendee))}<br/>
 									<footer className="blockquote-footer"><FormattedDateTime startsAt={attendee.resultAt}/></footer>
 									{attendee.note && <footer className="blockquote-footer">{attendee.note}</footer>}
@@ -77,6 +79,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 							)) : <tr><td><Loading size='40px'/></td></tr>}
 							{match ? maybeAttendees.map((maybeAttendee) => (
 								<tr className="table-warning" key={maybeAttendee.userId}><td>
+									<SetFine userId={maybeAttendee.userId} users={possibleAttendees} currentUser={currentUser} match={match}/>
 									{getUserName(mapPersonResultToUser(maybeAttendee))}<br/>
 									<footer className="blockquote-footer"><FormattedDateTime startsAt={maybeAttendee.resultAt}/></footer>
 									{maybeAttendee.note && <footer className="blockquote-footer">{maybeAttendee.note}</footer>}
@@ -93,6 +96,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 						<tbody>
 							{match ? nonAttendees.map((nonAttendee) => (
 								<tr key={nonAttendee.userId}><td>
+									<SetFine userId={nonAttendee.userId} users={possibleAttendees} currentUser={currentUser} match={match}/>
 									{getUserName(mapPersonResultToUser(nonAttendee))}<br/>
 									<footer className="blockquote-footer"><FormattedDateTime startsAt={nonAttendee.resultAt}/></footer>
 									{nonAttendee.note && <footer className="blockquote-footer">{nonAttendee.note}</footer>}
@@ -108,7 +112,10 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 						</thead>
 						<tbody>
 							{unrespondedUsers ? unrespondedUsers.map((possibleAttendee) => (
-								<tr key={possibleAttendee.id}><td>{getUserName(possibleAttendee)}</td></tr>
+								<tr key={possibleAttendee.id}><td>
+									<SetFine userId={possibleAttendee.id} users={possibleAttendees} currentUser={currentUser} match={match}/>
+									{getUserName(possibleAttendee)}
+								</td></tr>
 							)) : <tr><td><Loading size='40px'/></td></tr>}
 						</tbody>
 					</table>

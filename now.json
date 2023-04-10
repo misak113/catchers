@@ -1,8 +1,0 @@
-{
-  "version": 2,
-  "alias": ["sccatchers.cz", "www.sccatchers.cz"],
-  "routes": [
-    { "src": "/((.*)\\.(\\w+))", "dest": "/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
-}

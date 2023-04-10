@@ -61,7 +61,7 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 		</thead>
 		<tbody>
 			{errorMessage
-			? <tr><td colSpan={5}>{errorMessage}</td></tr>
+			? <tr><td colSpan={6}>{errorMessage}</td></tr>
 			: matches
 				? matches.map((match) => {
 					const currentUserResponded = didUserRespondMatch(match, currentUser);
@@ -114,7 +114,7 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 						</td>
 					</tr>;
 				})
-				: <tr><td colSpan={5}><Loading size='50px'/></td></tr>}
+				: <tr><td colSpan={6}><Loading size='50px'/></td></tr>}
 		</tbody>
 	</table>;
 }

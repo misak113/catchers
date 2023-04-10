@@ -61,6 +61,10 @@ export function mapMatch<T extends firestore.DocumentSnapshot>(
 
 export const USERS = 'users';
 
+export enum Privilege {
+	WriteFines = 'writeFines',
+}
+
 export interface IUser {
 	id: string;
 	email: string;
@@ -68,6 +72,7 @@ export interface IUser {
 	player: boolean;
 	linkedUserUids?: string[];
 	settleUpProviderName?: AuthProviderName;
+	privileges?: Privilege[];
 }
 
 export function getUsersCollection(firebaseApp: firebase.FirebaseApp) {
@@ -84,6 +89,7 @@ export function mapUser(doc: firestore.QueryDocumentSnapshot): IUser {
 		player: typeof data.player !== 'undefined' ? data.player : false,
 		linkedUserUids: data.linkedUserUids,
 		settleUpProviderName: data.settleUpProviderName,
+		privileges: data.privileges,
 	};
 }
 

@@ -1,5 +1,5 @@
 import * as firebaseAuth from '@firebase/auth';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import classNames from 'classnames';
 import './Layout.css';
 import Anchor from '../Components/Anchor';
@@ -88,7 +88,9 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [loginEmailShown, setShowLoginEmail] = useState(false);
 	const [currentPath, changePath] = useState(window.location.pathname);
-	window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
+	useEffect(() => {
+		window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
+	});
 	const currentPage = pages.find((page) => matchPage(page.path, currentPath));
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps

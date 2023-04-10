@@ -3,7 +3,7 @@ import * as firebase from '@firebase/app';
 import firebaseConfig from '../firebase.json';
 
 interface IProps {
-
+	children: React.ReactNode;
 }
 
 export interface IFirebaseValue {

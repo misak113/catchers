@@ -2,7 +2,9 @@ import React from 'react';
 import * as firebaseAuth from '@firebase/auth';
 import { withFirebase, IFirebaseValue } from './FirebaseContext';
 
-interface IOwnProps {}
+interface IOwnProps {
+	children: React.ReactNode;
+}
 type IProps = IOwnProps & IFirebaseValue;
 
 interface IState {

@@ -5,22 +5,36 @@ import { formatCurrencyAmount } from '../../Util/currency';
 import classNames from 'classnames';
 import './Transactions.css';
 
+export enum Column {
+	Amount = 'amount',
+	Date = 'date',
+	Paid = 'paid',
+	Description = 'description',
+}
+
 interface ITransactionProps {
 	transactions: SettleUpTransactions;
 	members: SettleUpMembers;
 	paidLabel?: string;
+	onlyColumns?: Column[];
+	title?: string;
 }
 
 const Transactions = (props: ITransactionProps) => {
+
+	const showColumn = (column: Column) => {
+		return !props.onlyColumns || props.onlyColumns.includes(column);
+	}
+
 	return <div className='Transactions'>
-		<h2>Transakce</h2>
+		<h2>{props.title ?? 'Transakce'}</h2>
 		<table className="table table-light table-bordered table-hover table-striped table-responsive-md">
 			<thead>
 				<tr>
-					<th>Částka</th>
-					<th>Datum</th>
-					<th>{props.paidLabel || 'Platil'}</th>
-					<th>Popis</th>
+					{showColumn(Column.Amount) && <th>Částka</th>}
+					{showColumn(Column.Date) && <th>Datum</th>}
+					{showColumn(Column.Paid) && <th>{props.paidLabel || 'Platil'}</th>}
+					{showColumn(Column.Description) && <th>Popis</th>}
 				</tr>
 			</thead>
 			<tbody>
@@ -28,9 +42,9 @@ const Transactions = (props: ITransactionProps) => {
 					const humanizedCurrency = CurrencyMap[transaction.currencyCode] ?? transaction.currencyCode;
 					return (
 						<tr key={transactionId} className={transaction.type === 'expense' ? 'table-primary' : 'table-success'}>
-							<td className='font-weight-bold'>{formatCurrencyAmount(calculateTotalAmount(transaction))} {humanizedCurrency}</td>
-							<td><FormattedDateTime startsAt={new Date(transaction.dateTime)}/></td>
-							{props.paidLabel ? <td>
+							{showColumn(Column.Amount) && <td className='font-weight-bold'>{formatCurrencyAmount(calculateTotalAmount(transaction))} {humanizedCurrency}</td>}
+							{showColumn(Column.Date) && <td><FormattedDateTime startsAt={new Date(transaction.dateTime)}/></td>}
+							{showColumn(Column.Paid) && (props.paidLabel ? <td>
 								{transaction.items.flatMap((item) => item.forWhom).map((participant) => props.members[participant.memberId]?.name).join(', ')}
 							</td> : <td>
 								{transaction.whoPaid.map((participant) => props.members[participant.memberId]?.name).join(', ')}
@@ -40,8 +54,8 @@ const Transactions = (props: ITransactionProps) => {
 									participants={transaction.items.flatMap((item) => item.forWhom)}
 									members={props.members}
 								/>
-							</td>}
-							<td>{transaction.purpose}</td>
+							</td>)}
+							{showColumn(Column.Description) && <td>{transaction.purpose}</td>}
 						</tr>
 					);
 				})}

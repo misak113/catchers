@@ -8,6 +8,7 @@ import AutoLinkAccount from '../Components/SettleUp/AutoLinkAccount';
 import { useCurrentUser } from '../Model/userFacade';
 import Debts from '../Components/SettleUp/Debts';
 import Transactions from '../Components/SettleUp/Transactions';
+import FinesTable from '../Components/Fine/FinesTable';
 
 const Fines: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (props: IAuthValue & ISettleUpValue & IFirebaseValue) => {
 	const { user, errorMessage: authErrorMessage } = useSettleUpAuth(props.settleUp);
@@ -27,33 +28,7 @@ const Fines: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (props: IA
 		{membersErrorMessage && <div className='alert alert-danger'>{membersErrorMessage}</div>}
 		{debtsErrorMessage && <div className='alert alert-danger'>{debtsErrorMessage}</div>}
 
-		<h2>Sazebník</h2>
-		<table className='table table-light table-bordered table-hover table-striped table-responsive-md'>
-			<thead>
-				<tr>
-					<th>Hřích</th>
-					<th>Pokuta</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-					<td>Pozdní příchod na zápas <i>(do výkopu)</i></td>
-					<td>50 Kč</td>
-				</tr>
-				<tr>
-					<td>Pozdní vyjádření se k účasti <i>(3 dny před zápasem)</i></td>
-					<td>100 Kč</td>
-				</tr>
-				<tr>
-					<td>Nevyjádření se k účasti <i>(do výkopu)</i></td>
-					<td>200 Kč</td>
-				</tr>
-				<tr>
-					<td>Nedostavení se na přijatý zápas <i>(bez omluvy)</i></td>
-					<td>300 Kč</td>
-				</tr>
-			</tbody>
-		</table>
+		<FinesTable/>
 
 		{user && <>
 			<Debts debts={debts} members={members} hideWho={true}/>

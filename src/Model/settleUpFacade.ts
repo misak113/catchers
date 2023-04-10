@@ -131,6 +131,17 @@ export function useSettleUpAuth(
 	return { loading, user, login, loggingIn, logout, loggingOut, errorMessage };
 }
 
+export async function createTransaction(
+	settleUp: SettleUp,
+	type: SettleUpType,
+	transaction: SettleUpTransaction,
+) {
+	const db = database.getDatabase(settleUp.firebaseApp);
+	const transactionRef = database.ref(db, `${Collection.Transactions}/${settleUpConfig[type].groupId}`);
+	const newTransactionRef = database.push(transactionRef);
+	await database.set(newTransactionRef, transaction);
+}
+
 export function useSettleUpTransactions(
 	settleUp: SettleUp,
 	type: SettleUpType,

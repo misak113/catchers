@@ -33,9 +33,9 @@ const Fines: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (props: IA
 		{user && <>
 			<Debts debts={debts} members={members} hideWho={true}/>
 			<Transactions transactions={transactions} members={members} paidLabel='Hříšník'/>
-			<JoinGroupLink type={SettleUpType.Fines} title='Pokuty'/>
-			<AutoLinkAccount currentUser={currentUser}/>
 		</>}
+		<JoinGroupLink type={SettleUpType.Fines} title='Pokuty'/>
+		<AutoLinkAccount currentUser={currentUser}/>
 	</div>;
 };
 export default withAuth(withSettleUp(withFirebase(Fines)));

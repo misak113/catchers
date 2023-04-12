@@ -37,9 +37,9 @@ const Accounting: React.FC<IAuthValue & ISettleUpValue & IFirebaseValue> = (prop
 		{user && <>
 			<Debts debts={debts} members={members}/>
 			<Transactions transactions={transactions} members={members}/>
-			<JoinGroupLink type={SettleUpType.Accounting} title="Účetnictví"/>
-			<AutoLinkAccount currentUser={currentUser}/>
 		</>}
+		<JoinGroupLink type={SettleUpType.Accounting} title="Účetnictví"/>
+		<AutoLinkAccount currentUser={currentUser}/>
 	</div>
 };
 export default withAuth(withSettleUp(withFirebase(Accounting)));

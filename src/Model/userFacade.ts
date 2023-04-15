@@ -3,12 +3,13 @@ import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
 import { useEffect, useState } from "react";
 import { getErrorMessage } from "../Util/error";
-import { mapUser, IUser, getUsersCollection, IPersonResult, getMailsCollection, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest } from "./collections";
+import { mapUser, IUser, getUsersCollection, IPersonResult, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest, IMatch, IMail } from "./collections";
 import { generateHash } from '../Components/Util/hash';
 import { Creatable } from './types';
 import moment from 'moment';
 import { useAsyncEffect } from '../React/async';
 import { AuthProviderName } from '../Context/SettleUpContext';
+import { sendMail } from './mailFacade';
 
 export function getUserName(user: IUser) {
 	return user.name ?? user.email;
@@ -144,7 +145,7 @@ export async function sendEmailLinkPlayerWithUser(
 	const infoText = `Na stránkách SCCatchers bylo požádáno o připojení hráče "${player.name} - ${player.email}" (aktuální e-mailová adresa) k uživateli `
 		+ `"${user.displayName ? user.displayName + ' - ' : ''}${user.email}".`;
 	const linkUrl = `${window.location.origin}/spoj-hrace/${userPlayerLinkRequest.hash}`;
-	firestore.addDoc(getMailsCollection(firebaseApp), {
+	const mail: IMail = {
 		to: [player.email],
 		message: {
 			subject: `Připojení hráče "${player.name}" k uživateli "${userName}"`,
@@ -156,7 +157,8 @@ export async function sendEmailLinkPlayerWithUser(
 				</tr>
 			</tbody></table>`,
 		},
-	});
+	};
+	await sendMail(firebaseApp, mail);
 }
 
 export async function createUserPlayerLinkRequest(

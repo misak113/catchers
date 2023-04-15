@@ -45,10 +45,8 @@ export function usePossibleAttendees(
 	const [possibleAttendees, setPossibleAttendees] = useState<IUser[]>();
 	useAsyncEffect(async () => {
 		try {
-			const { docs } = await firestore.getDocs(getUsersCollection(firebaseApp));
-			const users = docs.map(mapUser);
-			console.log('users', users);
-			setPossibleAttendees(users.filter((user) => user.player));
+			const possibleAttendees = await getPossibleAttendees(firebaseApp);
+			setPossibleAttendees(possibleAttendees);
 			setErrorMessage(undefined);
 		} catch (error) {
 			console.error(error);
@@ -56,6 +54,14 @@ export function usePossibleAttendees(
 		}
 	}, [firebaseApp, user, setErrorMessage]);
 	return [possibleAttendees];
+}
+
+export async function getPossibleAttendees(firebaseApp: firebase.FirebaseApp) {
+	const { docs } = await firestore.getDocs(getUsersCollection(firebaseApp));
+	const users = docs.map(mapUser);
+	console.log('users', users);
+	const possibleAttendees = users.filter((user) => user.player);
+	return possibleAttendees;
 }
 
 export function useAllUsers(

@@ -21,12 +21,6 @@ export function getSettleUpGroupUrl(type: SettleUpType) {
 	return settleUpConfig[type].shareLinkUrl;
 }
 
-export const CurrencyMap: { [currencyCode: string]: string } = {
-	CZK: 'Kč',
-	EUR: '€',
-	USD: '$',
-};
-
 enum Collection {
 	Transactions = 'transactions',
 	Members = 'members',

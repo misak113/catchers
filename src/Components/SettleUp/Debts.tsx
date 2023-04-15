@@ -1,6 +1,6 @@
 import React from 'react';
-import { CurrencyMap, DEFAULT_CURRENCY_CODE, SettleUpDebts, SettleUpMembers, debtsDescAmountSorter } from '../../Model/settleUpFacade';
-import { formatCurrencyAmount, generateQrCode } from '../../Util/currency';
+import { DEFAULT_CURRENCY_CODE, SettleUpDebts, SettleUpMembers, debtsDescAmountSorter } from '../../Model/settleUpFacade';
+import { formatCurrencyAmountHumanized, generateQrCode } from '../../Util/currency';
 import QRModal from './QRModal';
 
 interface IDebtsProps {
@@ -28,7 +28,6 @@ const Debts = (props: IDebtsProps) => {
 						amount: parseInt(debt.amount),
 						name: targetMember.name,
 					}) : null;
-					const humanizedCurrency = CurrencyMap[DEFAULT_CURRENCY_CODE] ?? DEFAULT_CURRENCY_CODE;
 					const key = debt.from + '-' + debt.to;
 					const bankAcount = props.members[debt.to]?.bankAccount ?? '';
 					return (
@@ -39,9 +38,9 @@ const Debts = (props: IDebtsProps) => {
 								 
 								<small>{bankAcount}</small>
 								 
-								{sepaQrCode && <QRModal sepaQrCode={sepaQrCode} amount={debt.amount} bankAccount={bankAcount} humanizedCurrency={humanizedCurrency}/>}
+								{sepaQrCode && <QRModal sepaQrCode={sepaQrCode} amount={debt.amount} bankAccount={bankAcount} currencyCode={DEFAULT_CURRENCY_CODE}/>}
 							</td>}
-							<td className='font-weight-bold'>{formatCurrencyAmount(debt.amount)} {humanizedCurrency}</td>
+							<td className='font-weight-bold'>{formatCurrencyAmountHumanized({ amount: debt.amount, currencyCode: DEFAULT_CURRENCY_CODE })}</td>
 						</tr>
 					);
 				})}

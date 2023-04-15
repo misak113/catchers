@@ -1,5 +1,5 @@
 import React from 'react';
-import moment from 'moment';
+import { formatDateHumanized, formatTimeHumanized, formatWeekdayHumanized } from '../../Util/datetime';
 
 interface IProps {
 	startsAt: Date;
@@ -7,7 +7,7 @@ interface IProps {
 
 function FormattedDateTime(props: IProps) {
 	return <>
-		{moment(props.startsAt).format('LL')} <small>{moment(props.startsAt).format('ddd')}</small>, {moment(props.startsAt).format('LT')}
+		{formatDateHumanized(props.startsAt)} <small>{formatWeekdayHumanized(props.startsAt)}</small>, {formatTimeHumanized(props.startsAt)}
 	</>;
 }
 export default FormattedDateTime;

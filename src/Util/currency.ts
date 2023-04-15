@@ -1,7 +1,27 @@
 import { composeIBAN } from 'ibantools';
 
-export function formatCurrencyAmount(amount: string | number, decimals: number = 0): string {
+export const CurrencyMap: { [currencyCode: string]: string } = {
+	CZK: 'Kč',
+	EUR: '€',
+	USD: '$',
+};
+
+type AmountOptions = {
+	amount: string | number;
+	decimals?: number;
+};
+
+type CurrencyAmountOptions = AmountOptions & {
+	currencyCode: string;
+};
+
+export function formatCurrencyAmount({ amount, decimals = 0 }: AmountOptions): string {
 	return parseFloat(`${amount}`).toFixed(decimals);
+}
+
+export function formatCurrencyAmountHumanized({ amount, currencyCode, decimals = 0 }: CurrencyAmountOptions): string {
+	const humanizedCurrency = CurrencyMap[currencyCode] ?? currencyCode;
+	return `${formatCurrencyAmount({ amount, decimals })} ${humanizedCurrency}`;
 }
 
 export function toIBAN(bankAccount: string): string | null {
@@ -26,7 +46,7 @@ export function generateQrCode({ bankAccount, amount, name }: { bankAccount: str
 		if (!iban) {
 			return null;
 		}
-		const amountRounded = formatCurrencyAmount(amount, 2);
+		const amountRounded = formatCurrencyAmount({ amount, decimals: 2 });
 		const spdQrCode = `SPD*1.0*ACC:${iban}*AM:${amountRounded}*CC:CZK`;
 		return spdQrCode;
 	} catch (error) {

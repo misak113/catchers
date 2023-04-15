@@ -23,6 +23,10 @@ export interface IMatch {
 	nonAttendees?: IPersonResult[];
 	maybeAttendees?: IPersonResult[];
 	attendeesResultLog?: (IPersonResult & { type: AttendeeType })[];
+	notificationsSent?: { [userId: string]: {
+		notifiedAt: Date;
+		email: string;
+	} };
 }
 
 export function getMatchesCollection(firebaseApp: firebase.FirebaseApp) {
@@ -56,6 +60,7 @@ export function mapMatch<T extends firestore.DocumentSnapshot>(
 		nonAttendees: data.nonAttendees?.map(mapPersonResult),
 		maybeAttendees: data.maybeAttendees?.map(mapPersonResult),
 		attendeesResultLog: data.attendeesResultLog?.map(mapPersonResult),
+		notificationsSent: data.notificationsSent,
 	};
 }
 

@@ -24,6 +24,15 @@ export const createMapPersonResultToUser = (possibleAttendees: IUser[] | undefin
 	};
 };
 
+export function getUnrespondedUsersOfMatch(match: IMatch | null, possibleAttendees: IUser[] | undefined) {
+	const attendees = match?.attendees || [];
+	const maybeAttendees = match?.maybeAttendees || [];
+	const nonAttendees = match?.nonAttendees || [];
+
+	const unrespondedUsers = getUnrespondedUsers({ attendees, maybeAttendees, nonAttendees, possibleAttendees });
+	return unrespondedUsers;
+}
+
 export function getUnrespondedUsers(props: {
 	attendees: IPersonResult[];
 	maybeAttendees: IPersonResult[];

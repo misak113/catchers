@@ -117,6 +117,19 @@ export function getMatchEventName(match: IMatch) {
 	return `Hanspaulka - ${match.opponent} - ${match.field}`;
 }
 
+export function updateMatchNotificationSent(
+	firebaseApp: firebase.FirebaseApp,
+	match: IMatch,
+	user: IUser,
+) {
+	return firestore.updateDoc(firestore.doc(getMatchesCollection(firebaseApp), match.id), {
+		[`notificationsSent.${user.id}`]: {
+			notifiedAt: new Date(),
+			email: user.email,
+		},
+	});
+}
+
 async function updateAttendees(
 	firebaseApp: firebase.FirebaseApp,
 	match: IMatch,

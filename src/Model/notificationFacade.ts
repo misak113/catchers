@@ -6,6 +6,7 @@ import { stripHtmlEntities } from '../Util/html';
 import { UNRESPONDED_LATE_FINE } from './fineFacade';
 import { formatCurrencyAmountHumanized } from '../Util/currency';
 import { sendMail } from './mailFacade';
+import { DEADLINE_THRESHOLD } from "./matchFacade";
 
 const BUTTON_STYLE = '\
 display: inline-block;\
@@ -16,8 +17,6 @@ color: white;\
 border-bottom: solid 1px #28a745;\
 border-radius: 0.3rem;\
 ';
-
-const DEADLINE_THRESHOLD = [2, 'days'] as const;
 
 export async function sendMatchUnrespondedNotification(firebaseApp: FirebaseApp.FirebaseApp, match: IMatch, unrespondedUser: IUser, apply: boolean, baseUrl: string) {
 	const deadlineDate = getDeadlineResponseDate(match);

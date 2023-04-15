@@ -16,10 +16,14 @@ export function getUserName(user: IUser) {
 }
 
 export const createMapPersonResultToUser = (possibleAttendees: IUser[] | undefined) => (personResult: IPersonResult): IUser => {
-	const user = possibleAttendees?.find((user) => user.id === personResult.userId);
+	return createMapUserIdToUser(possibleAttendees)(personResult.userId);
+};
+
+export const createMapUserIdToUser = (possibleAttendees: IUser[] | undefined) => (userId: string): IUser => {
+	const user = possibleAttendees?.find((user) => user.id === userId);
 	return user ?? {
-		id: personResult.userId,
-		email: `user-${personResult.userId}@sccatchers.cz`, // This is only dummy replacement of User if not found in DB from any reason
+		id: userId,
+		email: `user-${userId}@sccatchers.cz`, // This is only dummy replacement of User if not found in DB from any reason
 		player: false,
 	};
 };

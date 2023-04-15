@@ -7,6 +7,7 @@ import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection } from "./
 import { safeObjectKeys } from '../Util/object';
 import { useAsyncEffect } from '../React/async';
 
+export const DEADLINE_THRESHOLD = [2, 'days'] as const;
 
 export function useMatches(
 	firebaseApp: firebase.FirebaseApp,

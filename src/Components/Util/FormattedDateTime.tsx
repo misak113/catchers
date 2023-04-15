@@ -3,11 +3,12 @@ import { formatDateHumanized, formatTimeHumanized, formatWeekdayHumanized } from
 
 interface IProps {
 	startsAt: Date;
+	className?: string;
 }
 
 function FormattedDateTime(props: IProps) {
-	return <>
+	return <span className={props.className}>
 		{formatDateHumanized(props.startsAt)} <small>{formatWeekdayHumanized(props.startsAt)}</small>, {formatTimeHumanized(props.startsAt)}
-	</>;
+	</span>;
 }
 export default FormattedDateTime;

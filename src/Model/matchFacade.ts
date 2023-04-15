@@ -100,6 +100,13 @@ export async function addMaybeAttendee(
 	);
 }
 
+export async function getUpcomingMatches(firebaseApp: firebase.FirebaseApp): Promise<IMatch[]> {
+	const query = firestore.query(getMatchesCollection(firebaseApp), firestore.where('startsAt', '>', new Date()), firestore.orderBy('startsAt', 'asc'));
+	const { docs } = await firestore.getDocs(query);
+	const upcomingMatches = docs.map(mapMatch);
+	return upcomingMatches;
+}
+
 export function didUserRespondMatch(match: IMatch | null, currentUser: IUser | undefined) {
 	return match?.attendees?.some((person) => person.userId === currentUser?.id)
 		|| match?.nonAttendees?.some((person) => person.userId === currentUser?.id)

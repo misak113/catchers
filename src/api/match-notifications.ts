@@ -1,6 +1,5 @@
-import 'moment/locale/cs';
 import moment from 'moment-timezone';
-moment.locale('cs');
+import 'moment/locale/cs';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getUpcomingMatches, updateMatchNotificationSent } from '../Model/matchFacade';
 import { initFirebase } from '../Model/firebaseFacade';
@@ -16,6 +15,7 @@ type ResponseObject = {
 const THRESHOLD_IN_MS = 3 * 24 * 60 * 60 * 1e3;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+	moment.locale('cs');
 	if (req.query.key !== '3fdb9f6371244ea7c613e39f3e626771') {
 		res.status(401).end('Unauthorized');
 		return;

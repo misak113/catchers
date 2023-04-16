@@ -9,6 +9,13 @@ export interface IFineDefinition {
 	currencyCode: string;
 }
 
+export const UNRESPONDED_LATE_FINE: IFineDefinition = {
+	label: 'Pozdní vyjádření se k účasti',
+	detail: '3 dny před zápasem',
+	amount: 100,
+	currencyCode: DEFAULT_CURRENCY_CODE,
+};
+
 export const FINES: IFineDefinition[] = [
 	{
 		label: 'Pozdní příchod na zápas',
@@ -16,12 +23,7 @@ export const FINES: IFineDefinition[] = [
 		amount: 50,
 		currencyCode: DEFAULT_CURRENCY_CODE,
 	},
-	{
-		label: 'Pozdní vyjádření se k účasti',
-		detail: '3 dny před zápasem',
-		amount: 100,
-		currencyCode: DEFAULT_CURRENCY_CODE,
-	},
+	UNRESPONDED_LATE_FINE,
 	{
 		label: 'Nevyjádření se k účasti',
 		detail: 'do výkopu',

@@ -3,25 +3,39 @@ import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
 import { useEffect, useState } from "react";
 import { getErrorMessage } from "../Util/error";
-import { mapUser, IUser, getUsersCollection, IPersonResult, getMailsCollection, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest } from "./collections";
+import { mapUser, IUser, getUsersCollection, IPersonResult, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest, IMatch, IMail } from "./collections";
 import { generateHash } from '../Components/Util/hash';
 import { Creatable } from './types';
 import moment from 'moment';
 import { useAsyncEffect } from '../React/async';
 import { AuthProviderName } from '../Context/SettleUpContext';
+import { sendMail } from './mailFacade';
 
 export function getUserName(user: IUser) {
 	return user.name ?? user.email;
 }
 
 export const createMapPersonResultToUser = (possibleAttendees: IUser[] | undefined) => (personResult: IPersonResult): IUser => {
-	const user = possibleAttendees?.find((user) => user.id === personResult.userId);
+	return createMapUserIdToUser(possibleAttendees)(personResult.userId);
+};
+
+export const createMapUserIdToUser = (possibleAttendees: IUser[] | undefined) => (userId: string): IUser => {
+	const user = possibleAttendees?.find((user) => user.id === userId);
 	return user ?? {
-		id: personResult.userId,
-		email: `user-${personResult.userId}@sccatchers.cz`, // This is only dummy replacement of User if not found in DB from any reason
+		id: userId,
+		email: `user-${userId}@sccatchers.cz`, // This is only dummy replacement of User if not found in DB from any reason
 		player: false,
 	};
 };
+
+export function getUnrespondedUsersOfMatch(match: IMatch | null, possibleAttendees: IUser[] | undefined) {
+	const attendees = match?.attendees || [];
+	const maybeAttendees = match?.maybeAttendees || [];
+	const nonAttendees = match?.nonAttendees || [];
+
+	const unrespondedUsers = getUnrespondedUsers({ attendees, maybeAttendees, nonAttendees, possibleAttendees });
+	return unrespondedUsers;
+}
 
 export function getUnrespondedUsers(props: {
 	attendees: IPersonResult[];
@@ -45,10 +59,8 @@ export function usePossibleAttendees(
 	const [possibleAttendees, setPossibleAttendees] = useState<IUser[]>();
 	useAsyncEffect(async () => {
 		try {
-			const { docs } = await firestore.getDocs(getUsersCollection(firebaseApp));
-			const users = docs.map(mapUser);
-			console.log('users', users);
-			setPossibleAttendees(users.filter((user) => user.player));
+			const possibleAttendees = await getPossibleAttendees(firebaseApp);
+			setPossibleAttendees(possibleAttendees);
 			setErrorMessage(undefined);
 		} catch (error) {
 			console.error(error);
@@ -56,6 +68,14 @@ export function usePossibleAttendees(
 		}
 	}, [firebaseApp, user, setErrorMessage]);
 	return [possibleAttendees];
+}
+
+export async function getPossibleAttendees(firebaseApp: firebase.FirebaseApp) {
+	const { docs } = await firestore.getDocs(getUsersCollection(firebaseApp));
+	const users = docs.map(mapUser);
+	console.log('users', users);
+	const possibleAttendees = users.filter((user) => user.player);
+	return possibleAttendees;
 }
 
 export function useAllUsers(
@@ -138,7 +158,7 @@ export async function sendEmailLinkPlayerWithUser(
 	const infoText = `Na stránkách SCCatchers bylo požádáno o připojení hráče "${player.name} - ${player.email}" (aktuální e-mailová adresa) k uživateli `
 		+ `"${user.displayName ? user.displayName + ' - ' : ''}${user.email}".`;
 	const linkUrl = `${window.location.origin}/spoj-hrace/${userPlayerLinkRequest.hash}`;
-	firestore.addDoc(getMailsCollection(firebaseApp), {
+	const mail: IMail = {
 		to: [player.email],
 		message: {
 			subject: `Připojení hráče "${player.name}" k uživateli "${userName}"`,
@@ -150,7 +170,8 @@ export async function sendEmailLinkPlayerWithUser(
 				</tr>
 			</tbody></table>`,
 		},
-	});
+	};
+	await sendMail(firebaseApp, mail);
 }
 
 export async function createUserPlayerLinkRequest(

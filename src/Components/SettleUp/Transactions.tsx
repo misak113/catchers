@@ -1,7 +1,7 @@
 import React from 'react';
-import { CurrencyMap, SettleUpMembers, SettleUpTransactionParticipant, SettleUpTransactions, calculateTotalAmount, transactionDescDateSorter } from '../../Model/settleUpFacade';
+import { SettleUpMembers, SettleUpTransactionParticipant, SettleUpTransactions, calculateTotalAmount, transactionDescDateSorter } from '../../Model/settleUpFacade';
 import FormattedDateTime from '../Util/FormattedDateTime';
-import { formatCurrencyAmount } from '../../Util/currency';
+import { formatCurrencyAmountHumanized } from '../../Util/currency';
 import classNames from 'classnames';
 import './Transactions.css';
 
@@ -39,10 +39,9 @@ const Transactions = (props: ITransactionProps) => {
 			</thead>
 			<tbody>
 				{Object.entries(props.transactions).sort(transactionDescDateSorter).map(([transactionId, transaction]) => {
-					const humanizedCurrency = CurrencyMap[transaction.currencyCode] ?? transaction.currencyCode;
 					return (
 						<tr key={transactionId} className={transaction.type === 'expense' ? 'table-primary' : 'table-success'}>
-							{showColumn(Column.Amount) && <td className='font-weight-bold'>{formatCurrencyAmount(calculateTotalAmount(transaction))} {humanizedCurrency}</td>}
+							{showColumn(Column.Amount) && <td className='font-weight-bold'>{formatCurrencyAmountHumanized({ amount: calculateTotalAmount(transaction), currencyCode: transaction.currencyCode })}</td>}
 							{showColumn(Column.Date) && <td><FormattedDateTime startsAt={new Date(transaction.dateTime)}/></td>}
 							{showColumn(Column.Paid) && (props.paidLabel ? <td>
 								{transaction.items.flatMap((item) => item.forWhom).map((participant) => props.members[participant.memberId]?.name).join(', ')}

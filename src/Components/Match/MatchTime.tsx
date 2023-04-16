@@ -1,5 +1,5 @@
 import React from 'react';
-import moment from 'moment';
+import { formatTimeHumanized } from '../../Util/datetime';
 
 interface IProps {
 	startsAt: Date;
@@ -7,7 +7,7 @@ interface IProps {
 
 function MatchTime(props: IProps) {
 	return <>
-		{moment(props.startsAt).format('LT')}
+		{formatTimeHumanized(props.startsAt)}
 	</>;
 }
 export default MatchTime;

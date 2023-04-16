@@ -3,7 +3,8 @@ import * as FirebaseFirestore from '@firebase/firestore';
 import * as FirebaseAuth from '@firebase/auth';
 import fetch from 'node-fetch';
 import JSDOM from 'jsdom';
-import { getMatchesCollection, IMatch, mapMatch } from '../src/Model/collections';
+import { getMatchesCollection, IMatch } from '../src/Model/collections';
+import { getUpcomingMatches } from '../src/Model/matchFacade';
 import config from '../src/config.json';
 import { email, password } from '../credentials.json';
 import firebaseConfig from '../src/firebase.json';
@@ -24,7 +25,7 @@ async function importMatches() {
 	const firebaseAuth = FirebaseAuth.getAuth(firebaseApp);
 	const credentials = await FirebaseAuth.signInWithEmailAndPassword(firebaseAuth, email, password);
 	console.log("Logged in", credentials);
-	const existingMatches = await getExistingMatches(firebaseApp);
+	const existingMatches = await getUpcomingMatches(firebaseApp);
 	console.log('Existing matches', existingMatches);
 	const teamPagaPath = await getLeagueTeamPath();
 	console.log('Team page path', teamPagaPath);
@@ -54,13 +55,6 @@ async function addMatch(firebaseApp: FirebaseApp.FirebaseApp, match: IMatchImpor
 	console.log('Adding match', match);
 	const matchRef = await FirebaseFirestore.addDoc(getMatchesCollection(firebaseApp), match);
 	console.log('Match added', matchRef);
-}
-
-async function getExistingMatches(firebaseApp: FirebaseApp.FirebaseApp): Promise<IMatch[]> {
-	const query = FirebaseFirestore.query(getMatchesCollection(firebaseApp), FirebaseFirestore.where('startsAt', '>', new Date()), FirebaseFirestore.orderBy('startsAt', 'asc'));
-	const { docs } = await FirebaseFirestore.getDocs(query);
-	const existingMatches = docs.map(mapMatch);
-	return existingMatches;
 }
 
 async function getTeamMatches(teamPagePath: string): Promise<IMatchImport[]> {

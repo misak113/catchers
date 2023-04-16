@@ -7,6 +7,7 @@ import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection } from "./
 import { safeObjectKeys } from '../Util/object';
 import { useAsyncEffect } from '../React/async';
 
+export const DEADLINE_THRESHOLD = [2, 'days'] as const;
 
 export function useMatches(
 	firebaseApp: firebase.FirebaseApp,
@@ -100,6 +101,13 @@ export async function addMaybeAttendee(
 	);
 }
 
+export async function getUpcomingMatches(firebaseApp: firebase.FirebaseApp): Promise<IMatch[]> {
+	const query = firestore.query(getMatchesCollection(firebaseApp), firestore.where('startsAt', '>', new Date()), firestore.orderBy('startsAt', 'asc'));
+	const { docs } = await firestore.getDocs(query);
+	const upcomingMatches = docs.map(mapMatch);
+	return upcomingMatches;
+}
+
 export function didUserRespondMatch(match: IMatch | null, currentUser: IUser | undefined) {
 	return match?.attendees?.some((person) => person.userId === currentUser?.id)
 		|| match?.nonAttendees?.some((person) => person.userId === currentUser?.id)
@@ -108,6 +116,19 @@ export function didUserRespondMatch(match: IMatch | null, currentUser: IUser | u
 
 export function getMatchEventName(match: IMatch) {
 	return `Hanspaulka - ${match.opponent} - ${match.field}`;
+}
+
+export function updateMatchNotificationSent(
+	firebaseApp: firebase.FirebaseApp,
+	match: IMatch,
+	user: IUser,
+) {
+	return firestore.updateDoc(firestore.doc(getMatchesCollection(firebaseApp), match.id), {
+		[`notificationsSent.${user.id}`]: {
+			notifiedAt: new Date(),
+			email: user.email,
+		},
+	});
 }
 
 async function updateAttendees(

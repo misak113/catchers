@@ -1,0 +1,12 @@
+{
+	"extends": "./tsconfig",
+	"compilerOptions": {
+		"rootDir": "src",
+		"outDir": "build",
+		"module": "commonjs",
+		"noEmit": false
+	},
+	"include": [
+		"src/api/*.ts"
+	]
+}

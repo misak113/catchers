@@ -8,7 +8,6 @@ import Matches from './Matches';
 import Accounting from './Accounting';
 import Match from './Match';
 import logo from '../logo-large.png';
-import 'moment/locale/cs';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 import LoginEmailPopover, { ICredentials } from '../Components/Login/LoginEmailPopover';
 import Register from './Register';

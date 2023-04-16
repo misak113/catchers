@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 import { IMatch } from "./collections";
 import { DEFAULT_CURRENCY_CODE } from "./settleUpFacade";
 

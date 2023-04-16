@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import classNames from 'classnames';
 import { AddToCalendarButton } from 'add-to-calendar-button-react';
 import Anchor from '../Components/Anchor';

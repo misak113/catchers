@@ -10,15 +10,15 @@ export function formatTime(date: Date) {
 }
 
 export function formatDateHumanized(date: Date) {
-	return moment(date).format('LL');
+	return moment.tz(date, config.timezone).format('LL');
 }
 
 export function formatWeekdayHumanized(date: Date) {
-	return moment(date).format('ddd');
+	return moment.tz(date, config.timezone).format('ddd');
 }
 
 export function formatTimeHumanized(date: Date) {
-	return moment(date).format('LT');
+	return moment.tz(date, config.timezone).format('LT');
 }
 
 export function formatDateTimeHumanized(date: Date) {

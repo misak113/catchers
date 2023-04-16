@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 import { IMatch } from "./collections";
 import { DEFAULT_CURRENCY_CODE } from "./settleUpFacade";
+import config from '../config.json';
 
 export interface IFineDefinition {
 	label: string;
@@ -45,5 +46,5 @@ export function createFineTransactionPurpose(fine: IFineDefinition, match: IMatc
 }
 
 export function formatMatchDateOnly(match: IMatch | null) {
-	return moment(match?.startsAt).format('D.M.Y');
+	return moment.tz(match?.startsAt, config.timezone).format('D.M.Y');
 }

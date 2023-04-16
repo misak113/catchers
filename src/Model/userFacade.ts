@@ -6,7 +6,7 @@ import { getErrorMessage } from "../Util/error";
 import { mapUser, IUser, getUsersCollection, IPersonResult, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest, IMatch, IMail } from "./collections";
 import { generateHash } from '../Components/Util/hash';
 import { Creatable } from './types';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import { useAsyncEffect } from '../React/async';
 import { AuthProviderName } from '../Context/SettleUpContext';
 import { sendMail } from './mailFacade';

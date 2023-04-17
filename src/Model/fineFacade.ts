@@ -13,7 +13,7 @@ export interface IFineDefinition {
 export const UNRESPONDED_LATE_FINE: IFineDefinition = {
 	label: 'Pozdní vyjádření se k účasti',
 	detail: '3 dny před zápasem',
-	amount: 100,
+	amount: 50,
 	currencyCode: DEFAULT_CURRENCY_CODE,
 };
 

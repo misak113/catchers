@@ -20,17 +20,11 @@ export const UNRESPONDED_LATE_FINE: IFineDefinition = {
 export const FINES: IFineDefinition[] = [
 	{
 		label: 'Pozdní příchod na zápas',
-		detail: 'do výkopu',
+		detail: 'do výkopu, bez omluvy',
 		amount: 50,
 		currencyCode: DEFAULT_CURRENCY_CODE,
 	},
 	UNRESPONDED_LATE_FINE,
-	{
-		label: 'Nevyjádření se k účasti',
-		detail: 'do výkopu',
-		amount: 200,
-		currencyCode: DEFAULT_CURRENCY_CODE,
-	},
 	{
 		label: 'Nedostavení se na přijatý zápas',
 		detail: 'bez omluvy',

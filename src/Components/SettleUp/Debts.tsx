@@ -10,6 +10,13 @@ interface IDebtsProps {
 }
 
 const Debts = (props: IDebtsProps) => {
+	if (props.debts.length === 0) {
+		return <div className='Debts'>
+			<h2>Dluhy</h2>
+			<div className='alert alert-success'>Všechny dluhy jsou srovnány 🙌</div>
+		</div>;
+	}
+
 	return <div className='Debts'>
 		<h2>Dluhy</h2>
 		<table className="table table-light table-bordered table-hover table-striped table-responsive-md">

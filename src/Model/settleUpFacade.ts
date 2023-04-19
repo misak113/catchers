@@ -241,7 +241,7 @@ export async function getSettleUpDebts(
 	const debtsSnapshot = await database.get(debtsRef);
 	const debts: SettleUpDebts = debtsSnapshot.val();
 	console.info('settleUp.debts', debts);
-	return debts;
+	return debts ?? [];
 }
 
 export function calculateTotalAmount(transaction: SettleUpTransaction): number {

@@ -17,6 +17,7 @@ import PlayerLinkModal from '../Components/PlayerLinking/PlayerLinkModal';
 import LinkPlayer from './LinkPlayer';
 import Fines from './Fines';
 import config from '../config.json';
+import { useLeagueTeamPath } from '../Model/psmfFacade';
 
 const PAGE_LINK_PLAYER = {
 	name: 'Spojení hráčů',
@@ -88,6 +89,7 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [loginEmailShown, setShowLoginEmail] = useState(false);
 	const [currentPath, changePath] = useState(window.location.pathname);
+	const psmfLeagueTeamUrl = useLeagueTeamPath();
 	useEffect(() => {
 		window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
 	});
@@ -159,8 +161,8 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href={config.facebookGroupUri}>
 							Facebook Group <i className="fa fa-external-link"/>
 						</a>
-						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href="http://www.psmf.cz">
-							PSMF <i className="fa fa-external-link"/>
+						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href={psmfLeagueTeamUrl}>
+							PSMF Team <i className="fa fa-external-link"/>
 						</a>
 					</div>
 				</nav>

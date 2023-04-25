@@ -1,6 +1,8 @@
 import JSDOM from 'jsdom';
 import { IMatch } from './collections';
 import config from '../config.json';
+import { useState } from 'react';
+import { useAsyncEffect } from '../React/async';
 
 export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt'>
 
@@ -12,6 +14,19 @@ const MY_TEAM_CODE_NAME = 'catchers-sc';
 const currentTimezoneOffset = new Date().getTimezoneOffset();
 
 const CURRENT_TIMEZONE_OFFSET = config.timezoneOffset ?? (- currentTimezoneOffset / 60).toString().padStart(2, '0').padStart(3, '+') + ':00';
+
+export function useLeagueTeamPath() {
+	const [leagueTeamPath, setLeagueTeamPath] = useState<string | undefined>(undefined);
+	useAsyncEffect(async () => {
+		try {
+			const leagueTeamPath = await getLeagueTeamPath();
+			setLeagueTeamPath(leagueTeamPath);
+		} catch (error) {
+			console.error(error);
+		}
+	}, []);
+	return psmfBaseUrl + '/' + (leagueTeamPath ?? '');
+}
 
 export async function getLeagueTeamPath() {
 	const url = `${psmfBaseUrl}/vyhledavani/?query=${MY_TEAM_QUERY_NAME}`;

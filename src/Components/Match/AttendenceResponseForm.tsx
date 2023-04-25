@@ -41,7 +41,7 @@ export function AttendanceResponseForm(props: IProps & IFirebaseValue & IAuthVal
 
 	const now = new Date();
 
-	if (!props.match || moment(props.match.startsAt).diff(now, 'days') <= 0) {
+	if (!props.match || moment(props.match.startsAt).diff(now, 'minutes') <= 0) {
 		return <p>Již není možné měnit svou účast na zápase po jeho započetí.</p>;
 	}
 

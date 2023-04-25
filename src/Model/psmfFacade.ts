@@ -1,4 +1,3 @@
-import JSDOM from 'jsdom';
 import { IMatch } from './collections';
 import config from '../config.json';
 import { useState } from 'react';
@@ -15,11 +14,19 @@ const currentTimezoneOffset = new Date().getTimezoneOffset();
 
 const CURRENT_TIMEZONE_OFFSET = config.timezoneOffset ?? (- currentTimezoneOffset / 60).toString().padStart(2, '0').padStart(3, '+') + ':00';
 
+function createHTMLElementFromText(): (html: string) => HTMLElement {
+	return (html: string) => {
+		const htmlElement = document.createElement('html');
+		htmlElement.innerHTML = html;
+		return htmlElement;
+	};
+}
+
 export function useLeagueTeamPath() {
 	const [leagueTeamPath, setLeagueTeamPath] = useState<string | undefined>(undefined);
 	useAsyncEffect(async () => {
 		try {
-			const leagueTeamPath = await getLeagueTeamPath();
+			const leagueTeamPath = await getLeagueTeamPath(createHTMLElementFromText());
 			setLeagueTeamPath(leagueTeamPath);
 		} catch (error) {
 			console.error(error);
@@ -28,13 +35,15 @@ export function useLeagueTeamPath() {
 	return psmfBaseUrl + '/' + (leagueTeamPath ?? '');
 }
 
-export async function getLeagueTeamPath() {
+export async function getLeagueTeamPath(
+	createElement: (html: string) => HTMLElement,
+) {
 	const url = `${psmfBaseUrl}/vyhledavani/?query=${MY_TEAM_QUERY_NAME}`;
 	const response = await fetch(url);
 	const data = await response.text();
-	const dom = new JSDOM.JSDOM(data);
+	const dom = createElement(data);
 	const resultListItemsSelector = 'section.component--content .container .component__wrap .component__text .search-content ul li';
-	const listItems = [...dom.window.document.querySelectorAll<HTMLAnchorElement>(resultListItemsSelector).values()];
+	const listItems = [...dom.querySelectorAll<HTMLAnchorElement>(resultListItemsSelector).values()];
 	const leagueListItem = listItems.find((item) => item.innerHTML.includes(LEAGUE_NAME));
 	const leagueTeamPath = leagueListItem?.querySelector('a')?.href;
 
@@ -45,12 +54,15 @@ export async function getLeagueTeamPath() {
 	return leagueTeamPath;
 }
 
-export async function getTeamMatches(teamPagePath: string): Promise<IMatchImport[]> {
+export async function getTeamMatches(
+	teamPagePath: string,
+	createElement: (html: string) => HTMLElement,
+): Promise<IMatchImport[]> {
 	const response = await fetch(psmfBaseUrl + teamPagePath);
 	const data = await response.text();
-	const dom = new JSDOM.JSDOM(data);
+	const dom = createElement(data);
 	const matchesSelector = 'section.component--opener table.games-new-table tr';
-	const matchRowa = [...dom.window.document.querySelectorAll<HTMLTableRowElement>(matchesSelector).values()];
+	const matchRowa = [...dom.querySelectorAll<HTMLTableRowElement>(matchesSelector).values()];
 	const teamMatches = matchRowa.map((matchRow) => {
 		const field = matchRow.querySelector<HTMLAnchorElement>('td:nth-child(3) a')?.innerHTML;
 

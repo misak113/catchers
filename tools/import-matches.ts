@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import JSDOM from 'jsdom';
 import * as FirebaseApp from '@firebase/app';
 import * as FirebaseAuth from '@firebase/auth';
 import { addMatch, getUpcomingMatches, updateMatch } from '../src/Model/matchFacade';
@@ -8,6 +9,11 @@ import { getLeagueTeamPath, getTeamMatches } from '../src/Model/psmfFacade';
 
 global.fetch = fetch as any;
 
+function createHTMLElementFromText(html: string): HTMLElement {
+	const dom = new JSDOM.JSDOM(html);
+	return dom.window.document.documentElement;
+}
+
 async function importMatches() {
 	const firebaseApp = FirebaseApp.initializeApp(firebaseConfig);
 	const firebaseAuth = FirebaseAuth.getAuth(firebaseApp);
@@ -15,9 +21,9 @@ async function importMatches() {
 	console.log("Logged in", credentials);
 	const existingMatches = await getUpcomingMatches(firebaseApp);
 	console.log('Existing matches', existingMatches);
-	const teamPagaPath = await getLeagueTeamPath();
+	const teamPagaPath = await getLeagueTeamPath(createHTMLElementFromText);
 	console.log('Team page path', teamPagaPath);
-	const teamMatches = await getTeamMatches(teamPagaPath);
+	const teamMatches = await getTeamMatches(teamPagaPath, createHTMLElementFromText);
 	console.log('Team matches', teamMatches);
 
 	for (const newMatch of teamMatches) {

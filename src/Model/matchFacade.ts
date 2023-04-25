@@ -6,6 +6,7 @@ import { getErrorMessage } from '../Util/error';
 import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection } from "./collections";
 import { safeObjectKeys } from '../Util/object';
 import { useAsyncEffect } from '../React/async';
+import { IMatchImport } from './psmfFacade';
 
 export const DEADLINE_THRESHOLD = [2, 'days'] as const;
 
@@ -129,6 +130,18 @@ export function updateMatchNotificationSent(
 			email: user.email,
 		},
 	});
+}
+
+export async function updateMatch(firebaseApp: firebase.FirebaseApp, existingMatch: IMatch, newMatch: IMatchImport) {
+	console.log('Updating match', newMatch);
+	const existingMatchRef = firestore.doc(getMatchesCollection(firebaseApp), existingMatch.id);
+	await firestore.updateDoc(existingMatchRef, newMatch);
+}
+
+export async function addMatch(firebaseApp: firebase.FirebaseApp, match: IMatchImport) {
+	console.log('Adding match', match);
+	const matchRef = await firestore.addDoc(getMatchesCollection(firebaseApp), match);
+	console.log('Match added', matchRef);
 }
 
 async function updateAttendees(

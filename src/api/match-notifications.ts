@@ -6,6 +6,7 @@ import { initFirebase } from '../Model/firebaseFacade';
 import { getPossibleAttendees, getUnrespondedUsersOfMatch } from '../Model/userFacade';
 import { sendMatchUnrespondedNotification } from '../Model/notificationFacade';
 import { IMail } from '../Model/collections';
+import config from '../config.json';
 
 type ResponseObject = {
 	message?: string;
@@ -20,10 +21,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 		res.status(401).end('Unauthorized');
 		return;
 	}
-	const apply = req.query.apply === 'true';console.log(req.headers)
+	const apply = req.query.apply === 'true';
 	const host = req.headers['x-forwarded-host'] ?? req.headers.host;
 	const protocol = req.headers['x-forwarded-proto'] ?? 'http';
-	const baseUrl = protocol + '://' + host;
+	const baseUrl = config.baseUrl ?? (protocol + '://' + host);
 
 	const responseObject: ResponseObject = {
 		mails: [],

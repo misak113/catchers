@@ -1,4 +1,5 @@
 {
 	"timezoneOffset": "+0200",
-	"timezone": "Europe/Prague"
+	"timezone": "Europe/Prague",
+	"baseUrl": "https://www.sccatchers.cz"
 }

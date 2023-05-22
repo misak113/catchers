@@ -18,6 +18,7 @@ import LinkPlayer from './LinkPlayer';
 import Fines from './Fines';
 import config from '../config.json';
 import { useLeagueTeamPath } from '../Model/psmfFacade';
+import { PrivacyPolicy } from './PrivacyPolicy';
 
 const PAGE_LINK_PLAYER = {
 	name: 'Spojení hráčů',
@@ -62,6 +63,11 @@ const pages = [
 		path: '/registrace',
 		render: () => <Register/>,
 		hiddenInMenu: () => true,
+	},
+	{
+		name: 'Podmínky',
+		path: '/podminky',
+		render: () => <PrivacyPolicy/>,
 	},
 	PAGE_LINK_PLAYER,
 ];

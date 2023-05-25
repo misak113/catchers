@@ -1,10 +1,12 @@
 import { IMatch } from './collections';
 import config from '../config.json';
 import { useState } from 'react';
+import URL from 'url';
 import { useAsyncEffect } from '../React/async';
 
 export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt'>
 
+const CORS_PROXY = 'https://corsproxy.io/?';
 const LEAGUE_NAME = 'Hanspaulská liga';
 const psmfBaseUrl = 'https://www.psmf.cz';
 const MY_TEAM_QUERY_NAME = 'Catchers+SC';
@@ -32,23 +34,29 @@ export function useLeagueTeamPath() {
 			console.error(error);
 		}
 	}, []);
-	return psmfBaseUrl + '/' + (leagueTeamPath ?? '');
+	return psmfBaseUrl + (leagueTeamPath ?? '');
 }
 
 export async function getLeagueTeamPath(
 	createElement: (html: string) => HTMLElement,
 ) {
-	const url = `${psmfBaseUrl}/vyhledavani/?query=${MY_TEAM_QUERY_NAME}`;
+	const url = `${CORS_PROXY}${psmfBaseUrl}/vyhledavani/?query=${MY_TEAM_QUERY_NAME}`;
 	const response = await fetch(url);
 	const data = await response.text();
 	const dom = createElement(data);
 	const resultListItemsSelector = 'section.component--content .container .component__wrap .component__text .search-content ul li';
 	const listItems = [...dom.querySelectorAll<HTMLAnchorElement>(resultListItemsSelector).values()];
 	const leagueListItem = listItems.find((item) => item.innerHTML.includes(LEAGUE_NAME));
-	const leagueTeamPath = leagueListItem?.querySelector('a')?.href;
+	const leagueTeamUri = leagueListItem?.querySelector('a')?.href;
+
+	if (!leagueTeamUri) {
+		throw new Error(`League ${LEAGUE_NAME} not found`);
+	}
+
+	const leagueTeamPath = URL.parse(leagueTeamUri).path;
 
 	if (!leagueTeamPath) {
-		throw new Error(`League ${LEAGUE_NAME} not found`);
+		throw new Error(`League ${leagueTeamUri} has no path`);
 	}
 
 	return leagueTeamPath;
@@ -58,7 +66,7 @@ export async function getTeamMatches(
 	teamPagePath: string,
 	createElement: (html: string) => HTMLElement,
 ): Promise<IMatchImport[]> {
-	const response = await fetch(psmfBaseUrl + teamPagePath);
+	const response = await fetch(CORS_PROXY + psmfBaseUrl + teamPagePath);
 	const data = await response.text();
 	const dom = createElement(data);
 	const matchesSelector = 'section.component--opener table.games-new-table tr';

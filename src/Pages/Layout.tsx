@@ -19,6 +19,9 @@ import Fines from './Fines';
 import config from '../config.json';
 import { useLeagueTeamPath } from '../Model/psmfFacade';
 import { PrivacyPolicy } from './PrivacyPolicy';
+import stravaIcon from './icons/icon-strava-chrome-144.png';
+import facebookIcon from './icons/icon-facebook-2021.svg';
+import psmfIcon from './icons/icon-psmf.ico';
 
 const PAGE_LINK_PLAYER = {
 	name: 'Spojení hráčů',
@@ -165,13 +168,13 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 							</div>
 						</>}
 						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href={config.stravaUri}>
-							Strava Club <i className="fa fa-external-link"/>
+							<img alt="Strava" className="fa fa-external-link" width="16" src={stravaIcon}/> Strava Club
 						</a>
 						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href={config.facebookGroupUri}>
-							Facebook Group <i className="fa fa-external-link"/>
+							<img alt="Facebook" className="fa fa-external-link" width="16" src={facebookIcon}/> Facebook Group
 						</a>
 						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href={psmfLeagueTeamUrl}>
-							PSMF Team <i className="fa fa-external-link"/>
+							<img alt="PSMF" className="fa fa-external-link" width="16" src={psmfIcon}/> PSMF Team
 						</a>
 					</div>
 				</nav>

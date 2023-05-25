@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import moment from "moment-timezone";
 import './Match.css';
 import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
 import { usePossibleAttendees, useCurrentUser, getUserName, createMapPersonResultToUser, getUnrespondedUsers } from '../Model/userFacade';
 import {
-	DEADLINE_THRESHOLD,
 	didUserRespondMatch,
+	getDeadlineResponseDate,
 	useMatch,
 } from '../Model/matchFacade';
 import Attendees from '../Components/Match/Attendees';
@@ -51,7 +50,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 			return undefined;
 		}
 		const firstPlayerResultLog = getFirstAttendeeResultLog(userId);
-		const deadlineDate = moment(match.startsAt).subtract(...DEADLINE_THRESHOLD);
+		const deadlineDate = getDeadlineResponseDate(match);
 		const resultAt = firstPlayerResultLog?.resultAt ?? new Date();
 		const isTooLate = resultAt.getTime() > deadlineDate.valueOf();
 		console.log('resultAt', userId, resultAt, 'deadlineDate', deadlineDate, 'isTooLate', isTooLate);

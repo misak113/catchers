@@ -1,3 +1,4 @@
+import moment from "moment-timezone";
 import * as firebase from '@firebase/app';
 import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
@@ -7,8 +8,6 @@ import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection } from "./
 import { safeObjectKeys } from '../Util/object';
 import { useAsyncEffect } from '../React/async';
 import { IMatchImport } from './psmfFacade';
-
-export const DEADLINE_THRESHOLD = [2, 'days'] as const;
 
 export function useMatches(
 	firebaseApp: firebase.FirebaseApp,
@@ -187,4 +186,9 @@ async function getDocOfMatch(firebaseApp: firebase.FirebaseApp, match: IMatch) {
 		throw new Error(`Match ${match.id} was not found`);
 	}
 	return doc as firestore.QueryDocumentSnapshot<IMatch>;
+}
+
+export function getDeadlineResponseDate(match: IMatch) {
+	const deadlineDate = moment(match.startsAt).day(0).hour(23).minute(59).seconds(59).toDate();
+	return deadlineDate;
 }

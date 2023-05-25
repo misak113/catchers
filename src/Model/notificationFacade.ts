@@ -1,4 +1,3 @@
-import moment from "moment-timezone";
 import * as FirebaseApp from '@firebase/app';
 import { IMail, IMatch, IUser } from './collections';
 import { formatDateTimeHumanized } from '../Util/datetime';
@@ -6,7 +5,7 @@ import { stripHtmlEntities } from '../Util/html';
 import { UNRESPONDED_LATE_FINE } from './fineFacade';
 import { formatCurrencyAmountHumanized } from '../Util/currency';
 import { sendMail } from './mailFacade';
-import { DEADLINE_THRESHOLD } from "./matchFacade";
+import { getDeadlineResponseDate } from './matchFacade';
 
 const BUTTON_STYLE = '\
 display: inline-block;\
@@ -60,11 +59,6 @@ export async function sendMatchUnrespondedNotification(firebaseApp: FirebaseApp.
 
 function getMatchUrl(match: IMatch, baseUrl: string) {
 	return `${baseUrl}/zapas/${match.id}`;
-}
-
-function getDeadlineResponseDate(match: IMatch) {
-	const deadlineDate = moment(match.startsAt).subtract(...DEADLINE_THRESHOLD).toDate();
-	return deadlineDate;
 }
 
 function getSubject(match: IMatch) {

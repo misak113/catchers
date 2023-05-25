@@ -164,6 +164,9 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 								/>}
 							</div>
 						</>}
+						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href={config.stravaUri}>
+							Strava Club <i className="fa fa-external-link"/>
+						</a>
 						<a className="nav-link external" target="_blank" rel="noopener noreferrer" href={config.facebookGroupUri}>
 							Facebook Group <i className="fa fa-external-link"/>
 						</a>

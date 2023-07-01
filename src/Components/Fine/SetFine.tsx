@@ -3,7 +3,7 @@ import './SetFine.css';
 import FinesTable from './FinesTable';
 import { FINE_MEMBER_NAME, IFineDefinition, createFineTransactionPurpose, formatMatchDateOnly } from '../../Model/fineFacade';
 import { IMatch, IUser, Privilege } from '../../Model/collections';
-import { getUserName } from '../../Model/userFacade';
+import { getUserName, hasPrivilege } from '../../Model/userFacade';
 import { DEFAULT_CURRENCY_CODE, SettleUpMembers, SettleUpTransaction, SettleUpType, createTransaction, getSettleUpMembers } from '../../Model/settleUpFacade';
 import FineTransactionTable from './FineTransactionTable';
 import { generateHash } from '../Util/hash';
@@ -23,7 +23,7 @@ export const SetFine = (props: ISetFineProps & ISettleUpValue) => {
 	const [open, setOpen] = useState(false);
 	const [refreshToken, setRefreshToken] = useState(generateHash());
 
-	if (!props.currentUser?.privileges?.includes(Privilege.WriteFines)) {
+	if (!hasPrivilege(props.currentUser, Privilege.WriteFines)) {
 		return null;
 	}
 

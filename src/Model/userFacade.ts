@@ -3,7 +3,7 @@ import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
 import { useEffect, useState } from "react";
 import { getErrorMessage } from "../Util/error";
-import { mapUser, IUser, getUsersCollection, IPersonResult, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest, IMatch, IMail } from "./collections";
+import { mapUser, IUser, getUsersCollection, IPersonResult, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest, IMatch, IMail, Privilege } from "./collections";
 import { generateHash } from '../Components/Util/hash';
 import { Creatable } from './types';
 import moment from 'moment-timezone';
@@ -255,4 +255,11 @@ export async function setUserSettleUpProviderName(
 			settleUpProviderName: firestore.deleteField(),
 		});
 	}
+}
+
+export function hasPrivilege(user: IUser | null | undefined, privilege: Privilege): user is IUser {
+	if (!user) {
+		return false;
+	}
+	return Boolean(user.privileges?.includes(privilege));
 }

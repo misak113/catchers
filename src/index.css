@@ -23,3 +23,8 @@ code {
 	font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
 		monospace;
 }
+
+.icon-external {
+	font-size: 0.6em;
+	opacity: 0.4;
+}

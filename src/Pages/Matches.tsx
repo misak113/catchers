@@ -86,14 +86,14 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 							<br/>
 							<small className='font-weight-lighter'>
 								<a href={getPSMFTournamentUrl(match.tournament)} target='_blank' rel="noreferrer">
-									<span className="fa fa-external-link"/> {match.tournament}
+									<span className="fa fa-external-link icon-external"/> {match.tournament}
 								</a>
 							</small>
 							{match.referees && match.referees.map((referee) => referee.replace(' ', ' ')).join(', ')}
 						</td>
 						<td>
 							<a href={getPSMFFieldUrl(match.field)} target='_blank' rel="noreferrer">
-								<span className="fa fa-external-link"/> {match.field.replace(' ', ' ')}
+								<span className="fa fa-external-link icon-external"/> {match.field.replace(' ', ' ')}
 							</a>
 						</td>
 						<td>

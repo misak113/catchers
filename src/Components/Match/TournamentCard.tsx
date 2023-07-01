@@ -17,7 +17,7 @@ function TournamentCard(props: IProps) {
 				? <blockquote className="blockquote mb-0">
 					<p>
 						<a href={getPSMFTournamentUrl(props.tournament)} target='_blank' rel="noreferrer">
-							<span className="fa fa-external-link"/> {props.tournament}
+							<span className="fa fa-external-link icon-external"/> {props.tournament}
 						</a>
 					</p>
 				</blockquote>

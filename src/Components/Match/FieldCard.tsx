@@ -17,7 +17,7 @@ function FieldCard(props: IProps) {
 				? <blockquote className="blockquote mb-0">
 					<p>
 						<a href={getPSMFFieldUrl(props.field)} target='_blank' rel="noreferrer">
-							<span className="fa fa-external-link"/> {props.field}
+							<span className="fa fa-external-link icon-external"/> {props.field}
 						</a>
 					</p>
 				</blockquote>

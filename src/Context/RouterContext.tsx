@@ -6,6 +6,8 @@ interface IProps {
 
 interface IRouter {
 	goPath(path: string): void;
+	refresh(): void;
+	refreshKey: number;
 }
 
 export interface IRouterValue {
@@ -16,11 +18,17 @@ export const RouterContext = React.createContext<IRouterValue>({} as IRouterValu
 
 export class RouterProvider extends React.Component<IProps> {
 
+	public state = {
+		refreshKey: 0,
+	};
+
 	public render() {
 		return (
 			<RouterContext.Provider value={{
 				router: {
 					goPath: this.goPath,
+					refresh: () => this.setState({ refreshKey: this.state.refreshKey + 1 }),
+					refreshKey: this.state.refreshKey,
 				},
 			}}>
 				{this.props.children}

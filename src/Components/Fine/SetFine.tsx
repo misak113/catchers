@@ -1,14 +1,14 @@
-import classNames from 'classnames';
 import React, { useState } from 'react';
 import './SetFine.css';
 import FinesTable from './FinesTable';
 import { FINE_MEMBER_NAME, IFineDefinition, createFineTransactionPurpose, formatMatchDateOnly } from '../../Model/fineFacade';
 import { IMatch, IUser, Privilege } from '../../Model/collections';
-import { getUserName } from '../../Model/userFacade';
+import { getUserName, hasPrivilege } from '../../Model/userFacade';
 import { DEFAULT_CURRENCY_CODE, SettleUpMembers, SettleUpTransaction, SettleUpType, createTransaction, getSettleUpMembers } from '../../Model/settleUpFacade';
 import FineTransactionTable from './FineTransactionTable';
 import { generateHash } from '../Util/hash';
 import { ISettleUpValue, withSettleUp } from '../../Context/SettleUpContext';
+import { Modal } from '../Modal/Modal';
 
 export interface ISetFineProps {
 	userId: string;
@@ -23,7 +23,7 @@ export const SetFine = (props: ISetFineProps & ISettleUpValue) => {
 	const [open, setOpen] = useState(false);
 	const [refreshToken, setRefreshToken] = useState(generateHash());
 
-	if (!props.currentUser?.privileges?.includes(Privilege.WriteFines)) {
+	if (!hasPrivilege(props.currentUser, Privilege.WriteFines)) {
 		return null;
 	}
 
@@ -80,48 +80,13 @@ export const SetFine = (props: ISetFineProps & ISettleUpValue) => {
 				<i className="fa fa-cogs"></i>
 			</span>
 		</button>
-		{user && <FineSelectionModal open={open} setOpen={setOpen} onSetFine={onSetFine}>
+		{user && <Modal title='Přidat pokutu' open={open} setOpen={setOpen}>
 			{errorMessage && <div className='alert alert-danger'>{errorMessage}</div>}
 			<h1>{getUserName(user)}</h1>
 			<FineTransactionTable key={refreshToken} showTransactionCallback={showTransactionCallback}/>
 			<p>Přidat pokutu tomuto hráči</p>
-		</FineSelectionModal>}
+			<FinesTable onSetFine={onSetFine}/>
+		</Modal>}
 	</div>;
 };
 export default withSettleUp(SetFine);
-
-interface IPopoverProps {
-	children: React.ReactNode;
-	open: boolean;
-	setOpen: (open: boolean) => void;
-	onSetFine: (fine: IFineDefinition) => void;
-}
-
-const FineSelectionModal = ({ children, open, setOpen, onSetFine }: IPopoverProps) => {
-
-	return (
-		<>
-			<div className={classNames("SetFineModal modal fade", { show: open })} tabIndex={-1}>
-				<div className="modal-dialog">
-					<div className="modal-content">
-						<div className="modal-header">
-							<h5 className="modal-title">Přidat pokutu</h5>
-							<button type="button" className="close" onClick={() => setOpen(false)}>
-								<span>&times;</span>
-							</button>
-						</div>
-						<div className="modal-body">
-							{children}
-							<FinesTable onSetFine={onSetFine}/>
-						</div>
-						<div className="modal-footer">
-							<button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>Close</button>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div className={classNames("SetFineModal modal-backdrop fade", { show: open })}></div>
-		</>
-	);
-};

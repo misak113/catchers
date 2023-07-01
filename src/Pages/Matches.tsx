@@ -7,11 +7,12 @@ import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
 import Loading from '../Components/Loading';
 import Attendees from '../Components/Match/Attendees';
 import { didUserRespondMatch, getMatchEventName, useMatches } from '../Model/matchFacade';
-import { useCurrentUser, usePossibleAttendees } from '../Model/userFacade';
+import { hasPrivilege, useCurrentUser, usePossibleAttendees } from '../Model/userFacade';
 import { withAuth, IAuthValue } from '../Context/AuthContext';
 import MatchDate from '../Components/Match/MatchDate';
 import MatchTime from '../Components/Match/MatchTime';
-import { IMatch, IUser } from '../Model/collections';
+import { SyncMatches } from '../Components/Match/SyncMatches';
+import { IMatch, IUser, Privilege } from '../Model/collections';
 import './Matches.css';
 import { formatDate, formatTime } from '../Util/datetime';
 import config from '../config.json';
@@ -32,6 +33,8 @@ const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps &
 
 		<h2>Nadcházející</h2>
 		<MatchesTable matches={upcomingMatches} possibleAttendees={possibleAttendees} errorMessage={errorMessage} currentUser={currentUser}/>
+
+		{hasPrivilege(currentUser, Privilege.SyncMatches) && <SyncMatches/>}
 
 		<h2 className="Matches-pastHeader">Minulé</h2>
 		<MatchesTable matches={pastMatches} possibleAttendees={possibleAttendees} errorMessage={errorMessage} currentUser={currentUser}/>

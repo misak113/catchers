@@ -22,6 +22,7 @@ import { PrivacyPolicy } from './PrivacyPolicy';
 import stravaIcon from './icons/icon-strava-chrome-144.png';
 import facebookIcon from './icons/icon-facebook-2021.svg';
 import psmfIcon from './icons/icon-psmf.ico';
+import { IRouterValue, withRouter } from '../Context/RouterContext';
 
 const PAGE_LINK_PLAYER = {
 	name: 'Spojení hráčů',
@@ -94,11 +95,11 @@ function matchParams(path: string | RegExp, currentPath: string): any {
 
 interface IProps {}
 
-const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & IFirebaseValue & IAuthValue) => {
+const Layout: React.FC<IProps & IFirebaseValue & IAuthValue & IRouterValue> = (props: IProps & IFirebaseValue & IAuthValue & IRouterValue) => {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [loginEmailShown, setShowLoginEmail] = useState(false);
 	const [currentPath, changePath] = useState(window.location.pathname);
-	const psmfLeagueTeamUrl = useLeagueTeamPath();
+	const psmfLeagueTeamUrl = useLeagueTeamPath((errorMessage) => console.error(errorMessage));
 	useEffect(() => {
 		window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
 	});
@@ -110,7 +111,7 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 	const isLinkPlayerPage = currentPage === PAGE_LINK_PLAYER;
 
 	return (
-		<div className="Layout">
+		<div className="Layout" key={props.router.refreshKey}>
 			<header className="Layout-header">
 				<nav className="navbar navbar-expand-lg navbar-dark bg-dark">
 					<Anchor className="navbar-brand" href="/">SC Catchers</Anchor>
@@ -196,4 +197,4 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & 
 	);
 }
 
-export default withFirebase(withAuth(Layout));
+export default withFirebase(withAuth(withRouter(Layout)));

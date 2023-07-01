@@ -3,11 +3,16 @@ import config from '../config.json';
 import { useState } from 'react';
 import URL from 'url';
 import { useAsyncEffect } from '../React/async';
+import { getErrorMessage } from '../Util/error';
 
-export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt'>
+export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt' | 'tournament'>;
+export interface IPSMFLeague {
+	name: string;
+	uri: string | undefined;
+	path: string | undefined;
+}
 
 const CORS_PROXY = 'https://corsproxy.io/?';
-const LEAGUE_NAME = 'Hanspaulská liga';
 const psmfBaseUrl = 'https://www.psmf.cz';
 const MY_TEAM_QUERY_NAME = 'Catchers+SC';
 const MY_TEAM_CODE_NAME = 'catchers-sc';
@@ -24,20 +29,34 @@ function createHTMLElementFromText(): (html: string) => HTMLElement {
 	};
 }
 
-export function useLeagueTeamPath() {
+export function useLeagues(setErrorMessage: (errorMessage: string | undefined) => void) {
+	const [leagues, setLeagues] = useState<IPSMFLeague[] | undefined>(undefined);
+	useAsyncEffect(async () => {
+		try {
+			const leagues = await getLeagues(createHTMLElementFromText());
+			setLeagues(leagues);
+		} catch (error) {
+			setErrorMessage(getErrorMessage(error));
+		}
+	}, []);
+	return leagues;
+}
+
+export function useLeagueTeamPath(setErrorMessage: (errorMessage: string | undefined) => void) {
 	const [leagueTeamPath, setLeagueTeamPath] = useState<string | undefined>(undefined);
 	useAsyncEffect(async () => {
 		try {
-			const leagueTeamPath = await getLeagueTeamPath(createHTMLElementFromText());
+			const leagues = await getLeagues(createHTMLElementFromText());
+			const leagueTeamPath = leagues.find(() => true)?.path;
 			setLeagueTeamPath(leagueTeamPath);
 		} catch (error) {
-			console.error(error);
+			setErrorMessage(getErrorMessage(error));
 		}
 	}, []);
 	return psmfBaseUrl + (leagueTeamPath ?? '');
 }
 
-export async function getLeagueTeamPath(
+async function getLeagueElements(
 	createElement: (html: string) => HTMLElement,
 ) {
 	const url = `${CORS_PROXY}${psmfBaseUrl}/vyhledavani/?query=${MY_TEAM_QUERY_NAME}`;
@@ -46,26 +65,56 @@ export async function getLeagueTeamPath(
 	const dom = createElement(data);
 	const resultListItemsSelector = 'section.component--content .container .component__wrap .component__text .search-content ul li';
 	const listItems = [...dom.querySelectorAll<HTMLAnchorElement>(resultListItemsSelector).values()];
-	const leagueListItem = listItems.find((item) => item.innerHTML.includes(LEAGUE_NAME));
-	const leagueTeamUri = leagueListItem?.querySelector('a')?.href;
+	return listItems;
+}
 
-	if (!leagueTeamUri) {
-		throw new Error(`League ${LEAGUE_NAME} not found`);
-	}
+export async function getLeagues(
+	createElement: (html: string) => HTMLElement,
+): Promise<IPSMFLeague[]> {
+	const listItems = await getLeagueElements(createElement);
+	const leagueNames = listItems.map((listItem) => {
+		const uri = listItem.querySelector('a')?.href;
+		return ({
+			name: listItem.innerText,
+			uri,
+			path: (uri && URL.parse(uri)?.path) || undefined,
+		});
+	});
+	return leagueNames;
+}
 
-	const leagueTeamPath = URL.parse(leagueTeamUri).path;
+export function useTeamMatches(
+	league: IPSMFLeague | undefined,
+	setErrorMessage: (errorMessage: string | undefined) => void,
+) {
+	const [teamMatches, setTeamMatches] = useState<IMatchImport[] | undefined>(undefined);
+	useAsyncEffect(async () => {
+		try {
+			const teamMatches = league?.path ? await getTeamMatches(league.path, createHTMLElementFromText()) : undefined;
+			setTeamMatches(teamMatches);
+		} catch (error) {
+			setErrorMessage(getErrorMessage(error));
+		}
+	}, []);
+	return teamMatches;
+}
 
-	if (!leagueTeamPath) {
-		throw new Error(`League ${leagueTeamUri} has no path`);
-	}
-
-	return leagueTeamPath;
+/**
+ *
+ * @param url E.g.: https://www.psmf.cz/souteze/2023-hanspaulska-liga-jaro/6-e/tymy/catchers-sc/
+ * @returns E.g.: 2023-hanspaulska-liga-jaro
+ */
+function parseTournamentFromPath(url: string) {
+	const pathParts = url.split('/');
+	const tournament = pathParts[2];
+	return tournament;
 }
 
 export async function getTeamMatches(
 	teamPagePath: string,
 	createElement: (html: string) => HTMLElement,
 ): Promise<IMatchImport[]> {
+	const tournament = parseTournamentFromPath(teamPagePath);
 	const response = await fetch(CORS_PROXY + psmfBaseUrl + teamPagePath);
 	const data = await response.text();
 	const dom = createElement(data);
@@ -80,26 +129,37 @@ export async function getTeamMatches(
 		const startsAtDate = '20' + startsAtDateCZParts?.[2].padStart(2, '0') + '-' + startsAtDateCZParts?.[1].padStart(2, '0') + '-' + startsAtDateCZParts?.[0].padStart(2, '0');
 		const startsAtTime = startsAtTimeCZ?.padStart(5, '0');
 		const startsAt = new Date(`${startsAtDate}T${startsAtTime}${CURRENT_TIMEZONE_OFFSET}`);
-		console.log('startsAt', `${startsAtDate}T${startsAtTime}${CURRENT_TIMEZONE_OFFSET}`, startsAt)
 
 		const homeTeamUrl = matchRow.querySelector<HTMLAnchorElement>('td:nth-child(4) a:nth-child(1)')?.href;
-		const guestTeamUrl = matchRow.querySelector<HTMLAnchorElement>('td:nth-child(4) a:nth-child(3)')?.href;
+		const guestTeamUrl = matchRow.querySelector<HTMLAnchorElement>('td:nth-child(4) a:nth-child(2)')?.href;
+		console.log('teams', homeTeamUrl, guestTeamUrl);
 		const homeTeamUrlParts = homeTeamUrl?.split('/');
 		const homeTeamCodeName = homeTeamUrlParts?.[homeTeamUrlParts?.length - 2];
 		const guestTeamUrlParts = guestTeamUrl?.split('/');
 		const guestTeamCodeName = guestTeamUrlParts?.[guestTeamUrlParts?.length - 2];
 		const opponent = homeTeamCodeName === MY_TEAM_CODE_NAME ? guestTeamCodeName : homeTeamCodeName;
 
-		if (!opponent) {
+		console.log('match', opponent, startsAt, field);
+
+		if (!opponent || !field) {
 			return null;
 		}
 
-		return {
+		const matchImport: IMatchImport = {
 			opponent,
 			startsAt,
 			field,
+			tournament,
 		};
+		return matchImport;
 	}).filter((match): match is IMatchImport => Boolean(match));
 
 	return teamMatches;
+}
+
+export function areMatchesSame(existingMatch: IMatchImport, newMatch: IMatchImport) {
+	return existingMatch.field === newMatch.field
+		&& existingMatch.startsAt.valueOf() === newMatch.startsAt.valueOf()
+		&& existingMatch.opponent === newMatch.opponent
+		&& existingMatch.tournament === newMatch.tournament;
 }

@@ -5,7 +5,7 @@ import URL from 'url';
 import { useAsyncEffect } from '../React/async';
 import { getErrorMessage } from '../Util/error';
 
-export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt' | 'tournament'>;
+export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt' | 'tournament' | 'group'>;
 export interface IPSMFLeague {
 	name: string;
 	uri: string | undefined;
@@ -31,6 +31,14 @@ function createHTMLElementFromText(): (html: string) => HTMLElement {
 
 export function getPSMFTournamentUrl(tournament: string) {
 	return `${psmfBaseUrl}/souteze/${tournament}`;
+}
+
+export function getPSMFGroupUrl(tournament: string, group: string) {
+	return `${psmfBaseUrl}/souteze/${tournament}/${group}`;
+}
+
+export function getPSMFTeamUrl(tournament: string, group: string, team: string) {
+	return `${psmfBaseUrl}/souteze/${tournament}/${group}/tymy/${team}`;
 }
 
 export function getPSMFFieldUrl(field: string) {
@@ -112,17 +120,18 @@ export function useTeamMatches(
  * @param url E.g.: https://www.psmf.cz/souteze/2023-hanspaulska-liga-jaro/6-e/tymy/catchers-sc/
  * @returns E.g.: 2023-hanspaulska-liga-jaro
  */
-function parseTournamentFromPath(url: string) {
+function parseTournamentGroupFromPath(url: string) {
 	const pathParts = url.split('/');
 	const tournament = pathParts[2];
-	return tournament;
+	const group = pathParts[3];
+	return [tournament, group];
 }
 
 export async function getTeamMatches(
 	teamPagePath: string,
 	createElement: (html: string) => HTMLElement,
 ): Promise<IMatchImport[]> {
-	const tournament = parseTournamentFromPath(teamPagePath);
+	const [tournament, group] = parseTournamentGroupFromPath(teamPagePath);
 	const response = await fetch(CORS_PROXY + psmfBaseUrl + teamPagePath);
 	const data = await response.text();
 	const dom = createElement(data);
@@ -158,6 +167,7 @@ export async function getTeamMatches(
 			startsAt,
 			field,
 			tournament,
+			group,
 		};
 		return matchImport;
 	}).filter((match): match is IMatchImport => Boolean(match));
@@ -169,5 +179,6 @@ export function areMatchesSame(existingMatch: IMatchImport, newMatch: IMatchImpo
 	return existingMatch.field === newMatch.field
 		&& existingMatch.startsAt.valueOf() === newMatch.startsAt.valueOf()
 		&& existingMatch.opponent === newMatch.opponent
-		&& existingMatch.tournament === newMatch.tournament;
+		&& existingMatch.tournament === newMatch.tournament
+		&& existingMatch.group === newMatch.group;
 }

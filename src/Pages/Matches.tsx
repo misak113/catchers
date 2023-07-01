@@ -16,7 +16,7 @@ import { IMatch, IUser, Privilege } from '../Model/collections';
 import './Matches.css';
 import { formatDate, formatTime } from '../Util/datetime';
 import config from '../config.json';
-import { getPSMFFieldUrl, getPSMFTournamentUrl } from '../Model/psmfFacade';
+import { getPSMFFieldUrl, getPSMFGroupUrl, getPSMFTeamUrl, getPSMFTournamentUrl } from '../Model/psmfFacade';
 
 interface IProps {}
 
@@ -82,12 +82,21 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 						</td>
 						<td><MatchTime startsAt={match.startsAt}/></td>
 						<td>
-							{match.opponent && match.opponent.replace(' ', ' ')}
+							{match.tournament && match.group
+								? <a href={getPSMFTeamUrl(match.tournament, match.group, match.opponent)} target='_blank' rel="noreferrer">
+									<span className="fa fa-external-link icon-external"/> {match.opponent.replace(' ', ' ')}
+								</a>
+								: match.opponent.replace(' ', ' ')
+							}
 							<br/>
 							<small className='font-weight-lighter'>
-								<a href={getPSMFTournamentUrl(match.tournament)} target='_blank' rel="noreferrer">
+								{match.tournament && <a href={getPSMFTournamentUrl(match.tournament)} target='_blank' rel="noreferrer">
 									<span className="fa fa-external-link icon-external"/> {match.tournament}
-								</a>
+								</a>}
+								&nbsp;
+								{match.tournament && match.group && <a href={getPSMFGroupUrl(match.tournament, match.group)} target='_blank' rel="noreferrer">
+									<span className="fa fa-external-link icon-external"/> {match.group}
+								</a>}
 							</small>
 							{match.referees && match.referees.map((referee) => referee.replace(' ', ' ')).join(', ')}
 						</td>

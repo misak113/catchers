@@ -81,13 +81,13 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 					<MatchTimeCard startsAt={match?.startsAt}/>
 				</div>
 				<div className="col-md-3">
-					<TeamCard opponent={match?.opponent}/>
+					<TeamCard tournament={match?.tournament} group={match?.group} opponent={match?.opponent}/>
 				</div>
 				<div className="col-md-2">
 					<FieldCard field={match?.field}/>
 				</div>
 				<div className="col-md-3">
-					<TournamentCard tournament={match?.tournament}/>
+					<TournamentCard tournament={match?.tournament} group={match?.group}/>
 				</div>
 			</div>
 			<Attendees

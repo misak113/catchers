@@ -1,9 +1,9 @@
 import React from 'react';
-import Loading from '../Loading';
-import { getPSMFTournamentUrl } from '../../Model/psmfFacade';
+import { getPSMFGroupUrl, getPSMFTournamentUrl } from '../../Model/psmfFacade';
 
 interface IProps {
 	tournament: string | undefined;
+	group: string | undefined;
 }
 
 function TournamentCard(props: IProps) {
@@ -13,15 +13,18 @@ function TournamentCard(props: IProps) {
 				Soutěž
 			</div>
 			<div className="card-body">
-				{props.tournament
-				? <blockquote className="blockquote mb-0">
-					<p>
+				<blockquote className="blockquote mb-0">
+					{props.tournament ? <p>
 						<a href={getPSMFTournamentUrl(props.tournament)} target='_blank' rel="noreferrer">
 							<span className="fa fa-external-link icon-external"/> {props.tournament}
 						</a>
-					</p>
+					</p> : 'Neuvedena'}
+					{props.tournament && props.group && <p>
+						<a href={getPSMFGroupUrl(props.tournament, props.group)} target='_blank' rel="noreferrer">
+							<span className="fa fa-external-link icon-external"/> {props.group}
+						</a>
+					</p>}
 				</blockquote>
-				: <Loading/>}
 			</div>
 		</div>
 	);

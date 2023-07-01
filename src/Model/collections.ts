@@ -17,7 +17,8 @@ export interface IMatch {
 	id: string;
 	startsAt: Date;
 	opponent: string;
-	tournament: string;
+	tournament?: string;
+	group?: string;
 	field: string;
 	referees?: string[];
 	attendees?: IPersonResult[];
@@ -57,6 +58,7 @@ export function mapMatch<T extends firestore.DocumentSnapshot>(
 		field: data.field,
 		opponent: data.opponent,
 		tournament: data.tournament,
+		group: data.group,
 		referees: data.referees,
 		attendees: data.attendees?.map(mapPersonResult),
 		nonAttendees: data.nonAttendees?.map(mapPersonResult),

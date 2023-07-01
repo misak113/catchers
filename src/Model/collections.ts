@@ -68,6 +68,7 @@ export const USERS = 'users';
 
 export enum Privilege {
 	WriteFines = 'writeFines',
+	SyncMatches = 'syncMatches',
 }
 
 export interface IUser {

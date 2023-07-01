@@ -70,8 +70,7 @@
     "start:api": "npm run build:api -- --watch",
     "test": "node scripts/test.js",
     "vercel-dev": "vercel dev",
-    "deploy": "vercel --prod deploy",
-    "import-matches": "ts-node ./tools/import-matches"
+    "deploy": "vercel --prod deploy"
   },
   "eslintConfig": {
     "extends": "react-app"

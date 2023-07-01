@@ -99,7 +99,7 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue & IRouterValue> = (p
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [loginEmailShown, setShowLoginEmail] = useState(false);
 	const [currentPath, changePath] = useState(window.location.pathname);
-	const psmfLeagueTeamUrl = useLeagueTeamPath();
+	const psmfLeagueTeamUrl = useLeagueTeamPath((errorMessage) => console.error(errorMessage));
 	useEffect(() => {
 		window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
 	});

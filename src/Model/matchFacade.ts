@@ -108,6 +108,16 @@ export async function getUpcomingMatches(firebaseApp: firebase.FirebaseApp): Pro
 	return upcomingMatches;
 }
 
+export function useUpcomingMatches(firebaseApp: firebase.FirebaseApp) {
+	const [upcomingMatches, setUpcomingMatches] = useState<IMatch[]>();
+	useAsyncEffect(async () => {
+		const upcomingMatches = await getUpcomingMatches(firebaseApp);
+		setUpcomingMatches(upcomingMatches);
+	}, [firebaseApp]);
+
+	return upcomingMatches;
+}
+
 export function didUserRespondMatch(match: IMatch | null, currentUser: IUser | undefined) {
 	return match?.attendees?.some((person) => person.userId === currentUser?.id)
 		|| match?.nonAttendees?.some((person) => person.userId === currentUser?.id)

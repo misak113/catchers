@@ -16,6 +16,7 @@ import { IMatch, IUser, Privilege } from '../Model/collections';
 import './Matches.css';
 import { formatDate, formatTime } from '../Util/datetime';
 import config from '../config.json';
+import { getPSMFFieldUrl, getPSMFTournamentUrl } from '../Model/psmfFacade';
 
 interface IProps {}
 
@@ -83,10 +84,18 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 						<td>
 							{match.opponent && match.opponent.replace(' ', ' ')}
 							<br/>
-							<small className='font-weight-lighter'>{match.tournament}</small>
+							<small className='font-weight-lighter'>
+								<a href={getPSMFTournamentUrl(match.tournament)} target='_blank' rel="noreferrer">
+									<span className="fa fa-external-link"/> {match.tournament}
+								</a>
+							</small>
 							{match.referees && match.referees.map((referee) => referee.replace(' ', ' ')).join(', ')}
 						</td>
-						<td>{match.field.replace(' ', ' ')}</td>
+						<td>
+							<a href={getPSMFFieldUrl(match.field)} target='_blank' rel="noreferrer">
+								<span className="fa fa-external-link"/> {match.field.replace(' ', ' ')}
+							</a>
+						</td>
 						<td>
 							<Attendees
 								attendees={match.attendees || []}

@@ -29,6 +29,14 @@ function createHTMLElementFromText(): (html: string) => HTMLElement {
 	};
 }
 
+export function getPSMFTournamentUrl(tournament: string) {
+	return `${psmfBaseUrl}/souteze/${tournament}`;
+}
+
+export function getPSMFFieldUrl(field: string) {
+	return `${psmfBaseUrl}/hriste/#${field}`;
+}
+
 export function useLeagues(setErrorMessage: (errorMessage: string | undefined) => void) {
 	const [leagues, setLeagues] = useState<IPSMFLeague[] | undefined>(undefined);
 	useAsyncEffect(async () => {

@@ -12,6 +12,7 @@ import Loading from '../Components/Loading';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 import TeamCard from '../Components/Match/TeamCard';
 import FieldCard from '../Components/Match/FieldCard';
+import TournamentCard from '../Components/Match/TournamentCard';
 import MatchTimeCard from '../Components/Match/MatchTimeCard';
 import AttendanceResponseForm from '../Components/Match/AttendenceResponseForm';
 import FormattedDateTime from '../Components/Util/FormattedDateTime';
@@ -79,11 +80,14 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 				<div className="col-md-4">
 					<MatchTimeCard startsAt={match?.startsAt}/>
 				</div>
-				<div className="col-md-4">
+				<div className="col-md-3">
 					<TeamCard opponent={match?.opponent}/>
 				</div>
-				<div className="col-md-4">
+				<div className="col-md-2">
 					<FieldCard field={match?.field}/>
+				</div>
+				<div className="col-md-3">
+					<TournamentCard tournament={match?.tournament}/>
 				</div>
 			</div>
 			<Attendees

@@ -82,6 +82,8 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 						<td><MatchTime startsAt={match.startsAt}/></td>
 						<td>
 							{match.opponent && match.opponent.replace(' ', ' ')}
+							<br/>
+							<small className='font-weight-lighter'>{match.tournament}</small>
 							{match.referees && match.referees.map((referee) => referee.replace(' ', ' ')).join(', ')}
 						</td>
 						<td>{match.field.replace(' ', ' ')}</td>

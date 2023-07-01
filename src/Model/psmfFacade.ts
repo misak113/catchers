@@ -5,7 +5,7 @@ import URL from 'url';
 import { useAsyncEffect } from '../React/async';
 import { getErrorMessage } from '../Util/error';
 
-export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt'>
+export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt' | 'tournament'>;
 export interface IPSMFLeague {
 	name: string;
 	uri: string | undefined;
@@ -99,10 +99,22 @@ export function useTeamMatches(
 	return teamMatches;
 }
 
+/**
+ *
+ * @param url E.g.: https://www.psmf.cz/souteze/2023-hanspaulska-liga-jaro/6-e/tymy/catchers-sc/
+ * @returns E.g.: 2023-hanspaulska-liga-jaro
+ */
+function parseTournamentFromPath(url: string) {
+	const pathParts = url.split('/');
+	const tournament = pathParts[2];
+	return tournament;
+}
+
 export async function getTeamMatches(
 	teamPagePath: string,
 	createElement: (html: string) => HTMLElement,
 ): Promise<IMatchImport[]> {
+	const tournament = parseTournamentFromPath(teamPagePath);
 	const response = await fetch(CORS_PROXY + psmfBaseUrl + teamPagePath);
 	const data = await response.text();
 	const dom = createElement(data);
@@ -129,20 +141,25 @@ export async function getTeamMatches(
 
 		console.log('match', opponent, startsAt, field);
 
-		if (!opponent) {
+		if (!opponent || !field) {
 			return null;
 		}
 
-		return {
+		const matchImport: IMatchImport = {
 			opponent,
 			startsAt,
 			field,
+			tournament,
 		};
+		return matchImport;
 	}).filter((match): match is IMatchImport => Boolean(match));
 
 	return teamMatches;
 }
 
 export function areMatchesSame(existingMatch: IMatchImport, newMatch: IMatchImport) {
-	return existingMatch.field === newMatch.field && existingMatch.startsAt.valueOf() === newMatch.startsAt.valueOf();
+	return existingMatch.field === newMatch.field
+		&& existingMatch.startsAt.valueOf() === newMatch.startsAt.valueOf()
+		&& existingMatch.opponent === newMatch.opponent
+		&& existingMatch.tournament === newMatch.tournament;
 }

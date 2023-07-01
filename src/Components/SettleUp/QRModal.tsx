@@ -1,4 +1,3 @@
-import classNames from 'classnames';
 import React, { useCallback, useState } from 'react';
 import { formatCurrencyAmount, formatCurrencyAmountHumanized } from '../../Util/currency';
 import { DEFAULT_CURRENCY_CODE } from '../../Model/settleUpFacade';
@@ -6,6 +5,7 @@ import QRCode from 'react-qr-code';
 import qrcode from 'qrcode';
 import qrIcon from './qr.png';
 import './QRModal.css';
+import { Modal } from '../Modal/Modal';
 
 interface IQRModalProps {
 	sepaQrCode: string;
@@ -32,30 +32,13 @@ const QRModal = ({ sepaQrCode, amount, bankAccount, currencyCode }: IQRModalProp
 				<img className="qr-icon" src={qrIcon} alt='QR kód'/>
 			</button>
 
-			<div className={classNames("QRModal modal fade", { show: open })} tabIndex={-1}>
-				<div className="modal-dialog">
-					<div className="modal-content">
-						<div className="modal-header">
-							<h5 className="modal-title">QR platba</h5>
-							<button type="button" className="close" onClick={() => setOpen(false)}>
-								<span>&times;</span>
-							</button>
-						</div>
-						<div className="modal-body">
-							<button className="qr-code btn btn-link" onClick={downloadQRCode}>
-								<QRCode value={sepaQrCode} size={256} />
-							</button>
-							<h4><small>Částka:</small> {formatCurrencyAmountHumanized({ amount, currencyCode, decimals: 2 })}</h4>
-							<h4><small>Číslo účtu:</small> {bankAccount}</h4>
-						</div>
-						<div className="modal-footer">
-							<button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>Close</button>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div className={classNames("QRModal modal-backdrop fade", { show: open })}></div>
+			<Modal title={'QR platba'} open={open} setOpen={setOpen}>
+				<button className="qr-code btn btn-link" onClick={downloadQRCode}>
+					<QRCode value={sepaQrCode} size={256} />
+				</button>
+				<h4><small>Částka:</small> {formatCurrencyAmountHumanized({ amount, currencyCode, decimals: 2 })}</h4>
+				<h4><small>Číslo účtu:</small> {bankAccount}</h4>
+			</Modal>
 		</span>
 	);
 };

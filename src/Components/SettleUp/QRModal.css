@@ -13,14 +13,6 @@
 	height: 20px;
 }
 
-.QR .QRModal {
-	display: none;
-}
-
 .QR .qr-code {
 	margin: 20px 10px;
-}
-
-.QR .QRModal.show {
-	display: block;
 }

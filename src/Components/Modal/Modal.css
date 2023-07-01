@@ -1,0 +1,8 @@
+
+.Modal {
+	display: none;
+}
+
+.Modal.show {
+	display: block;
+}

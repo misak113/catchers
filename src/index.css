@@ -28,3 +28,12 @@ code {
 	font-size: 0.6em;
 	opacity: 0.4;
 }
+
+a[target="_blank"] {
+	text-decoration: none;
+	color: rgb(107, 79, 34);
+}
+
+a[target="_blank"]:hover {
+	text-decoration: underline;
+}

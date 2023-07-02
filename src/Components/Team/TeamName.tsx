@@ -13,5 +13,5 @@ export const TeamName = (props: Props) => {
 		return <>{props.code}</>;
 	}
 
-	return <>{teamName}</>;
+	return <>{teamName.replace(/\s+/g, ' ').replace(/-/g, '–')}</>;
 };

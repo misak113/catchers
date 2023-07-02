@@ -73,12 +73,13 @@ export const USERS = 'users';
 export enum Privilege {
 	WriteFines = 'writeFines',
 	SyncMatches = 'syncMatches',
+	ManageUsers = 'manageUsers',
 }
 
 export type Ordered<T> = {
 	name: T;
 	order: number;
-}[];
+};
 
 export enum PlayerPosition {
 	Goalkeeper = 'goalkeeper',
@@ -102,8 +103,8 @@ export interface IUser {
 	linkedUserUids?: string[];
 	settleUpProviderName?: AuthProviderName;
 	privileges?: Privilege[];
-	playerPositions?: Ordered<PlayerPosition>;
-	teamRoles?: Ordered<TeamRole>;
+	playerPositions?: Ordered<PlayerPosition>[];
+	teamRoles?: Ordered<TeamRole>[];
 }
 
 export function getUsersCollection(firebaseApp: firebase.FirebaseApp) {

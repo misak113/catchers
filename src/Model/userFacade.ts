@@ -3,7 +3,21 @@ import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
 import { useEffect, useState } from "react";
 import { getErrorMessage } from "../Util/error";
-import { mapUser, IUser, getUsersCollection, IPersonResult, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest, IMatch, IMail, Privilege, TeamRole, PlayerPosition } from "./collections";
+import {
+	mapUser,
+	IUser,
+	getUsersCollection,
+	IPersonResult,
+	getUserPlayerLinkRequestsCollection,
+	IUserPlayerLinkRequest,
+	mapUserPlayerLinkRequest,
+	IMatch,
+	IMail,
+	Privilege,
+	TeamRole,
+	PlayerPosition,
+	Ordered,
+} from "./collections";
 import { generateHash } from '../Components/Util/hash';
 import { Creatable } from './types';
 import moment from 'moment-timezone';
@@ -269,6 +283,50 @@ export async function setUserSettleUpProviderName(
 			settleUpProviderName: firestore.deleteField(),
 		});
 	}
+}
+
+export async function removeUserTeamRole(
+	firebaseApp: firebase.FirebaseApp,
+	user: IUser,
+	role: Ordered<TeamRole>,
+) {
+	const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), user.id));
+	await firestore.updateDoc(userDoc.ref, {
+		teamRoles: firestore.arrayRemove(role),
+	});
+}
+
+export async function addUserTeamRole(
+	firebaseApp: firebase.FirebaseApp,
+	user: IUser,
+	role: Ordered<TeamRole>,
+) {
+	const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), user.id));
+	await firestore.updateDoc(userDoc.ref, {
+		teamRoles: firestore.arrayUnion(role),
+	});
+}
+
+export async function removeUserPlayerPosition(
+	firebaseApp: firebase.FirebaseApp,
+	user: IUser,
+	position: Ordered<PlayerPosition>,
+) {
+	const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), user.id));
+	await firestore.updateDoc(userDoc.ref, {
+		playerPositions: firestore.arrayRemove(position),
+	});
+}
+
+export async function addUserPlayerPosition(
+	firebaseApp: firebase.FirebaseApp,
+	user: IUser,
+	position: Ordered<PlayerPosition>,
+) {
+	const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), user.id));
+	await firestore.updateDoc(userDoc.ref, {
+		playerPositions: firestore.arrayUnion(position),
+	});
 }
 
 export function hasPrivilege(user: IUser | null | undefined, privilege: Privilege): user is IUser {

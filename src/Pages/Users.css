@@ -2,3 +2,8 @@
 .Users .badge {
 	margin-right: 3px;
 }
+
+.Users .close {
+	font-size: 0.7rem;
+	margin-left: 3px;
+}

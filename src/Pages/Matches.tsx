@@ -17,6 +17,7 @@ import './Matches.css';
 import { formatDate, formatTime } from '../Util/datetime';
 import config from '../config.json';
 import { getPSMFFieldUrl, getPSMFGroupUrl, getPSMFTeamUrl, getPSMFTournamentUrl } from '../Model/psmfFacade';
+import { TeamName } from '../Components/Team/TeamName';
 
 interface IProps {}
 
@@ -84,9 +85,9 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 						<td>
 							{match.tournament && match.group
 								? <a href={getPSMFTeamUrl(match.tournament, match.group, match.opponent)} target='_blank' rel="noreferrer">
-									<span className="fa fa-external-link icon-external"/> {match.opponent.replace(' ', ' ')}
+									<span className="fa fa-external-link icon-external"/> <TeamName tournament={match.tournament} group={match.group} code={match.opponent}/>
 								</a>
-								: match.opponent.replace(' ', ' ')
+								: <TeamName tournament={match.tournament} group={match.group} code={match.opponent}/>
 							}
 							<br/>
 							<small className='font-weight-lighter'>

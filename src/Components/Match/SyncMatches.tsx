@@ -8,6 +8,7 @@ import { IFirebaseValue, withFirebase } from '../../Context/FirebaseContext';
 import { addMatch, updateMatch, useUpcomingMatches } from '../../Model/matchFacade';
 import classNames from 'classnames';
 import { IRouterValue, withRouter } from '../../Context/RouterContext';
+import { TeamName } from '../Team/TeamName';
 
 export const SyncMatches = () => {
 	const [errorMessage, setErrorMessage] = useState<string>();
@@ -123,7 +124,7 @@ const SyncLeagueMatches = withFirebase(withRouter(({ league, setErrorMessage, fi
 								'table-info': existingMatch && !areMatchesSame(existingMatch, newMatch),
 								'table-success': !existingMatch,
 							})}>
-								<td>{newMatch.opponent}</td>
+								<td><TeamName tournament={newMatch.tournament} group={newMatch.group} code={newMatch.opponent}/></td>
 								<td>
 									{newMatch.field}
 									{existingMatch && existingMatch.field !== newMatch.field && <><br/><del>{existingMatch.field}</del></>}

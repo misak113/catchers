@@ -5,6 +5,7 @@ import './Layout.css';
 import Anchor from '../Components/Anchor';
 import Homepage from './Homepage';
 import Matches from './Matches';
+import Users from './Users';
 import Accounting from './Accounting';
 import Match from './Match';
 import logo from '../logo-large.png';
@@ -60,6 +61,12 @@ const pages = [
 		name: 'Pokuty',
 		path: '/pokuty',
 		render: () => <Fines/>,
+		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
+	},
+	{
+		name: 'Hráči',
+		path: '/hraci',
+		render: () => <Users/>,
 		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
 	},
 	{

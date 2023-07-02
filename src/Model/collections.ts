@@ -75,6 +75,25 @@ export enum Privilege {
 	SyncMatches = 'syncMatches',
 }
 
+export type Ordered<T> = {
+	name: T;
+	order: number;
+}[];
+
+export enum PlayerPosition {
+	Goalkeeper = 'goalkeeper',
+	Defender = 'defender',
+	Midfielder = 'midfielder',
+	Forward = 'forward',
+}
+
+export enum TeamRole {
+	Captain = 'captain',
+	ViceCaptain = 'viceCaptain',
+	TeamManager = 'teamManager',
+	DeputyTeamManager = 'deputyTeamManager',
+}
+
 export interface IUser {
 	id: string;
 	email: string;
@@ -83,6 +102,8 @@ export interface IUser {
 	linkedUserUids?: string[];
 	settleUpProviderName?: AuthProviderName;
 	privileges?: Privilege[];
+	playerPositions?: Ordered<PlayerPosition>;
+	teamRoles?: Ordered<TeamRole>;
 }
 
 export function getUsersCollection(firebaseApp: firebase.FirebaseApp) {
@@ -100,6 +121,8 @@ export function mapUser(doc: firestore.QueryDocumentSnapshot): IUser {
 		linkedUserUids: data.linkedUserUids,
 		settleUpProviderName: data.settleUpProviderName,
 		privileges: data.privileges,
+		playerPositions: data.playerPositions,
+		teamRoles: data.teamRoles,
 	};
 }
 

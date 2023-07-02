@@ -3,13 +3,27 @@ import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
 import { useEffect, useState } from "react";
 import { getErrorMessage } from "../Util/error";
-import { mapUser, IUser, getUsersCollection, IPersonResult, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest, IMatch, IMail, Privilege } from "./collections";
+import { mapUser, IUser, getUsersCollection, IPersonResult, getUserPlayerLinkRequestsCollection, IUserPlayerLinkRequest, mapUserPlayerLinkRequest, IMatch, IMail, Privilege, TeamRole, PlayerPosition } from "./collections";
 import { generateHash } from '../Components/Util/hash';
 import { Creatable } from './types';
 import moment from 'moment-timezone';
 import { useAsyncEffect } from '../React/async';
 import { AuthProviderName } from '../Context/SettleUpContext';
 import { sendMail } from './mailFacade';
+
+export const TeamRoleMap = {
+	[TeamRole.Captain]: 'Kapitán',
+	[TeamRole.ViceCaptain]: 'Asistent',
+	[TeamRole.TeamManager]: 'Manažer týmu',
+	[TeamRole.DeputyTeamManager]: 'Zástupce manažera týmu',
+};
+
+export const PlayerPositionMap = {
+	[PlayerPosition.Goalkeeper]: 'Brankář',
+	[PlayerPosition.Defender]: 'Obránce',
+	[PlayerPosition.Midfielder]: 'Záložník',
+	[PlayerPosition.Forward]: 'Útočník',
+};
 
 export function getUserName(user: IUser) {
 	return user.name ?? user.email;

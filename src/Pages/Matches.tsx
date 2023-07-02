@@ -103,6 +103,8 @@ const MatchRow = ({ match, currentUser, now, possibleAttendees }: MatchRowProps)
 		<td>
 			<Anchor href={`/zapas/${match.id}`}>
 				<MatchDate startsAt={match.startsAt}/>
+				<br/>
+				<small className='font-weight-lighter'><i>přejít na detail</i></small>
 			</Anchor>
 		</td>
 		<td><MatchTime startsAt={match.startsAt}/></td>
@@ -145,6 +147,9 @@ const MatchRow = ({ match, currentUser, now, possibleAttendees }: MatchRowProps)
 					: null
 				}
 			</Attendees>
+			{!currentUserResponded && <Anchor href={`/zapas/${match.id}`}>
+				<small className='font-weight-lighter'><i>vyjádřit se</i></small>
+			</Anchor>}
 		</td>
 		<td>
 		<AddToCalendarButton

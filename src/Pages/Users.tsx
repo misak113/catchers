@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 import { IUser, Ordered, PlayerPosition, Privilege, TeamRole } from '../Model/collections';
-import { PlayerPositionMap, TeamRoleMap, addUserPlayerPosition, addUserTeamRole, hasPrivilege, removeUserPlayerPosition, removeUserTeamRole, useAllUsers, useCurrentUser } from '../Model/userFacade';
+import { PlayerPositionMap, TeamRoleMap, addUserPlayerPosition, addUserTeamRole, hasPrivilege, removeUserPlayerPosition, removeUserTeamRole, setUserDressNumber, setUserPSMFNumber, useAllUsers, useCurrentUser } from '../Model/userFacade';
 import Loading from '../Components/Loading';
 import './Users.css';
 import { IRouterValue, withRouter } from '../Context/RouterContext';
@@ -66,6 +66,8 @@ function UsersTable({ users, editEnabled, errorMessage, currentUser, firebaseApp
 			<tr>
 				<th>Jméno</th>
 				<th>e-mail</th>
+				<th>Číslo</th>
+				<th>Registračka</th>
 				<th>Aktivní</th>
 				<th>Pozice</th>
 				<th>Role</th>
@@ -111,6 +113,14 @@ function UserRow({ user, editEnabled, currentUser, firebaseApp, router }: UserRo
 		await addUserPlayerPosition(firebaseApp, user, { name, order });
 		router.refresh();
 	};
+	const createSetUserDressNumber = (user: IUser) => async (value: number) => {
+		await setUserDressNumber(firebaseApp, user, value);
+		router.refresh();
+	};
+	const createSetPSMFNumberNumber = (user: IUser) => async (value: number) => {
+		await setUserPSMFNumber(firebaseApp, user, value);
+		router.refresh();
+	};
 
 	const showEdit = editEnabled && hasPrivilege(currentUser, Privilege.ManageUsers);
 
@@ -121,6 +131,24 @@ function UserRow({ user, editEnabled, currentUser, firebaseApp, router }: UserRo
 	})}>
 		<td>{user.name}</td>
 		<td>{user.email}</td>
+		<td>
+			{!showEdit
+				? user.dressNumber
+				: <NumberForm
+					defaultValue={user.dressNumber}
+					saveValue={createSetUserDressNumber(user)}
+				/>
+			}
+		</td>
+		<td>
+			{!showEdit
+				? user.psmfNumber
+				: <NumberForm
+					defaultValue={user.psmfNumber}
+					saveValue={createSetPSMFNumberNumber(user)}
+				/>
+			}
+		</td>
 		<td>{user.player ? 'Ano' : 'Ne'}</td>
 		<td>
 			{positions.map((item, index) => (
@@ -165,6 +193,28 @@ function UserRow({ user, editEnabled, currentUser, firebaseApp, router }: UserRo
 				: null}
 		</td>
 	</tr>;
+}
+
+interface NumberFormProps {
+	defaultValue: number | undefined;
+	saveValue: (value: number) => void;
+}
+
+function NumberForm({ defaultValue, saveValue }: NumberFormProps) {
+	const [value, setValue] = useState<number | undefined>(defaultValue);
+	return <>
+		<input
+			type="number"
+			className="form-control form-control-sm"
+			value={value}
+			onChange={(event) => setValue(parseInt(event.target.value))}
+		/>
+		<button
+			className="btn btn-sm btn-secondary"
+			disabled={value === undefined}
+			onClick={() => value && saveValue(value)}
+		>Uložit</button>
+	</>;
 }
 
 type AddFormProps<T extends string> = {

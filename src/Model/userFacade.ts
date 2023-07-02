@@ -329,6 +329,28 @@ export async function addUserPlayerPosition(
 	});
 }
 
+export async function setUserDressNumber(
+	firebaseApp: firebase.FirebaseApp,
+	user: IUser,
+	dressNumber: number,
+) {
+	const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), user.id));
+	await firestore.updateDoc(userDoc.ref, {
+		dressNumber,
+	});
+}
+
+export async function setUserPSMFNumber(
+	firebaseApp: firebase.FirebaseApp,
+	user: IUser,
+	psmfNumber: number,
+) {
+	const userDoc = await firestore.getDoc(firestore.doc(getUsersCollection(firebaseApp), user.id));
+	await firestore.updateDoc(userDoc.ref, {
+		psmfNumber,
+	});
+}
+
 export function hasPrivilege(user: IUser | null | undefined, privilege: Privilege): user is IUser {
 	if (!user) {
 		return false;

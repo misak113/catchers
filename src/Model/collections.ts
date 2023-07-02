@@ -99,6 +99,8 @@ export interface IUser {
 	id: string;
 	email: string;
 	name?: string;
+	dressNumber?: number;
+	psmfNumber?: number;
 	player: boolean;
 	linkedUserUids?: string[];
 	settleUpProviderName?: AuthProviderName;
@@ -118,6 +120,8 @@ export function mapUser(doc: firestore.QueryDocumentSnapshot): IUser {
 		id: doc.id,
 		email: data.email,
 		name: data.name,
+		dressNumber: data.dressNumber,
+		psmfNumber: data.psmfNumber,
 		player: typeof data.player !== 'undefined' ? data.player : false,
 		linkedUserUids: data.linkedUserUids,
 		settleUpProviderName: data.settleUpProviderName,

@@ -124,8 +124,8 @@ export function didUserRespondMatch(match: IMatch | null, currentUser: IUser | u
 		|| match?.maybeAttendees?.some((person) => person.userId === currentUser?.id);
 }
 
-export function getMatchEventName(match: IMatch) {
-	return `Hanspaulka - ${match.opponent} - ${match.field}`;
+export function getMatchEventName(match: IMatch, teamName: string) {
+	return `Hanspaulka - ${teamName} - ${match.field}`;
 }
 
 export function updateMatchNotificationSent(

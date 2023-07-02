@@ -6,6 +6,7 @@ import { UNRESPONDED_LATE_FINE } from './fineFacade';
 import { formatCurrencyAmountHumanized } from '../Util/currency';
 import { sendMail } from './mailFacade';
 import { getDeadlineResponseDate } from './matchFacade';
+import { getCachedTeamName, getPSMFFieldUrl, getPSMFTeamUrl } from './psmfFacade';
 
 const BUTTON_STYLE = '\
 display: inline-block;\
@@ -20,17 +21,26 @@ border-radius: 0.3rem;\
 export async function sendMatchUnrespondedNotification(firebaseApp: FirebaseApp.FirebaseApp, match: IMatch, unrespondedUser: IUser, apply: boolean, baseUrl: string) {
 	const deadlineDate = getDeadlineResponseDate(match);
 	const emails = [unrespondedUser.email];
-	const subject = getSubject(match);
+	const teamName = await getCachedTeamName({
+		tournament: match.tournament,
+		group: match.group,
+		code: match.opponent,
+	}) ?? match.opponent;
+	const subject = await getSubject(match, teamName);
 	const matchUrl = getMatchUrl(match, baseUrl);
+	const psmfTeamUrl = match.tournament && match.group ? getPSMFTeamUrl(match.tournament, match.group, match.opponent) : undefined;
+	const teamLink = psmfTeamUrl ? `<a href="${psmfTeamUrl}">${teamName}</a>` : teamName;
+
+	const fieldLink = `<a href="${getPSMFFieldUrl(match.field)}">${match.field}</a>`;
 	const messageHtml = `Ahoj,<br/>
 		<br/>
 		<p>
 			ještě ses nevyjádřil k zápasu, který se odehrává <strong>${formatDateTimeHumanized(match.startsAt)}</strong><br/>
-			a hraje se na hřišti <strong>${match.field}</strong>.
+			a hraje se na hřišti <strong>${fieldLink}</strong>.
 		</p>
 
 		<p>
-			Hrajeme s týmem <strong>${match.opponent}</strong>, tak nezapomeň, jinak dostaneš pokutu <em>${formatCurrencyAmountHumanized(UNRESPONDED_LATE_FINE)}</em>.
+			Hrajeme s týmem <strong>${teamLink}</strong>, tak nezapomeň, jinak dostaneš pokutu <em>${formatCurrencyAmountHumanized(UNRESPONDED_LATE_FINE)}</em>.
 			Učiň tak nejpozději do půlnoci <strong>${formatDateTimeHumanized(deadlineDate)}</strong>.
 		</p>
 	`;
@@ -61,7 +71,7 @@ function getMatchUrl(match: IMatch, baseUrl: string) {
 	return `${baseUrl}/zapas/${match.id}`;
 }
 
-function getSubject(match: IMatch) {
-	const subject = `Nevyjádřil ses k zápasu ${formatDateTimeHumanized(match.startsAt)} - ${match.opponent} - ${match.field}`;
+async function getSubject(match: IMatch, teamName: string) {
+	const subject = `Nevyjádřil ses k zápasu ${formatDateTimeHumanized(match.startsAt)} - ${teamName} - ${match.field}`;
 	return subject;
 }

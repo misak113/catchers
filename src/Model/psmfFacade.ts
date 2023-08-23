@@ -77,6 +77,9 @@ async function getLeagueElements(
 ) {
 	const url = `${CORS_PROXY}${psmfBaseUrl}/vyhledavani/?query=${MY_TEAM_QUERY_NAME}`;
 	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`Cannot find team leagues for ${MY_TEAM_QUERY_NAME}`);
+	}
 	const data = await response.text();
 	const dom = createElement(data);
 	const resultListItemsSelector = 'section.component--content .container .component__wrap .component__text .search-content ul li';
@@ -133,6 +136,9 @@ export async function getTeamMatches(
 ): Promise<IMatchImport[]> {
 	const [tournament, group] = parseTournamentGroupFromPath(teamPagePath);
 	const response = await fetch(CORS_PROXY + psmfBaseUrl + teamPagePath);
+	if (!response.ok) {
+		throw new Error(`Cannot find team matches for ${psmfBaseUrl + teamPagePath}`);
+	}
 	const data = await response.text();
 	const dom = createElement(data);
 	const matchesSelector = 'section.component--opener table.games-new-table tr';
@@ -236,6 +242,9 @@ async function getTeamName(
 
 	const psmfTeamUri = getPSMFTeamUrl(tournament, group, code);
 	const response = await fetch(CORS_PROXY + psmfTeamUri);
+	if (!response.ok) {
+		return undefined;
+	}
 	const data = await response.text();
 	const dom = createElement(data);
 	const teamName = dom.querySelector<HTMLHeadingElement>('.component--title .component__title')?.innerText;

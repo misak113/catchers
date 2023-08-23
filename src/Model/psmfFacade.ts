@@ -153,8 +153,9 @@ export async function getTeamMatches(
 		const startsAtTime = startsAtTimeCZ?.padStart(5, '0');
 		const startsAt = new Date(`${startsAtDate}T${startsAtTime}${CURRENT_TIMEZONE_OFFSET}`);
 
-		const homeTeamUrl = matchRow.querySelector<HTMLAnchorElement>('td:nth-child(4) a:nth-child(1)')?.href;
-		const guestTeamUrl = matchRow.querySelector<HTMLAnchorElement>('td:nth-child(4) a:nth-child(2)')?.href;
+		const teamsAnchors = [...matchRow.querySelectorAll<HTMLAnchorElement>('td:nth-child(4) a[href^="/souteze/"]')];
+		const homeTeamUrl = teamsAnchors[0]?.href;
+		const guestTeamUrl = teamsAnchors[1]?.href;
 		console.log('teams', homeTeamUrl, guestTeamUrl);
 		const homeTeamUrlParts = homeTeamUrl?.split('/');
 		const homeTeamCodeName = homeTeamUrlParts?.[homeTeamUrlParts?.length - 2];

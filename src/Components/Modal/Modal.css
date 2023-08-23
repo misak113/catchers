@@ -6,3 +6,8 @@
 .Modal.show {
 	display: block;
 }
+
+.Modal .modal-body {
+	overflow-y: auto;
+	max-height: 90vh;
+}

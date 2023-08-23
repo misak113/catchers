@@ -4,6 +4,7 @@ import { useState } from 'react';
 import URL from 'url';
 import { useAsyncEffect } from '../React/async';
 import { getErrorMessage } from '../Util/error';
+import moment from 'moment-timezone';
 
 export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt' | 'tournament' | 'group'>;
 export interface IPSMFLeague {
@@ -16,10 +17,6 @@ const CORS_PROXY = 'https://corsproxy.io/?';
 const psmfBaseUrl = 'https://www.psmf.cz';
 const MY_TEAM_QUERY_NAME = 'Catchers+SC';
 const MY_TEAM_CODE_NAME = 'catchers-sc';
-
-const currentTimezoneOffset = new Date().getTimezoneOffset();
-
-const CURRENT_TIMEZONE_OFFSET = config.timezoneOffset ?? (- currentTimezoneOffset / 60).toString().padStart(2, '0').padStart(3, '+') + ':00';
 
 function createHTMLElementFromText(): (html: string) => HTMLElement {
 	return (html: string) => {
@@ -151,7 +148,7 @@ export async function getTeamMatches(
 		const startsAtDateCZParts = startsAtDateCZWithWeekday?.split('&nbsp;').pop()?.split('.');
 		const startsAtDate = '20' + startsAtDateCZParts?.[2].padStart(2, '0') + '-' + startsAtDateCZParts?.[1].padStart(2, '0') + '-' + startsAtDateCZParts?.[0].padStart(2, '0');
 		const startsAtTime = startsAtTimeCZ?.padStart(5, '0');
-		const startsAt = new Date(`${startsAtDate}T${startsAtTime}${CURRENT_TIMEZONE_OFFSET}`);
+		const startsAt = moment.tz(`${startsAtDate}T${startsAtTime}`, config.timezone).toDate();
 
 		const teamsAnchors = [...matchRow.querySelectorAll<HTMLAnchorElement>('td:nth-child(4) a[href^="/souteze/"]')];
 		const homeTeamUrl = teamsAnchors[0]?.href;

@@ -5,6 +5,7 @@ import URL from 'url';
 import { useAsyncEffect } from '../React/async';
 import { getErrorMessage } from '../Util/error';
 import moment from 'moment-timezone';
+import { syncCache } from './syncCache';
 
 export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt' | 'tournament' | 'group'>;
 export interface IPSMFLeague {
@@ -211,7 +212,7 @@ const LOCAL_STORAGE_TEAM_NAME_PREFIX = 'PSMF_teamName_';
 
 export async function getCachedTeamName(options: TeamNameOptions) {
 	const cacheKey = `${options.tournament}/${options.group}/${options.code}`;
-	const cachedTeamName = localStorage.getItem(LOCAL_STORAGE_TEAM_NAME_PREFIX + cacheKey);
+	const cachedTeamName = syncCache.getItem(LOCAL_STORAGE_TEAM_NAME_PREFIX + cacheKey);
 	if (cachedTeamName) {
 		return cachedTeamName;
 	}
@@ -224,7 +225,7 @@ export async function getCachedTeamName(options: TeamNameOptions) {
 	globalTeamNameCache.set(cacheKey, teamNamePromise);
 	const teamName = await teamNamePromise;
 	if (teamName) {
-		localStorage.setItem(LOCAL_STORAGE_TEAM_NAME_PREFIX + cacheKey, teamName);
+		syncCache.setItem(LOCAL_STORAGE_TEAM_NAME_PREFIX + cacheKey, teamName);
 	}
 
 	return teamName;

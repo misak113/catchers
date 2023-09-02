@@ -30,6 +30,7 @@
     "html-webpack-plugin": "^5.5.0",
     "ibantools": "4.2.2",
     "identity-obj-proxy": "^3.0.0",
+    "isomorphic-fetch": "3.0.0",
     "jest": "^27.4.3",
     "jest-resolve": "^27.4.2",
     "jest-watch-typeahead": "^1.0.0",
@@ -89,6 +90,7 @@
   },
   "devDependencies": {
     "@types/classnames": "^2.2.7",
+    "@types/isomorphic-fetch": "0.0.36",
     "@types/jest": "24.0.13",
     "@types/jsdom": "21.1.0",
     "@types/lodash": "^4.14.129",

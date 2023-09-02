@@ -6,6 +6,7 @@ import { useAsyncEffect } from '../React/async';
 import { getErrorMessage } from '../Util/error';
 import moment from 'moment-timezone';
 import { syncCache } from './syncCache';
+import fetch from 'isomorphic-fetch';
 
 export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt' | 'tournament' | 'group'>;
 export interface IPSMFLeague {

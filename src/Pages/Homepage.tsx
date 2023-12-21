@@ -2,10 +2,12 @@ import React from 'react';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 import logo from '../logo-large.png';
 import './Homepage.css';
+import config from '../config.json';
 
 const Homepage: React.FC<IAuthValue> = (props: IAuthValue) => {
 	return <div className='Homepage'>
 		<h1>SC Catchers</h1>
+
 		{!props.auth.user && <blockquote className='blockquote jumbotron'>
 			<p>
 				Pokud seš tady poprvé, tak se nejprve budeš muset <strong>zaregistrovat</strong>.
@@ -21,7 +23,19 @@ const Homepage: React.FC<IAuthValue> = (props: IAuthValue) => {
 			</p>
 		</blockquote>}
 
+		<div className='winter-challenge'>
+			<h2>Zimní výzva</h2>
+			<iframe
+				title='Strava widget'
+				className='strava-widget'
+				src={config.stravaClubActivitiesUri}
+				allowTransparency={true}
+			/>
+		</div>
+
 		<img src={logo} className="App-logo" alt="logo" />
+		<div className='clear'/>
+
 		<blockquote className='blockquote'>
 			<p>
 				SC Catchers tě vítá na svých oficiálních stránkách. Stránky se v našem týmu používají především na <strong>přihlašování na zápasy</strong>.

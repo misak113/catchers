@@ -2,5 +2,6 @@
 	"timezone": "Europe/Prague",
 	"baseUrl": "https://www.sccatchers.cz",
 	"facebookGroupUri": "https://www.facebook.com/groups/415452958491803",
-	"stravaUri": "https://www.strava.com/clubs/sccatchers"
+	"stravaUri": "https://www.strava.com/clubs/sccatchers",
+	"stravaClubActivitiesUri": "https://www.strava.com/clubs/1140667/latest-rides/85e7028d0925745fae8c9ab2e5a90112aa81c994?show_rides=true"
 }

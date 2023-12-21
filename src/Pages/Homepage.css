@@ -1,6 +1,7 @@
 
 .Homepage .App-logo {
 	height: 40vmin;
+	float: left;
 }
 
 .Homepage h3 {
@@ -12,4 +13,19 @@
 	border: 1px solid #ccc;
 	padding: 35px 40px;
 	background-color: #ddd;
+}
+
+.Homepage .clear {
+	clear: both;
+}
+
+.Homepage .winter-challenge {
+	float: right;
+}
+
+.Homepage .strava-widget {
+	width: 400px;
+	height: 500px;
+	border: 0;
+	overflow: hidden;
 }

@@ -74,7 +74,7 @@ export function useLeagueTeamPath(setErrorMessage: (errorMessage: string | undef
 async function getLeagueElements(
 	createElement: (html: string) => HTMLElement,
 ) {
-	const url = `${CORS_PROXY}${psmfBaseUrl}/vyhledavani/?query=${MY_TEAM_QUERY_NAME}`;
+	const url = `${CORS_PROXY}${psmfBaseUrl}/vyhledavani/?query=${MY_TEAM_QUERY_NAME}&v=${Math.random()}`;
 	const response = await fetch(url);
 	if (!response.ok) {
 		throw new Error(`Cannot find team leagues for ${MY_TEAM_QUERY_NAME}`);
@@ -134,7 +134,7 @@ export async function getTeamMatches(
 	createElement: (html: string) => HTMLElement,
 ): Promise<IMatchImport[]> {
 	const [tournament, group] = parseTournamentGroupFromPath(teamPagePath);
-	const response = await fetch(CORS_PROXY + psmfBaseUrl + teamPagePath);
+	const response = await fetch(CORS_PROXY + psmfBaseUrl + teamPagePath + `?v=${Math.random()}`);
 	if (!response.ok) {
 		throw new Error(`Cannot find team matches for ${psmfBaseUrl + teamPagePath}`);
 	}
@@ -241,7 +241,7 @@ async function getTeamName(
 	}
 
 	const psmfTeamUri = getPSMFTeamUrl(tournament, group, code);
-	const response = await fetch(CORS_PROXY + psmfTeamUri);
+	const response = await fetch(CORS_PROXY + psmfTeamUri + `?v=${Math.random()}`);
 	if (!response.ok) {
 		return undefined;
 	}

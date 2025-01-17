@@ -31,7 +31,7 @@ export async function sendMatchUnrespondedNotification(firebaseApp: FirebaseApp.
 	const psmfTeamUrl = match.tournament && match.group ? getPSMFTeamUrl(match.tournament, match.group, match.opponent) : undefined;
 	const teamLink = psmfTeamUrl ? `<a href="${psmfTeamUrl}">${teamName}</a>` : teamName;
 
-	const fieldLink = `<a href="${getPSMFFieldUrl(match.field)}">${match.field}</a>`;
+	const fieldLink = match.field ? `<a href="${getPSMFFieldUrl(match.field)}">${match.field}</a>` : `<span>Neuvedeno</span>`;
 	const messageHtml = `Ahoj,<br/>
 		<br/>
 		<p>
@@ -72,6 +72,6 @@ function getMatchUrl(match: IMatch, baseUrl: string) {
 }
 
 async function getSubject(match: IMatch, teamName: string) {
-	const subject = `Nevyjádřil ses k zápasu ${formatDateTimeHumanized(match.startsAt)} - ${teamName} - ${match.field}`;
+	const subject = `Nevyjádřil ses k zápasu ${formatDateTimeHumanized(match.startsAt)} - ${teamName} - ${match.field ?? 'Neuvedeno'}`;
 	return subject;
 }

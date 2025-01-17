@@ -21,7 +21,7 @@ function FieldCard(props: IProps) {
 						</a>
 					</p>
 				</blockquote>
-				: <Loading/>}
+				: 'Neuvedeno'}
 			</div>
 		</div>
 	);

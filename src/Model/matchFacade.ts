@@ -125,7 +125,7 @@ export function didUserRespondMatch(match: IMatch | null, currentUser: IUser | u
 }
 
 export function getMatchEventName(match: IMatch, teamName: string) {
-	return `Hanspaulka - ${teamName} - ${match.field}`;
+	return `Hanspaulka - ${teamName} - ${match.field ?? 'Neuvedeno'}`;
 }
 
 export function updateMatchNotificationSent(

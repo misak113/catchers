@@ -19,7 +19,7 @@ export interface IMatch {
 	opponent: string;
 	tournament?: string;
 	group?: string;
-	field: string;
+	field?: string;
 	referees?: string[];
 	attendees?: IPersonResult[];
 	nonAttendees?: IPersonResult[];

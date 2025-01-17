@@ -128,9 +128,9 @@ const MatchRow = ({ match, currentUser, now, possibleAttendees }: MatchRowProps)
 			{match.referees && match.referees.map((referee) => referee.replace(' ', ' ')).join(', ')}
 		</td>
 		<td>
-			<a href={getPSMFFieldUrl(match.field)} target='_blank' rel="noreferrer">
+			{match.field ? <a href={getPSMFFieldUrl(match.field)} target='_blank' rel="noreferrer">
 				<span className="fa fa-external-link icon-external"/> {match.field.replace(' ', ' ')}
-			</a>
+			</a> : 'Neuvedeno'}
 		</td>
 		<td>
 			<Attendees

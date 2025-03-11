@@ -24,6 +24,7 @@ import stravaIcon from './icons/icon-strava-chrome-144.png';
 import facebookIcon from './icons/icon-facebook-2021.svg';
 import psmfIcon from './icons/icon-psmf.ico';
 import { IRouterValue, withRouter } from '../Context/RouterContext';
+import { CodeOfRules } from './CodeOfRules';
 
 const PAGE_LINK_PLAYER = {
 	name: 'Spojení hráčů',
@@ -79,6 +80,11 @@ const pages = [
 		name: 'Podmínky',
 		path: '/podminky',
 		render: () => <PrivacyPolicy/>,
+	},
+	{
+		name: 'Stanovy',
+		path: '/stanovy',
+		render: () => <CodeOfRules/>,
 	},
 	PAGE_LINK_PLAYER,
 ];

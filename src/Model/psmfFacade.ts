@@ -7,6 +7,7 @@ import { getErrorMessage } from '../Util/error';
 import moment from 'moment-timezone';
 import { syncCache } from './syncCache';
 import fetch from 'isomorphic-fetch';
+import jsdom from 'jsdom';
 
 export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt' | 'tournament' | 'group'>;
 export interface IPSMFLeague {
@@ -22,9 +23,8 @@ const MY_TEAM_CODE_NAME = 'catchers-sc';
 
 function createHTMLElementFromText(): (html: string) => HTMLElement {
 	return (html: string) => {
-		const htmlElement = document.createElement('html');
-		htmlElement.innerHTML = html;
-		return htmlElement;
+		const htmlElement = new jsdom.JSDOM(html);
+		return htmlElement.window.document.documentElement;
 	};
 }
 

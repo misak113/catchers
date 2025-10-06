@@ -5,9 +5,8 @@ import URL from 'url';
 import { useAsyncEffect } from '../React/async';
 import { getErrorMessage } from '../Util/error';
 import moment from 'moment-timezone';
-import { syncCache } from './syncCache';
 import fetch from 'isomorphic-fetch';
-import jsdom from 'jsdom';
+import { CORS_PROXY, getCachedTeamName, psmfBaseUrl, TeamNameOptions } from './psmfIndependentFacade';
 
 export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt' | 'tournament' | 'group'>;
 export interface IPSMFLeague {
@@ -16,15 +15,14 @@ export interface IPSMFLeague {
 	path: string | undefined;
 }
 
-const CORS_PROXY = 'https://corsproxy.io/?';
-const psmfBaseUrl = 'https://www.psmf.cz';
 const MY_TEAM_QUERY_NAME = 'Catchers+SC';
 const MY_TEAM_CODE_NAME = 'catchers-sc';
 
 function createHTMLElementFromText(): (html: string) => HTMLElement {
 	return (html: string) => {
-		const htmlElement = new jsdom.JSDOM(html);
-		return htmlElement.window.document.documentElement;
+		const htmlElement = document.createElement('html');
+		htmlElement.innerHTML = html;
+		return htmlElement;
 	};
 }
 
@@ -34,10 +32,6 @@ export function getPSMFTournamentUrl(tournament: string) {
 
 export function getPSMFGroupUrl(tournament: string, group: string) {
 	return `${psmfBaseUrl}/souteze/${tournament}/${group}/`;
-}
-
-export function getPSMFTeamUrl(tournament: string, group: string, team: string) {
-	return `${psmfBaseUrl}/souteze/${tournament}/${group}/tymy/${team}/`;
 }
 
 export function getPSMFFieldUrl(field: string) {
@@ -189,65 +183,15 @@ export function areMatchesSame(existingMatch: IMatchImport, newMatch: IMatchImpo
 		&& existingMatch.group === newMatch.group;
 }
 
-export type TeamNameOptions = {
-	tournament: string | undefined;
-	group: string | undefined;
-	code: string;
-};
-
 export function useTeamName(options: TeamNameOptions) {
 	const [teamName, setTeamName] = useState<string | undefined>(undefined);
 	useAsyncEffect(async () => {
 		try {
-			const teamName = await getCachedTeamName(options);
+			const teamName = await getCachedTeamName(options, createHTMLElementFromText());
 			setTeamName(teamName);
 		} catch (error) {
 			console.error(error);
 		}
 	}, []);
-	return teamName;
-}
-
-const globalTeamNameCache: Map<string, Promise<string | undefined>> = new Map();
-const LOCAL_STORAGE_TEAM_NAME_PREFIX = 'PSMF_teamName_';
-
-export async function getCachedTeamName(options: TeamNameOptions) {
-	const cacheKey = `${options.tournament}/${options.group}/${options.code}`;
-	const cachedTeamName = syncCache.getItem(LOCAL_STORAGE_TEAM_NAME_PREFIX + cacheKey);
-	if (cachedTeamName) {
-		return cachedTeamName;
-	}
-
-	if (globalTeamNameCache.has(cacheKey)) {
-		return globalTeamNameCache.get(cacheKey);
-	}
-
-	const teamNamePromise = getTeamName(options, createHTMLElementFromText());
-	globalTeamNameCache.set(cacheKey, teamNamePromise);
-	const teamName = await teamNamePromise;
-	if (teamName) {
-		syncCache.setItem(LOCAL_STORAGE_TEAM_NAME_PREFIX + cacheKey, teamName);
-	}
-
-	return teamName;
-}
-
-async function getTeamName(
-	{ tournament, group, code }: TeamNameOptions,
-	createElement: (html: string) => HTMLElement,
-) {
-	if (!tournament || !group || !code) {
-		return undefined;
-	}
-
-	const psmfTeamUri = getPSMFTeamUrl(tournament, group, code);
-	const response = await fetch(CORS_PROXY + psmfTeamUri + `?v=${Math.random()}`);
-	if (!response.ok) {
-		return undefined;
-	}
-	const data = await response.text();
-	const dom = createElement(data);
-	const teamName = dom.querySelector<HTMLHeadingElement>('.component--title .component__title')?.innerText;
-
 	return teamName;
 }

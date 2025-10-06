@@ -6,7 +6,8 @@ import { UNRESPONDED_LATE_FINE } from './fineFacade';
 import { formatCurrencyAmountHumanized } from '../Util/currency';
 import { sendMail } from './mailFacade';
 import { getDeadlineResponseDate } from './matchFacade';
-import { getCachedTeamName, getPSMFFieldUrl, getPSMFTeamUrl } from './psmfFacade';
+import { getPSMFFieldUrl } from './psmfFacade';
+import { getCachedTeamName, getPSMFTeamUrl } from './psmfIndependentFacade';
 
 const BUTTON_STYLE = '\
 display: inline-block;\
@@ -18,14 +19,25 @@ border-bottom: solid 1px #28a745;\
 border-radius: 0.3rem;\
 ';
 
+function createHTMLElementFromText(): (html: string) => HTMLElement {
+	return (html: string) => {
+		const { JSDOM } = require('jsdom');
+		const htmlElement = new JSDOM(html);
+		return htmlElement.window.document.documentElement;
+	};
+}
+
 export async function sendMatchUnrespondedNotification(firebaseApp: FirebaseApp.FirebaseApp, match: IMatch, unrespondedUser: IUser, apply: boolean, baseUrl: string) {
 	const deadlineDate = getDeadlineResponseDate(match);
 	const emails = [unrespondedUser.email];
-	const teamName = await getCachedTeamName({
-		tournament: match.tournament,
-		group: match.group,
-		code: match.opponent,
-	}) ?? match.opponent;
+	const teamName = await getCachedTeamName(
+		{
+			tournament: match.tournament,
+			group: match.group,
+			code: match.opponent,
+		},
+		createHTMLElementFromText(),
+	) ?? match.opponent;
 	const subject = await getSubject(match, teamName);
 	const matchUrl = getMatchUrl(match, baseUrl);
 	const psmfTeamUrl = match.tournament && match.group ? getPSMFTeamUrl(match.tournament, match.group, match.opponent) : undefined;

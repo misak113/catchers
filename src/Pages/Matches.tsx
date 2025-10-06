@@ -16,8 +16,9 @@ import { IMatch, IUser, Privilege } from '../Model/collections';
 import './Matches.css';
 import { formatDate, formatTime } from '../Util/datetime';
 import config from '../config.json';
-import { getPSMFFieldUrl, getPSMFGroupUrl, getPSMFTeamUrl, getPSMFTournamentUrl, useTeamName } from '../Model/psmfFacade';
+import { getPSMFFieldUrl, getPSMFGroupUrl, getPSMFTournamentUrl, useTeamName } from '../Model/psmfFacade';
 import { TeamName } from '../Components/Team/TeamName';
+import { getPSMFTeamUrl } from '../Model/psmfIndependentFacade';
 
 interface IProps {}
 

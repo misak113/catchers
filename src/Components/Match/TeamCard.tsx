@@ -1,6 +1,6 @@
 import React from 'react';
 import Loading from '../Loading';
-import { getPSMFTeamUrl } from '../../Model/psmfFacade';
+import { getPSMFTeamUrl } from '../../Model/psmfIndependentFacade';
 import { TeamName } from '../Team/TeamName';
 
 interface IProps {

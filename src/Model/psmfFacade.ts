@@ -6,7 +6,7 @@ import { useAsyncEffect } from '../React/async';
 import { getErrorMessage } from '../Util/error';
 import moment from 'moment-timezone';
 import fetch from 'isomorphic-fetch';
-import { CORS_PROXY, getCachedTeamName, psmfBaseUrl, TeamNameOptions } from './psmfIndependentFacade';
+import { CORS_PROXY_ENDPOINT, getCachedTeamName, psmfBaseUrl, TeamNameOptions } from './psmfIndependentFacade';
 
 export type IMatchImport = Pick<IMatch, 'field' | 'opponent' | 'startsAt' | 'tournament' | 'group'>;
 export interface IPSMFLeague {
@@ -68,7 +68,7 @@ export function useLeagueTeamPath(setErrorMessage: (errorMessage: string | undef
 async function getLeagueElements(
 	createElement: (html: string) => HTMLElement,
 ) {
-	const url = `${CORS_PROXY}${psmfBaseUrl}/vyhledavani/?query=${MY_TEAM_QUERY_NAME}&v=${Math.random()}`;
+	const url = `${CORS_PROXY_ENDPOINT}${encodeURIComponent(`${psmfBaseUrl}/vyhledavani/?query=${MY_TEAM_QUERY_NAME}&v=${Math.random()}`)}`;
 	const response = await fetch(url);
 	if (!response.ok) {
 		throw new Error(`Cannot find team leagues for ${MY_TEAM_QUERY_NAME}`);
@@ -128,7 +128,7 @@ export async function getTeamMatches(
 	createElement: (html: string) => HTMLElement,
 ): Promise<IMatchImport[]> {
 	const [tournament, group] = parseTournamentGroupFromPath(teamPagePath);
-	const response = await fetch(CORS_PROXY + psmfBaseUrl + teamPagePath + `?v=${Math.random()}`);
+	const response = await fetch(CORS_PROXY_ENDPOINT + encodeURIComponent(psmfBaseUrl + teamPagePath + `?v=${Math.random()}`));
 	if (!response.ok) {
 		throw new Error(`Cannot find team matches for ${psmfBaseUrl + teamPagePath}`);
 	}

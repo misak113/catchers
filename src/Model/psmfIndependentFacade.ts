@@ -1,6 +1,6 @@
 import { syncCache } from './syncCache';
 
-export const CORS_PROXY = 'https://corsproxy.io/?';
+export const CORS_PROXY_ENDPOINT = '/api/cors-proxy?url=';
 export const psmfBaseUrl = 'https://www.psmf.cz';
 
 export type TeamNameOptions = {
@@ -49,7 +49,7 @@ async function getTeamName(
 	}
 
 	const psmfTeamUri = getPSMFTeamUrl(tournament, group, code);
-	const response = await fetch(CORS_PROXY + psmfTeamUri + `?v=${Math.random()}`);
+	const response = await fetch(CORS_PROXY_ENDPOINT + encodeURIComponent(psmfTeamUri + `?v=${Math.random()}`));
 	if (!response.ok) {
 		return undefined;
 	}

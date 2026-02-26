@@ -1,5 +1,4 @@
 import React from 'react';
-import Loading from '../Loading';
 import { getPSMFFieldUrl } from '../../Model/psmfFacade';
 
 interface IProps {

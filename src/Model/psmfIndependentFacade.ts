@@ -49,7 +49,12 @@ async function getTeamName(
 	}
 
 	const psmfTeamUri = getPSMFTeamUrl(tournament, group, code);
-	const response = await fetch(CORS_PROXY_ENDPOINT + encodeURIComponent(psmfTeamUri + `?v=${Math.random()}`));
+	const isServerSide = typeof window === 'undefined';
+	// Server-side (Vercel serverless) can fetch PSMF directly — no CORS restrictions in Node.js
+	const fetchUrl = isServerSide
+		? psmfTeamUri + `?v=${Math.random()}`
+		: CORS_PROXY_ENDPOINT + encodeURIComponent(psmfTeamUri + `?v=${Math.random()}`);
+	const response = await fetch(fetchUrl);
 	if (!response.ok) {
 		return undefined;
 	}

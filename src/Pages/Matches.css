@@ -18,3 +18,30 @@
 	max-width: 100%;
 	white-space: normal;
 }
+
+.Matches-pagination {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: center;
+	margin-top: 16px;
+}
+
+.Matches-paginationStatus,
+.Matches-paginationLimit {
+	color: #6c757d;
+	font-size: 14px;
+}
+
+@media (max-width: 575.98px) {
+	.Matches-pagination .btn {
+		flex: 1 1 120px;
+	}
+
+	.Matches-paginationStatus,
+	.Matches-paginationLimit {
+		flex-basis: 100%;
+		text-align: center;
+	}
+}

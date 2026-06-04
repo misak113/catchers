@@ -6,7 +6,7 @@ import Anchor from '../Components/Anchor';
 import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
 import Loading from '../Components/Loading';
 import Attendees from '../Components/Match/Attendees';
-import { didUserRespondMatch, getMatchEventName, useMatches } from '../Model/matchFacade';
+import { didUserRespondMatch, getMatchEventName, PAST_MATCHES_PAGE_SIZE, usePastMatches, useUpcomingMatches } from '../Model/matchFacade';
 import { hasPrivilege, useCurrentUser, usePossibleAttendees } from '../Model/userFacade';
 import { withAuth, IAuthValue } from '../Context/AuthContext';
 import MatchDate from '../Components/Match/MatchDate';
@@ -26,10 +26,8 @@ const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps &
 	const [errorMessage, setErrorMessage] = useState<string>();
 	const [possibleAttendees] = usePossibleAttendees(props.firebaseApp, props.auth.user, setErrorMessage);
 	const [currentUser] = useCurrentUser(props.firebaseApp, props.auth.user, setErrorMessage);
-	const [matches] = useMatches(props.firebaseApp, props.auth.user, setErrorMessage);
-
-	const upcomingMatches = matches?.filter((match) => match.startsAt.valueOf() > new Date().valueOf());
-	const pastMatches = matches?.filter((match) => match.startsAt.valueOf() < new Date().valueOf()).reverse();
+	const upcomingMatches = useUpcomingMatches(props.firebaseApp);
+	const pastMatchesPagination = usePastMatches(props.firebaseApp, props.auth.user, setErrorMessage);
 
 	return <>
 		<h1>Zápasy</h1>
@@ -40,7 +38,15 @@ const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps &
 		{hasPrivilege(currentUser, Privilege.SyncMatches) && <SyncMatches/>}
 
 		<h2 className="Matches-pastHeader">Minulé</h2>
-		<MatchesTable matches={pastMatches} possibleAttendees={possibleAttendees} errorMessage={errorMessage} currentUser={currentUser}/>
+		<MatchesTable matches={pastMatchesPagination.matches} possibleAttendees={possibleAttendees} errorMessage={errorMessage} currentUser={currentUser}/>
+		<PastMatchesPagination
+			pageIndex={pastMatchesPagination.pageIndex}
+			hasPreviousPage={pastMatchesPagination.hasPreviousPage}
+			hasNextPage={pastMatchesPagination.hasNextPage}
+			onPreviousPage={pastMatchesPagination.goToPreviousPage}
+			onNextPage={pastMatchesPagination.goToNextPage}
+			matches={pastMatchesPagination.matches}
+		/>
 	</>;
 };
 export default withFirebase(withAuth(Matches));
@@ -79,6 +85,49 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 				: <tr><td colSpan={6}><Loading size='50px'/></td></tr>}
 		</tbody>
 	</table>;
+}
+
+interface IPastMatchesPaginationProps {
+	pageIndex: number;
+	hasPreviousPage: boolean;
+	hasNextPage: boolean;
+	onPreviousPage: () => void;
+	onNextPage: () => void;
+	matches: IMatch[] | undefined;
+}
+
+function PastMatchesPagination({
+	pageIndex,
+	hasPreviousPage,
+	hasNextPage,
+	onPreviousPage,
+	onNextPage,
+	matches,
+}: IPastMatchesPaginationProps) {
+	return <div className="Matches-pagination">
+		<button
+			type="button"
+			className="btn btn-secondary"
+			onClick={onPreviousPage}
+			disabled={!hasPreviousPage || !matches}
+		>
+			Novější
+		</button>
+		<span className="Matches-paginationStatus">
+			Strana {pageIndex + 1}, {matches ? matches.length : 0} záznamů na stránce
+		</span>
+		<button
+			type="button"
+			className="btn btn-secondary"
+			onClick={onNextPage}
+			disabled={!hasNextPage || !matches}
+		>
+			Starší
+		</button>
+		<span className="Matches-paginationLimit">
+			Zobrazuje se nejvýše {PAST_MATCHES_PAGE_SIZE} minulých zápasů.
+		</span>
+	</div>;
 }
 
 interface MatchRowProps {

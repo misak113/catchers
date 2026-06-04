@@ -9,6 +9,8 @@ import { safeObjectKeys } from '../Util/object';
 import { useAsyncEffect } from '../React/async';
 import { IMatchImport } from './psmfFacade';
 
+export const PAST_MATCHES_PAGE_SIZE = 10;
+
 export function useMatches(
 	firebaseApp: firebase.FirebaseApp,
 	user: FirebaseUser | null,
@@ -30,6 +32,65 @@ export function useMatches(
 	}, [firebaseApp, user, setErrorMessage]);
 
 	return [matches];
+}
+
+export function usePastMatches(
+	firebaseApp: firebase.FirebaseApp,
+	user: FirebaseUser | null,
+	setErrorMessage: (errorMessage: string | undefined) => void,
+	pageSize = PAST_MATCHES_PAGE_SIZE,
+) {
+	const [pageIndex, setPageIndex] = useState(0);
+	const [matches, setMatches] = useState<IMatch[]>();
+	const [hasNextPage, setHasNextPage] = useState(false);
+	const [pageCursors, setPageCursors] = useState<(firestore.QueryDocumentSnapshot<IMatch> | undefined)[]>([undefined]);
+
+	useAsyncEffect(async () => {
+		try {
+			setMatches(undefined);
+			const cursor = pageCursors[pageIndex];
+			const constraints: firestore.QueryConstraint[] = [
+				firestore.where('startsAt', '<', new Date()),
+				firestore.orderBy('startsAt', 'desc'),
+			];
+			if (cursor) {
+				constraints.push(firestore.startAfter(cursor));
+			}
+			constraints.push(firestore.limit(pageSize + 1));
+
+			const query = firestore.query(getMatchesCollection(firebaseApp), ...constraints);
+			const { docs } = await firestore.getDocs(query);
+			const pageDocs = docs.slice(0, pageSize);
+			const matches = pageDocs.map(mapMatch);
+			console.log('past matches', matches);
+			setMatches(matches);
+			setHasNextPage(docs.length > pageSize);
+			setPageCursors((currentPageCursors) => {
+				const newPageCursors = currentPageCursors.slice(0, pageIndex + 1);
+				if (docs.length > pageSize && pageDocs.length > 0) {
+					newPageCursors[pageIndex + 1] = pageDocs[pageDocs.length - 1];
+				}
+				return newPageCursors;
+			});
+			setErrorMessage(undefined);
+		} catch (error) {
+			console.error(error);
+			setErrorMessage(getErrorMessage(error));
+		}
+	}, [firebaseApp, user, setErrorMessage, pageIndex, pageSize]);
+
+	return {
+		matches,
+		pageIndex,
+		hasPreviousPage: pageIndex > 0,
+		hasNextPage,
+		goToPreviousPage: () => setPageIndex((currentPageIndex) => Math.max(0, currentPageIndex - 1)),
+		goToNextPage: () => {
+			if (hasNextPage) {
+				setPageIndex((currentPageIndex) => currentPageIndex + 1);
+			}
+		},
+	};
 }
 
 export function useMatch(

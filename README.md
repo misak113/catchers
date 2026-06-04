@@ -8,6 +8,12 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 To allow firbase in application you have to create src/firebase.json file in root directory of project. Content of JSON can be generated here: https://console.firebase.google.com/u/0/project/catchers-dff49
 
+## Settle Up
+
+Settle Up live API access uses their Firebase Realtime Database public API. Their public docs no longer publish the live Firebase Web API key, so production deploys should provide the current key in `REACT_APP_SETTLE_UP_API_KEY`.
+
+If production login fails with `auth/requests-from-referer-...-are-blocked`, ask Settle Up for a production key that allows `https://www.sccatchers.cz` as an HTTP referrer.
+
 ## Available Scripts
 
 In the project directory, you can run:

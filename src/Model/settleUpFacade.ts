@@ -15,15 +15,36 @@ export enum SettleUpType {
 function getSettleUpConfig() {
 	const configuredEnvironment = process.env.REACT_APP_SETTLE_UP_ENV?.toLowerCase();
 	if (['dev', 'development', 'sandbox'].includes(configuredEnvironment ?? '')) {
-		return settleUpDevConfig;
+		return applySettleUpConfigOverrides(settleUpDevConfig);
 	}
 	if (['prod', 'production', 'live'].includes(configuredEnvironment ?? '')) {
-		return settleProdConfig;
+		return applySettleUpConfigOverrides(settleProdConfig);
 	}
 
 	const hostname = typeof window === 'undefined' ? undefined : window.location.hostname;
 	const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
-	return process.env.NODE_ENV === 'production' || isLocalhost ? settleProdConfig : settleUpDevConfig;
+	return applySettleUpConfigOverrides(process.env.NODE_ENV === 'production' || isLocalhost ? settleProdConfig : settleUpDevConfig);
+}
+
+type SettleUpConfig = typeof settleUpDevConfig | typeof settleProdConfig;
+
+function applySettleUpConfigOverrides<TSettleUpConfig extends SettleUpConfig>(config: TSettleUpConfig): TSettleUpConfig {
+	return {
+		...config,
+		firebase: {
+			...config.firebase,
+			apiKey: process.env.REACT_APP_SETTLE_UP_API_KEY || config.firebase.apiKey,
+			authDomain: process.env.REACT_APP_SETTLE_UP_AUTH_DOMAIN || config.firebase.authDomain,
+			databaseURL: process.env.REACT_APP_SETTLE_UP_DATABASE_URL || config.firebase.databaseURL,
+			projectId: process.env.REACT_APP_SETTLE_UP_PROJECT_ID || config.firebase.projectId,
+			storageBucket: process.env.REACT_APP_SETTLE_UP_STORAGE_BUCKET || config.firebase.storageBucket,
+			messagingSenderId: process.env.REACT_APP_SETTLE_UP_MESSAGING_SENDER_ID || config.firebase.messagingSenderId,
+			appId: process.env.REACT_APP_SETTLE_UP_APP_ID || config.firebase.appId,
+			...(process.env.REACT_APP_SETTLE_UP_MEASUREMENT_ID ? {
+				measurementId: process.env.REACT_APP_SETTLE_UP_MEASUREMENT_ID,
+			} : {}),
+		},
+	} as TSettleUpConfig;
 }
 
 const settleUpConfig = getSettleUpConfig();
@@ -89,6 +110,17 @@ export type SettleUpDebts = SettleUpDebt[];
 
 type SettleUpTransactionEntry = [transactionId: string, transaction: SettleUpTransaction];
 
+function getSettleUpErrorMessage(error: unknown) {
+	const errorCode = typeof error === 'object' && error !== null && 'code' in error ? `${error.code}` : undefined;
+	if (errorCode?.startsWith('auth/requests-from-referer-')) {
+		return 'Settle Up access is blocked for this domain. The Settle Up Firebase API key must allow this website as an HTTP referrer, or REACT_APP_SETTLE_UP_API_KEY must be set to a current production key from Settle Up.';
+	}
+	if (errorCode === 'auth/api-key-not-valid' || errorCode === 'auth/invalid-api-key') {
+		return 'Settle Up access is using an invalid Firebase API key. Set REACT_APP_SETTLE_UP_API_KEY to the current production key from Settle Up.';
+	}
+	return getErrorMessage(error);
+}
+
 export function useSettleUpAuth(
 	settleUp: SettleUp,
 ) {
@@ -103,7 +135,7 @@ export function useSettleUpAuth(
 			setErrorMessage(undefined);
 		} catch (error) {
 			console.error(error);
-			setErrorMessage(getErrorMessage(error));
+			setErrorMessage(getSettleUpErrorMessage(error));
 		} finally {
 			setLoggingIn(false);
 		}
@@ -117,7 +149,7 @@ export function useSettleUpAuth(
 			setErrorMessage(undefined);
 		} catch (error) {
 			console.error(error);
-			setErrorMessage(getErrorMessage(error));
+			setErrorMessage(getSettleUpErrorMessage(error));
 		} finally {
 			setLoggingOut(false);
 		}
@@ -166,7 +198,7 @@ export function useSettleUpTransactions(
 				setErrorMessage(undefined);
 			} catch (error) {
 				console.error(error);
-				setErrorMessage(getErrorMessage(error));
+				setErrorMessage(getSettleUpErrorMessage(error));
 			}
 		}
 	}, [settleUp, type, user]);
@@ -190,7 +222,7 @@ export function useSettleUpMembers(
 				setErrorMessage(undefined);
 			} catch (error) {
 				console.error(error);
-				setErrorMessage(getErrorMessage(error));
+				setErrorMessage(getSettleUpErrorMessage(error));
 			}
 		}
 	}, [settleUp, type, user]);
@@ -214,7 +246,7 @@ export function useSettleUpDebts(
 				setErrorMessage(undefined);
 			} catch (error) {
 				console.error(error);
-				setErrorMessage(getErrorMessage(error));
+				setErrorMessage(getSettleUpErrorMessage(error));
 			}
 		}
 	}, [settleUp, type, user]);

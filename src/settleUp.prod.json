@@ -1,10 +1,13 @@
 {
 	"firebase": {
-		"apiKey": "AIzaSyAXbtLjbScACKN8xf4_JMii4ipdrSFe67o",
-		"authDomain": "settle-up-live.firebaseapp.com",
+		"apiKey": "AIzaSyCL5929OM079CEJRa9clwJB-UUxAofSQKY",
+		"authDomain": "settleup.app",
 		"databaseURL": "https://settle-up-live.firebaseio.com",
 		"projectId": "settle-up-live",
-		"storageBucket": "settle-up-live.appspot.com"
+		"storageBucket": "settle-up-live.appspot.com",
+		"messagingSenderId": "817191222688",
+		"appId": "1:817191222688:web:3f7e86f20e5c9916aff8c5",
+		"measurementId": "G-2CS7RRWTGS"
 	},
 	"accounting": {
 		"groupId": "-NBh-5qjYTV2zZFRftn4",

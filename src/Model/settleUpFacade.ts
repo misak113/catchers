@@ -12,7 +12,21 @@ export enum SettleUpType {
 	Fines = 'fines',
 }
 
-const settleUpConfig = process.env.NODE_ENV === 'production' ? settleProdConfig : settleUpDevConfig;
+function getSettleUpConfig() {
+	const configuredEnvironment = process.env.REACT_APP_SETTLE_UP_ENV?.toLowerCase();
+	if (['dev', 'development', 'sandbox'].includes(configuredEnvironment ?? '')) {
+		return settleUpDevConfig;
+	}
+	if (['prod', 'production', 'live'].includes(configuredEnvironment ?? '')) {
+		return settleProdConfig;
+	}
+
+	const hostname = typeof window === 'undefined' ? undefined : window.location.hostname;
+	const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+	return process.env.NODE_ENV === 'production' || isLocalhost ? settleProdConfig : settleUpDevConfig;
+}
+
+const settleUpConfig = getSettleUpConfig();
 export const firebase = settleUpConfig.firebase;
 
 export const DEFAULT_CURRENCY_CODE = 'CZK';
@@ -155,7 +169,7 @@ export function useSettleUpTransactions(
 				setErrorMessage(getErrorMessage(error));
 			}
 		}
-	}, [settleUp, user]);
+	}, [settleUp, type, user]);
 
 	return { transactions, errorMessage };
 }
@@ -179,7 +193,7 @@ export function useSettleUpMembers(
 				setErrorMessage(getErrorMessage(error));
 			}
 		}
-	}, [settleUp, user]);
+	}, [settleUp, type, user]);
 
 	return { members, errorMessage };
 }
@@ -203,7 +217,7 @@ export function useSettleUpDebts(
 				setErrorMessage(getErrorMessage(error));
 			}
 		}
-	}, [settleUp, user]);
+	}, [settleUp, type, user]);
 
 	return { debts, errorMessage };
 }
@@ -215,7 +229,7 @@ export async function getSettleUpTransactions(
 	const db = database.getDatabase(settleUp.firebaseApp);
 	const transactionRef = database.ref(db, `${Collection.Transactions}/${settleUpConfig[type].groupId}`);
 	const transactionsSnapshot = await database.get(transactionRef);
-	const transactions: SettleUpTransactions = transactionsSnapshot.val();
+	const transactions: SettleUpTransactions = transactionsSnapshot.val() ?? {};
 	console.info('settleUp.transactions', transactions);
 	return transactions;
 }
@@ -227,7 +241,7 @@ export async function getSettleUpMembers(
 	const db = database.getDatabase(settleUp.firebaseApp);
 	const membersRef = database.ref(db, `${Collection.Members}/${settleUpConfig[type].groupId}`);
 	const membersSnapshot = await database.get(membersRef);
-	const members: SettleUpMembers = membersSnapshot.val();
+	const members: SettleUpMembers = membersSnapshot.val() ?? {};
 	console.info('settleUp.members', members);
 	return members;
 }

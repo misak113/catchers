@@ -36,12 +36,12 @@ export default function LoginEmailPopover(props: IProps) {
 					}
 				}}>
 					<div className="form-group">
-						<label htmlFor="colFormLabelSm" className="col-form-label col-form-label-sm">E-mail</label>
-						<input type="email" ref={emailRef} className="form-control form-control-sm" placeholder="E-mail"/>
+						<label htmlFor="login-email" className="col-form-label col-form-label-sm">E-mail</label>
+						<input id="login-email" type="email" ref={emailRef} className="form-control form-control-sm" placeholder="E-mail" autoComplete="email"/>
 					</div>
 					<div className="form-group">
-						<label htmlFor="colFormLabelSm" className="col-form-label col-form-label-sm">Heslo</label>
-						<input type="password" ref={passwordRef} className="form-control form-control-sm" placeholder="Heslo"/>
+						<label htmlFor="login-password" className="col-form-label col-form-label-sm">Heslo</label>
+						<input id="login-password" type="password" ref={passwordRef} className="form-control form-control-sm" placeholder="Heslo" autoComplete="current-password"/>
 					</div>
 					<div className="form-group">
 						<button type="submit" className="form-control form-control-sm">

@@ -1,4 +1,5 @@
 import moment from 'moment-timezone';
+// @ts-ignore - moment locale types not available
 import 'moment/locale/cs';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getUpcomingMatches, updateMatchNotificationSent } from '../Model/matchFacade';

@@ -1,5 +1,6 @@
 import React from 'react';
 import './App.css';
+// @ts-ignore - moment locale types not available
 import 'moment/locale/cs';
 import Layout from './Pages/Layout';
 import { FirebaseProvider } from './Context/FirebaseContext';

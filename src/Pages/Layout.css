@@ -56,4 +56,7 @@
 
 .Layout-header .navbar .login .popover {
 	top: 40px;
+	color: #212529;
+	font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	text-align: left;
 }

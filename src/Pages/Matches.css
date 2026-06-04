@@ -2,3 +2,19 @@
 .Matches-pastHeader {
 	margin-top: 100px;
 }
+
+.Matches-table td,
+.Matches-table th {
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+.Matches-table add-to-calendar-button {
+	display: inline-block;
+	max-width: 100%;
+}
+
+.Matches-table add-to-calendar-button::part(atcb-button) {
+	max-width: 100%;
+	white-space: normal;
+}

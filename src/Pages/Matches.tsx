@@ -54,7 +54,7 @@ interface IMatchesTableProps {
 
 function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }: IMatchesTableProps) {
 	const now = new Date();
-	return <table className="table table-light table-bordered table-hover table-striped table-responsive-md">
+	return <table className="Matches-table table table-light table-bordered table-hover table-striped table-responsive-md">
 		<thead>
 			<tr>
 				<th>Datum</th>

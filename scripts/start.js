@@ -114,7 +114,7 @@ checkBrowsers(paths.appPath, isInteractive)
     };
     const devServer = new WebpackDevServer(serverConfig, compiler);
     // Launch WebpackDevServer.
-    devServer.startCallback(() => {
+    devServer.start().then(() => {
       if (isInteractive) {
         clearConsole();
       }
@@ -129,24 +129,38 @@ checkBrowsers(paths.appPath, isInteractive)
 
       console.log(chalk.cyan('Starting the development server...\n'));
       openBrowser(urls.localUrlForBrowser);
-    });
 
-    ['SIGINT', 'SIGTERM'].forEach(function (sig) {
-      process.on(sig, function () {
-        devServer.close();
-        process.exit();
+      ['SIGINT', 'SIGTERM'].forEach(function (sig) {
+        process.on(sig, function () {
+          devServer.stop();
+          process.exit();
+        });
       });
-    });
 
-    if (process.env.CI !== 'true') {
-      // Gracefully exit when stdin ends
-      process.stdin.on('end', function () {
-        devServer.close();
-        process.exit();
-      });
-    }
+      if (process.env.CI !== 'true') {
+        // Keep process alive and gracefully exit when stdin ends
+        if (process.stdin.isTTY) {
+          process.stdin.resume();
+          process.stdin.on('end', function () {
+            devServer.stop();
+            process.exit();
+          });
+        } else {
+          // When not in TTY (e.g., background process), use a dummy interval to keep event loop alive
+          const keepAliveInterval = setInterval(() => {}, 1000);
+          keepAliveInterval.unref(); // Allow process to exit if no other work, but webpack-dev-server should prevent that
+        }
+      }
+    }).catch((err) => {
+      console.error('Error starting dev server:', err);
+      if (err && err.message) {
+        console.log(err.message);
+      }
+      process.exit(1);
+    });
   })
   .catch(err => {
+    console.error('Error in promise chain:', err);
     if (err && err.message) {
       console.log(err.message);
     }

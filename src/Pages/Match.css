@@ -14,3 +14,18 @@
 .Match-changeResponse {
 	margin-top: 80px;
 }
+
+.Match-attendees .table {
+	table-layout: fixed;
+	width: 100%;
+}
+
+.Match-attendees td {
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+.Match-attendees .blockquote-footer {
+	display: block;
+	max-width: 100%;
+}

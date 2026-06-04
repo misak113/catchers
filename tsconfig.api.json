@@ -4,7 +4,8 @@
 		"rootDir": "src",
 		"outDir": "build",
 		"module": "commonjs",
-		"noEmit": false
+		"noEmit": false,
+		"ignoreDeprecations": "6.0"
 	},
 	"include": [
 		"src/api/*.ts"

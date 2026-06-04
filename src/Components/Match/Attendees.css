@@ -13,10 +13,14 @@
 	position: absolute;
 	top: 20px;
 	left: -5px;
+	z-index: 1080;
+	max-width: min(280px, calc(100vw - 2rem));
 }
 
 .Attendees .PeoplePopover .popover-body {
-	white-space: nowrap;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	text-align: left;
 }
 
 .Attendees:hover .PeoplePopover {

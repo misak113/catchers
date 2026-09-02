@@ -219,7 +219,7 @@ export async function addShotSettlementEvent(
 	});
 }
 
-export async function importShotDebtEvents(
+export async function importShotEvents(
 	firebaseApp: firebase.FirebaseApp,
 	events: Array<{
 		userId: string;
@@ -235,13 +235,14 @@ export async function importShotDebtEvents(
 	const batch = firestore.writeBatch(db);
 	for (const event of events) {
 		const shotEventRef = firestore.doc(getShotEventsCollection(firebaseApp));
+		const isSettlement = event.amount < 0;
 		batch.set(shotEventRef, {
 			userId: event.userId,
-			type: ShotEventType.Debt,
-			amount: event.amount,
+			type: isSettlement ? ShotEventType.Settlement : ShotEventType.Debt,
+			amount: Math.abs(event.amount),
 			eventAt: event.eventAt,
-			shotTypeId: event.shotTypeId,
-			shotTypeName: event.shotTypeName,
+			shotTypeId: isSettlement ? undefined : event.shotTypeId,
+			shotTypeName: isSettlement ? undefined : event.shotTypeName,
 			description: event.description,
 			createdByUserId: event.createdByUserId,
 			createdAt: new Date(),

@@ -17,7 +17,7 @@ import {
 	addShotSettlementEvent,
 	addShotType,
 	calculateShotBalances,
-	importShotDebtEvents,
+	importShotEvents,
 	updateShotType,
 	useShotEvents,
 	useShotTypes,
@@ -416,23 +416,23 @@ function ShotAdminSection({ players, shotTypes, currentUser, firebaseApp, router
 				throw new Error(`Řádek ${index + 1}: neznámý hráč "${playerRaw}"`);
 			}
 			const shotType = typeByKey[typeRaw.toLowerCase()];
-			if (!shotType) {
-				throw new Error(`Řádek ${index + 1}: neznámý typ "${typeRaw}"`);
-			}
 			const amount = parseInt(amountRaw);
-			if (Number.isNaN(amount) || amount <= 0) {
+			if (Number.isNaN(amount) || amount === 0) {
 				throw new Error(`Řádek ${index + 1}: neplatný počet "${amountRaw}"`);
 			}
 			const eventAt = createDate(dateRaw);
 			if (!eventAt) {
 				throw new Error(`Řádek ${index + 1}: neplatné datum "${dateRaw}"`);
 			}
+			if (amount > 0 && !shotType) {
+				throw new Error(`Řádek ${index + 1}: neznámý typ "${typeRaw}"`);
+			}
 			return {
 				userId: user.id,
 				amount,
 				eventAt,
-				shotTypeId: shotType.id,
-				shotTypeName: shotType.name,
+				shotTypeId: shotType?.id ?? '',
+				shotTypeName: shotType?.name ?? '',
 				description: descriptionParts.join(';').trim() || undefined,
 				createdByUserId: currentUser?.id,
 			};
@@ -446,7 +446,7 @@ function ShotAdminSection({ players, shotTypes, currentUser, firebaseApp, router
 				setErrorMessage('Není co importovat.');
 				return;
 			}
-			await importShotDebtEvents(firebaseApp, events);
+			await importShotEvents(firebaseApp, events);
 			setErrorMessage(undefined);
 			router.refresh();
 		} catch (error) {
@@ -510,18 +510,19 @@ function ShotAdminSection({ players, shotTypes, currentUser, firebaseApp, router
 			</div>
 		</div>
 		<div className='card'>
-			<div className='card-header'>Import historických dluhů Panáků</div>
+			<div className='card-header'>Import historických dluhů/uhrazení Panáků</div>
 			<div className='card-body'>
 				<p>Formát řádku: <code>YYYY-MM-DD;hráč;typ;počet;popis</code></p>
 				<p>Hráč může být ID, jméno nebo e-mail. Typ může být ID nebo název.</p>
+				<p>Kladný počet = dluh, záporný počet (např. <code>-1</code>) = uhrazení.</p>
 				<textarea
 					className='form-control'
 					rows={8}
 					value={importRows}
 					onChange={(event) => setImportRows(event.target.value)}
-					placeholder='2026-08-01;Jan Novák;3 góly v zápase;1;Krásný hattrick'
+					placeholder='2026-08-01;Jan Novák;Hatrik;1;Krásný hattrick'
 				/>
-				<button className='btn btn-warning mt-2' onClick={onImport}>Importovat historické dluhy</button>
+				<button className='btn btn-warning mt-2' onClick={onImport}>Importovat historické záznamy</button>
 			</div>
 		</div>
 	</div>;

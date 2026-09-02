@@ -1,0 +1,21 @@
+.Shots .card {
+	margin-bottom: 1rem;
+}
+
+.Shots .card-body label {
+	display: block;
+	margin-top: 0.5rem;
+	margin-bottom: 0.25rem;
+	font-weight: 600;
+}
+
+.Shots-formGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	gap: 1rem;
+}
+
+.Shots-description {
+	margin-top: 0.75rem;
+	white-space: pre-wrap;
+}

@@ -54,6 +54,17 @@ service cloud.firestore {
 			allow create, delete: if isVerified() && isAdmin();
     }
 
+		match /shotTypes/{shotTypeId} {
+			allow read: if isVerified() && isAuthorized();
+      allow write: if isVerified() && isAdmin();
+    }
+
+		match /shotEvents/{shotEventId} {
+			allow read: if isVerified() && isAuthorized();
+      allow create: if isVerified() && isAuthorized();
+      allow update, delete: if isVerified() && isAdmin();
+    }
+
 		match /{document=**} {
     	allow read: if isVerified() && isAuthorized();
       allow write: if isVerified() && isAdmin();

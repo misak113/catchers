@@ -236,16 +236,21 @@ export async function importShotEvents(
 	for (const event of events) {
 		const shotEventRef = firestore.doc(getShotEventsCollection(firebaseApp));
 		const isSettlement = event.amount < 0;
-		batch.set(shotEventRef, {
+		const shotEventData: ShotEventDoc = {
 			userId: event.userId,
 			type: isSettlement ? ShotEventType.Settlement : ShotEventType.Debt,
 			amount: Math.abs(event.amount),
 			eventAt: event.eventAt,
-			shotTypeId: isSettlement ? undefined : event.shotTypeId,
-			shotTypeName: isSettlement ? undefined : event.shotTypeName,
 			description: event.description,
 			createdByUserId: event.createdByUserId,
 			createdAt: new Date(),
+			...(isSettlement ? {} : {
+				shotTypeId: event.shotTypeId,
+				shotTypeName: event.shotTypeName,
+			}),
+		};
+		batch.set(shotEventRef, {
+			...shotEventData,
 		});
 	}
 	await batch.commit();

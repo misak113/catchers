@@ -466,31 +466,33 @@ function ShotAdminSection({ players, shotTypes, currentUser, firebaseApp, router
 		<div className='card mb-3'>
 			<div className='card-header'>Typy Panáků</div>
 			<div className='card-body'>
-				<table className='table table-light table-bordered table-striped'>
-					<thead>
-						<tr>
-							<th>Název</th>
-							<th>Výchozí počet rund</th>
-							<th>Popis</th>
-							<th>Stav</th>
-							<th>Akce</th>
-						</tr>
-					</thead>
-					<tbody>
-						{shotTypes.map((shotType) => <tr key={shotType.id}>
-							<td>{shotType.name}</td>
-							<td>{shotType.defaultAmount}</td>
-							<td>{shotType.description}</td>
-							<td>{shotType.active ? 'Aktivní' : 'Neaktivní'}</td>
-							<td>
-								<button className='btn btn-sm btn-outline-primary mr-2' onClick={() => onPrepareTypeEdit(shotType)}>Upravit</button>
-								<button className='btn btn-sm btn-outline-secondary' onClick={() => onToggleTypeState(shotType)}>
-									{shotType.active ? 'Deaktivovat' : 'Aktivovat'}
-								</button>
-							</td>
-						</tr>)}
-					</tbody>
-				</table>
+				<div className='table-responsive'>
+					<table className='table table-light table-bordered table-striped'>
+						<thead>
+							<tr>
+								<th>Název</th>
+								<th>Výchozí počet rund</th>
+								<th>Popis</th>
+								<th>Stav</th>
+								<th>Akce</th>
+							</tr>
+						</thead>
+						<tbody>
+							{shotTypes.map((shotType) => <tr key={shotType.id}>
+								<td>{shotType.name}</td>
+								<td>{shotType.defaultAmount}</td>
+								<td>{shotType.description}</td>
+								<td>{shotType.active ? 'Aktivní' : 'Neaktivní'}</td>
+								<td>
+									<button className='btn btn-sm btn-outline-primary mr-2' onClick={() => onPrepareTypeEdit(shotType)}>Upravit</button>
+									<button className='btn btn-sm btn-outline-secondary' onClick={() => onToggleTypeState(shotType)}>
+										{shotType.active ? 'Deaktivovat' : 'Aktivovat'}
+									</button>
+								</td>
+							</tr>)}
+						</tbody>
+					</table>
+				</div>
 				<div className='Shots-formGrid'>
 					<div>
 						<h5>Přidat typ</h5>

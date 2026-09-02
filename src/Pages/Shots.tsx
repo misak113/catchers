@@ -27,10 +27,67 @@ type IProps = IAuthValue & IFirebaseValue & IRouterValue;
 const LONG_DESCRIPTION_LENGTH = 120;
 
 type ShotAction = 'debt' | 'settlement';
+type OpenDebt = {
+	event: IShotEvent;
+	remaining: number;
+};
 
 function hasTeamManagerRole(user: IUser | undefined) {
 	const teamRoles = user?.teamRoles?.map((role) => role.name) ?? [];
 	return teamRoles.includes(TeamRole.TeamManager) || teamRoles.includes(TeamRole.DeputyTeamManager);
+}
+
+function getSortedEventsAsc(events: IShotEvent[]) {
+	return [...events].sort((event1, event2) => {
+		const eventTimeDiff = event1.eventAt.getTime() - event2.eventAt.getTime();
+		if (eventTimeDiff !== 0) {
+			return eventTimeDiff;
+		}
+		return event1.createdAt.getTime() - event2.createdAt.getTime();
+	});
+}
+
+function calculateDebtRemainders(events: IShotEvent[]) {
+	const sortedEvents = getSortedEventsAsc(events);
+	const openDebts: OpenDebt[] = [];
+	const remainingByDebtId: { [eventId: string]: number } = {};
+
+	for (const event of sortedEvents) {
+		if (event.type === ShotEventType.Debt) {
+			const openDebt: OpenDebt = {
+				event,
+				remaining: event.amount,
+			};
+			openDebts.push(openDebt);
+			remainingByDebtId[event.id] = event.amount;
+			continue;
+		}
+
+		let remainingSettlement = event.amount;
+		const settleDebts = (allowDebt: (openDebt: OpenDebt) => boolean) => {
+			for (const openDebt of openDebts) {
+				if (remainingSettlement <= 0) {
+					return;
+				}
+				if (openDebt.remaining <= 0 || !allowDebt(openDebt)) {
+					continue;
+				}
+				const settledAmount = Math.min(openDebt.remaining, remainingSettlement);
+				openDebt.remaining -= settledAmount;
+				remainingSettlement -= settledAmount;
+				remainingByDebtId[openDebt.event.id] = openDebt.remaining;
+			}
+		};
+
+		if (event.shotTypeName) {
+			settleDebts((openDebt) => openDebt.event.shotTypeName === event.shotTypeName);
+		}
+		if (remainingSettlement > 0) {
+			settleDebts(() => true);
+		}
+	}
+
+	return remainingByDebtId;
 }
 
 const Shots: React.FC<IProps> = (props: IProps) => {
@@ -56,6 +113,7 @@ const Shots: React.FC<IProps> = (props: IProps) => {
 		<ShotBalancesTable
 			players={players}
 			shotBalances={shotBalances}
+			shotEvents={shotEvents}
 			currentUser={currentUser}
 			shotTypes={shotTypes}
 			canManageSingleShots={canManageSingleShots}
@@ -84,6 +142,7 @@ type ShotBalancesTableProps = {
 	players: IUser[];
 	currentUser: IUser | undefined;
 	shotBalances: ReturnType<typeof calculateShotBalances>;
+	shotEvents: IShotEvent[];
 	shotTypes: IShotType[];
 	canManageSingleShots: boolean;
 	setErrorMessage: (errorMessage: string | undefined) => void;
@@ -92,6 +151,7 @@ type ShotBalancesTableProps = {
 function ShotBalancesTable({
 	players,
 	shotBalances,
+	shotEvents,
 	currentUser,
 	shotTypes,
 	canManageSingleShots,
@@ -100,6 +160,8 @@ function ShotBalancesTable({
 	setErrorMessage,
 }: ShotBalancesTableProps) {
 	const [actionContext, setActionContext] = useState<{ action: ShotAction; player: IUser } | null>(null);
+	const [historyPlayer, setHistoryPlayer] = useState<IUser | null>(null);
+	const [confirmSettlementDebt, setConfirmSettlementDebt] = useState<IShotEvent | null>(null);
 	const [selectedTypeId, setSelectedTypeId] = useState<string>('');
 	const [description, setDescription] = useState<string>('');
 	const activeShotTypes = shotTypes.filter((shotType) => shotType.active);
@@ -150,6 +212,32 @@ function ShotBalancesTable({
 		}
 	};
 
+	const onConfirmSettleDebtRound = async () => {
+		if (!confirmSettlementDebt) {
+			return;
+		}
+		if (!confirmSettlementDebt.shotTypeId || !confirmSettlementDebt.shotTypeName) {
+			setErrorMessage('Nelze splatit položku bez typu Panáku.');
+			return;
+		}
+		try {
+			await addShotSettlementEvent(firebaseApp, {
+				userId: confirmSettlementDebt.userId,
+				amount: 1,
+				eventAt: new Date(),
+				shotTypeId: confirmSettlementDebt.shotTypeId,
+				shotTypeName: confirmSettlementDebt.shotTypeName,
+				createdByUserId: currentUser?.id,
+			});
+			setConfirmSettlementDebt(null);
+			setErrorMessage(undefined);
+			router.refresh();
+		} catch (error) {
+			console.error(error);
+			setErrorMessage(`${error}`);
+		}
+	};
+
 	return <div className='Shots-balances'>
 		<h2>Přehled Panáků</h2>
 		<table className='table table-light table-bordered table-hover table-striped table-responsive-md'>
@@ -159,11 +247,11 @@ function ShotBalancesTable({
 					<th>Dluh</th>
 					<th>Uhrazeno</th>
 					<th>Zůstatek</th>
-					{canManageSingleShots && <th>Akce</th>}
+					<th>Akce</th>
 				</tr>
 			</thead>
 			<tbody>
-				{players.length === 0 ? <tr><td colSpan={canManageSingleShots ? 5 : 4}><Loading size='40px'/></td></tr>
+				{players.length === 0 ? <tr><td colSpan={5}><Loading size='40px'/></td></tr>
 					: players.map((player) => {
 						const balance = shotBalances[player.id] ?? { debt: 0, settled: 0, balance: 0 };
 						return <tr key={player.id} className={classNames({
@@ -175,10 +263,13 @@ function ShotBalancesTable({
 							<td>{balance.debt} rund</td>
 							<td>{balance.settled} rund</td>
 							<td className='font-weight-bold'>{balance.balance} rund</td>
-							{canManageSingleShots && <td className='Shots-actionsCell'>
-								<button className='btn btn-sm btn-danger mr-2' onClick={() => openAction('debt', player)}>Přidat Panák</button>
-								<button className='btn btn-sm btn-success' onClick={() => openAction('settlement', player)}>Splatit Panák</button>
-							</td>}
+							<td className='Shots-actionsCell'>
+								{canManageSingleShots && <>
+									<button className='btn btn-sm btn-danger mr-2 mb-1' onClick={() => openAction('debt', player)}>Přidat Panák</button>
+									<button className='btn btn-sm btn-success mr-2 mb-1' onClick={() => openAction('settlement', player)}>Splatit Panák</button>
+								</>}
+								<button className='btn btn-sm btn-info mb-1 text-white' onClick={() => setHistoryPlayer(player)}>Historie hráče</button>
+							</td>
 						</tr>;
 					})
 				}
@@ -212,7 +303,105 @@ function ShotBalancesTable({
 				</button>
 			</div>}
 		</Modal>
+		<PlayerHistoryModal
+			player={historyPlayer}
+			shotEvents={shotEvents}
+			canManageSingleShots={canManageSingleShots}
+			setConfirmSettlementDebt={setConfirmSettlementDebt}
+			setOpen={(open) => {
+				if (!open) {
+					setHistoryPlayer(null);
+				}
+			}}
+		/>
+		<Modal
+			title='Potvrdit splacení 1 rundy'
+			open={Boolean(confirmSettlementDebt)}
+			setOpen={(open) => {
+				if (!open) {
+					setConfirmSettlementDebt(null);
+				}
+			}}
+		>
+			{confirmSettlementDebt && <div>
+				<p>Opravdu chceš splatit 1 rundu?</p>
+				<p><strong>Typ:</strong> {confirmSettlementDebt.shotTypeName ?? 'Bez typu'}</p>
+				<p><strong>Popis dluhu:</strong> {confirmSettlementDebt.description ?? 'Bez popisu'}</p>
+				<button className='btn btn-success' onClick={onConfirmSettleDebtRound}>Ano, splatit 1 rundu</button>
+			</div>}
+		</Modal>
 	</div>;
+}
+
+type PlayerHistoryModalProps = {
+	player: IUser | null;
+	shotEvents: IShotEvent[];
+	canManageSingleShots: boolean;
+	setConfirmSettlementDebt: (event: IShotEvent | null) => void;
+	setOpen: (open: boolean) => void;
+};
+
+function PlayerHistoryModal({ player, shotEvents, canManageSingleShots, setConfirmSettlementDebt, setOpen }: PlayerHistoryModalProps) {
+	const playerEvents = useMemo(() => {
+		if (!player) {
+			return [];
+		}
+		return shotEvents
+			.filter((event) => event.userId === player.id)
+			.sort((event1, event2) => event2.eventAt.getTime() - event1.eventAt.getTime());
+	}, [player, shotEvents]);
+	const debtRemainders = useMemo(() => calculateDebtRemainders(playerEvents), [playerEvents]);
+
+	return <Modal
+		title={player ? `Historie hráče: ${getUserName(player)}` : 'Historie hráče'}
+		open={Boolean(player)}
+		setOpen={setOpen}
+	>
+		<div className='table-responsive'>
+			<table className='table table-light table-bordered table-hover table-striped table-responsive-md'>
+				<thead>
+					<tr>
+						<th>Datum</th>
+						<th>Druh</th>
+						<th>Typ</th>
+						<th>Změna</th>
+						<th>Stav</th>
+						<th>Popis</th>
+						{canManageSingleShots && <th>Akce</th>}
+					</tr>
+				</thead>
+				<tbody>
+					{playerEvents.length < 1
+						? <tr><td colSpan={canManageSingleShots ? 7 : 6}>Zatím bez záznamu.</td></tr>
+						: playerEvents.map((event) => {
+							const remainingDebt = event.type === ShotEventType.Debt ? (debtRemainders[event.id] ?? event.amount) : 0;
+							const isUnpaidDebt = event.type === ShotEventType.Debt && remainingDebt > 0;
+							return <tr key={event.id} className={classNames({
+								'table-danger': isUnpaidDebt,
+								'table-success': event.type === ShotEventType.Settlement || (event.type === ShotEventType.Debt && remainingDebt <= 0),
+							})}>
+								<td><FormattedDateTime startsAt={event.eventAt}/></td>
+								<td>{event.type === ShotEventType.Debt ? 'Dluh' : 'Uhrazení'}</td>
+								<td>{event.shotTypeName ?? 'Bez typu'}</td>
+								<td className='font-weight-bold'>{event.type === ShotEventType.Debt ? '+' : '-'}{event.amount} rund</td>
+								<td>
+									{event.type === ShotEventType.Debt
+										? remainingDebt > 0 ? `Nezaplaceno (${remainingDebt})` : 'Splaceno'
+										: 'Uhrazeno'}
+								</td>
+								<td>{event.description ?? <small>Bez popisu</small>}</td>
+								{canManageSingleShots && <td>
+									{isUnpaidDebt
+										? <button className='btn btn-sm btn-success' onClick={() => setConfirmSettlementDebt(event)}>Splatit 1 rundu</button>
+										: null}
+								</td>}
+							</tr>;
+						})
+					}
+				</tbody>
+			</table>
+		</div>
+	</Modal>;
 }
 
 type ShotTypesTableProps = {

@@ -204,19 +204,26 @@ export async function addShotSettlementEvent(
 		userId: string;
 		amount: number;
 		eventAt: Date;
+		shotTypeId?: string;
+		shotTypeName?: string;
 		description?: string;
 		createdByUserId?: string;
 	},
 ) {
-	await firestore.addDoc(getShotEventsCollection(firebaseApp), {
+	const shotEventData: ShotEventDoc = {
 		userId: shotEvent.userId,
 		type: ShotEventType.Settlement,
 		amount: shotEvent.amount,
 		eventAt: shotEvent.eventAt,
+		...(shotEvent.shotTypeId && shotEvent.shotTypeName ? {
+			shotTypeId: shotEvent.shotTypeId,
+			shotTypeName: shotEvent.shotTypeName,
+		} : {}),
 		description: shotEvent.description,
 		createdByUserId: shotEvent.createdByUserId,
 		createdAt: new Date(),
-	});
+	};
+	await firestore.addDoc(getShotEventsCollection(firebaseApp), shotEventData);
 }
 
 export async function importShotEvents(

@@ -7,7 +7,7 @@ import Loading from '../Components/Loading';
 import { Modal } from '../Components/Modal/Modal';
 import FormattedDateTime from '../Components/Util/FormattedDateTime';
 import { formatDate } from '../Util/datetime';
-import { IUser, Privilege } from '../Model/collections';
+import { IUser, Privilege, TeamRole } from '../Model/collections';
 import { getUserName, hasPrivilege, useAllUsers, useCurrentUser } from '../Model/userFacade';
 import {
 	ShotEventType,
@@ -25,6 +25,14 @@ import {
 import './Shots.css';
 
 type IProps = IAuthValue & IFirebaseValue & IRouterValue;
+const LONG_DESCRIPTION_LENGTH = 120;
+
+type ShotAction = 'debt' | 'settlement';
+
+function hasTeamManagerRole(user: IUser | undefined) {
+	const teamRoles = user?.teamRoles?.map((role) => role.name) ?? [];
+	return teamRoles.includes(TeamRole.TeamManager) || teamRoles.includes(TeamRole.DeputyTeamManager);
+}
 
 const Shots: React.FC<IProps> = (props: IProps) => {
 	const [errorMessage, setErrorMessage] = useState<string>();
@@ -38,8 +46,8 @@ const Shots: React.FC<IProps> = (props: IProps) => {
 	}, [users]);
 	const shotBalances = useMemo(() => calculateShotBalances(shotEvents), [shotEvents]);
 
-	const canManageShots = hasPrivilege(currentUser, Privilege.ManageShots);
 	const isAdmin = hasPrivilege(currentUser, Privilege.ManageUsers);
+	const canManageSingleShots = isAdmin || hasTeamManagerRole(currentUser) || hasPrivilege(currentUser, Privilege.ManageShots);
 
 	return <div className='Shots'>
 		<h1>Panáky</h1>
@@ -50,20 +58,18 @@ const Shots: React.FC<IProps> = (props: IProps) => {
 			players={players}
 			shotBalances={shotBalances}
 			currentUser={currentUser}
+			shotTypes={shotTypes}
+			canManageSingleShots={canManageSingleShots}
+			firebaseApp={props.firebaseApp}
+			router={props.router}
+			setErrorMessage={setErrorMessage}
 		/>
+		<ShotTypesTable shotTypes={shotTypes}/>
 		<ShotEventsTable
 			shotEvents={shotEvents}
 			users={users}
 		/>
 
-		{canManageShots && <ShotMaintainerSection
-			players={players}
-			shotTypes={shotTypes}
-			currentUser={currentUser}
-			firebaseApp={props.firebaseApp}
-			router={props.router}
-			setErrorMessage={setErrorMessage}
-		/>}
 		{isAdmin && <ShotAdminSection
 			players={players}
 			shotTypes={shotTypes}
@@ -79,9 +85,72 @@ type ShotBalancesTableProps = {
 	players: IUser[];
 	currentUser: IUser | undefined;
 	shotBalances: ReturnType<typeof calculateShotBalances>;
-};
+	shotTypes: IShotType[];
+	canManageSingleShots: boolean;
+	setErrorMessage: (errorMessage: string | undefined) => void;
+} & IFirebaseValue & IRouterValue;
 
-function ShotBalancesTable({ players, shotBalances, currentUser }: ShotBalancesTableProps) {
+function ShotBalancesTable({
+	players,
+	shotBalances,
+	currentUser,
+	shotTypes,
+	canManageSingleShots,
+	firebaseApp,
+	router,
+	setErrorMessage,
+}: ShotBalancesTableProps) {
+	const [actionContext, setActionContext] = useState<{ action: ShotAction; player: IUser } | null>(null);
+	const [selectedTypeId, setSelectedTypeId] = useState<string>('');
+	const [description, setDescription] = useState<string>('');
+	const activeShotTypes = shotTypes.filter((shotType) => shotType.active);
+
+	const openAction = (action: ShotAction, player: IUser) => {
+		setActionContext({ action, player });
+		setSelectedTypeId(activeShotTypes[0]?.id ?? '');
+		setDescription('');
+	};
+
+	const onSubmitAction = async () => {
+		if (!actionContext) {
+			return;
+		}
+		const shotType = activeShotTypes.find((possibleType) => possibleType.id === selectedTypeId);
+		if (!shotType) {
+			setErrorMessage('Vyber prosím typ Panáku.');
+			return;
+		}
+		try {
+			if (actionContext.action === 'debt') {
+				await addShotDebtEvent(firebaseApp, {
+					userId: actionContext.player.id,
+					amount: 1,
+					eventAt: new Date(),
+					shotTypeId: shotType.id,
+					shotTypeName: shotType.name,
+					description: description.trim() || undefined,
+					createdByUserId: currentUser?.id,
+				});
+			} else {
+				await addShotSettlementEvent(firebaseApp, {
+					userId: actionContext.player.id,
+					amount: 1,
+					eventAt: new Date(),
+					shotTypeId: shotType.id,
+					shotTypeName: shotType.name,
+					description: description.trim() || undefined,
+					createdByUserId: currentUser?.id,
+				});
+			}
+			setErrorMessage(undefined);
+			setActionContext(null);
+			router.refresh();
+		} catch (error) {
+			console.error(error);
+			setErrorMessage(`${error}`);
+		}
+	};
+
 	return <div className='Shots-balances'>
 		<h2>Přehled Panáků</h2>
 		<table className='table table-light table-bordered table-hover table-striped table-responsive-md'>
@@ -91,11 +160,11 @@ function ShotBalancesTable({ players, shotBalances, currentUser }: ShotBalancesT
 					<th>Dluh</th>
 					<th>Uhrazeno</th>
 					<th>Zůstatek</th>
+					{canManageSingleShots && <th>Akce</th>}
 				</tr>
 			</thead>
 			<tbody>
-				{players.length === 0
-					? <tr><td colSpan={4}><Loading size='40px'/></td></tr>
+				{players.length === 0 ? <tr><td colSpan={canManageSingleShots ? 5 : 4}><Loading size='40px'/></td></tr>
 					: players.map((player) => {
 						const balance = shotBalances[player.id] ?? { debt: 0, settled: 0, balance: 0 };
 						return <tr key={player.id} className={classNames({
@@ -107,8 +176,71 @@ function ShotBalancesTable({ players, shotBalances, currentUser }: ShotBalancesT
 							<td>{balance.debt} rund</td>
 							<td>{balance.settled} rund</td>
 							<td className='font-weight-bold'>{balance.balance} rund</td>
+							{canManageSingleShots && <td className='Shots-actionsCell'>
+								<button className='btn btn-sm btn-danger mr-2' onClick={() => openAction('debt', player)}>Přidat Panák</button>
+								<button className='btn btn-sm btn-success' onClick={() => openAction('settlement', player)}>Splatit Panák</button>
+							</td>}
 						</tr>;
 					})
+				}
+			</tbody>
+		</table>
+		<Modal
+			title={actionContext?.action === 'debt' ? `Přidat Panák: ${actionContext.player.name}` : `Splatit Panák: ${actionContext?.player.name}`}
+			open={Boolean(actionContext)}
+			setOpen={(open) => {
+				if (!open) {
+					setActionContext(null);
+				}
+			}}
+		>
+			{actionContext && <div className='Shots-actionModal'>
+				<label>Typ Panáku</label>
+				<select className='form-control' value={selectedTypeId} onChange={(event) => setSelectedTypeId(event.target.value)}>
+					<option value=''>--- vyber typ ---</option>
+					{activeShotTypes.map((shotType) => <option key={shotType.id} value={shotType.id}>{shotType.name}</option>)}
+				</select>
+				<label>Popis</label>
+				<textarea className='form-control' rows={4} value={description} onChange={(event) => setDescription(event.target.value)}/>
+				<button
+					className={classNames('btn mt-3', {
+						'btn-danger': actionContext.action === 'debt',
+						'btn-success': actionContext.action === 'settlement',
+					})}
+					onClick={onSubmitAction}
+				>
+					{actionContext.action === 'debt' ? 'Přidat' : 'Splatit'}
+				</button>
+			</div>}
+		</Modal>
+	</div>;
+}
+
+type ShotTypesTableProps = {
+	shotTypes: IShotType[];
+};
+
+function ShotTypesTable({ shotTypes }: ShotTypesTableProps) {
+	return <div className='Shots-types'>
+		<h2>Typy Panáků</h2>
+		<table className='table table-light table-bordered table-hover table-striped table-responsive-md'>
+			<thead>
+				<tr>
+					<th>Název</th>
+					<th>Výchozí počet rund</th>
+					<th>Popis</th>
+					<th>Stav</th>
+				</tr>
+			</thead>
+			<tbody>
+				{shotTypes.length < 1
+					? <tr><td colSpan={4}>Zatím bez typů.</td></tr>
+					: shotTypes.map((shotType) => <tr key={shotType.id}>
+						<td>{shotType.name}</td>
+						<td>{shotType.defaultAmount}</td>
+						<td>{shotType.description ?? <small>Bez popisu</small>}</td>
+						<td>{shotType.active ? 'Aktivní' : 'Neaktivní'}</td>
+					</tr>)
 				}
 			</tbody>
 		</table>
@@ -121,7 +253,7 @@ type ShotEventsTableProps = {
 };
 
 function ShotEventsTable({ shotEvents, users }: ShotEventsTableProps) {
-	const [eventForDescription, setEventForDescription] = useState<IShotEvent | null>(null);
+	const [expandedDescriptions, setExpandedDescriptions] = useState<{ [eventId: string]: boolean }>({});
 
 	const getPlayerName = (userId: string) => {
 		const user = users?.find((possibleUser) => possibleUser.id === userId);
@@ -138,7 +270,7 @@ function ShotEventsTable({ shotEvents, users }: ShotEventsTableProps) {
 					<th>Druh</th>
 					<th>Typ</th>
 					<th>Změna</th>
-					<th>Detail</th>
+					<th>Popis</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -151,162 +283,37 @@ function ShotEventsTable({ shotEvents, users }: ShotEventsTableProps) {
 						<td><FormattedDateTime startsAt={event.eventAt}/></td>
 						<td>{getPlayerName(event.userId)}</td>
 						<td>{event.type === ShotEventType.Debt ? 'Dluh' : 'Uhrazení'}</td>
-						<td>{event.type === ShotEventType.Debt ? (event.shotTypeName ?? 'Bez typu') : 'Uhrazení Panáků'}</td>
+						<td>{event.type === ShotEventType.Debt ? (event.shotTypeName ?? 'Bez typu') : (event.shotTypeName ?? 'Uhrazení Panáků')}</td>
 						<td className='font-weight-bold'>
 							{event.type === ShotEventType.Debt ? '+' : '-'}{event.amount} rund
 						</td>
 						<td>
-							{event.description
-								? <button className='btn btn-sm btn-outline-dark' onClick={() => setEventForDescription(event)}>Zobrazit</button>
-								: <small>Bez popisu</small>}
+							{event.description ? (
+								event.description.length <= LONG_DESCRIPTION_LENGTH || expandedDescriptions[event.id]
+									? <>
+										{event.description}
+										{event.description.length > LONG_DESCRIPTION_LENGTH && <button
+											className='btn btn-link btn-sm ml-2 p-0 align-baseline'
+											onClick={() => setExpandedDescriptions((currentState) => ({ ...currentState, [event.id]: false }))}
+										>
+											skrýt
+										</button>}
+									</>
+									: <>
+										{event.description.slice(0, LONG_DESCRIPTION_LENGTH)}...
+										<button
+											className='btn btn-link btn-sm ml-2 p-0 align-baseline'
+											onClick={() => setExpandedDescriptions((currentState) => ({ ...currentState, [event.id]: true }))}
+										>
+											zobrazit celý popis
+										</button>
+									</>
+							) : <small>Bez popisu</small>}
 						</td>
 					</tr>)
 				}
 			</tbody>
 		</table>
-		<Modal title='Detail události Panáků' open={Boolean(eventForDescription)} setOpen={() => setEventForDescription(null)}>
-			{eventForDescription && <>
-				<div><strong>Typ:</strong> {eventForDescription.shotTypeName ?? 'Uhrazení Panáků'}</div>
-				<div className='Shots-description'>{eventForDescription.description}</div>
-			</>}
-		</Modal>
-	</div>;
-}
-
-type ShotMaintainerSectionProps = {
-	players: IUser[];
-	shotTypes: IShotType[];
-	currentUser: IUser | undefined;
-	setErrorMessage: (errorMessage: string | undefined) => void;
-} & IFirebaseValue & IRouterValue;
-
-function ShotMaintainerSection({ players, shotTypes, currentUser, firebaseApp, router, setErrorMessage }: ShotMaintainerSectionProps) {
-	const [selectedDebtUserId, setSelectedDebtUserId] = useState<string>('');
-	const [selectedDebtTypeId, setSelectedDebtTypeId] = useState<string>('');
-	const [debtAmount, setDebtAmount] = useState<number>(1);
-	const [debtDate, setDebtDate] = useState<string>(formatDate(new Date()));
-	const [debtDescription, setDebtDescription] = useState<string>('');
-	const [selectedSettlementUserId, setSelectedSettlementUserId] = useState<string>('');
-	const [settlementAmount, setSettlementAmount] = useState<number>(1);
-	const [settlementDate, setSettlementDate] = useState<string>(formatDate(new Date()));
-	const [settlementDescription, setSettlementDescription] = useState<string>('');
-
-	const activeShotTypes = shotTypes.filter((shotType) => shotType.active);
-
-	const onDebtTypeChange = (newTypeId: string) => {
-		setSelectedDebtTypeId(newTypeId);
-		const selectedType = activeShotTypes.find((shotType) => shotType.id === newTypeId);
-		if (selectedType) {
-			setDebtAmount(selectedType.defaultAmount);
-		}
-	};
-
-	const createDate = (dateValue: string) => {
-		const parsedDate = new Date(`${dateValue}T12:00:00`);
-		if (Number.isNaN(parsedDate.valueOf())) {
-			return null;
-		}
-		return parsedDate;
-	};
-
-	const onAddDebt = async () => {
-		try {
-			const shotType = activeShotTypes.find((possibleType) => possibleType.id === selectedDebtTypeId);
-			if (!selectedDebtUserId || !shotType || debtAmount <= 0) {
-				setErrorMessage('Vyplň prosím hráče, typ a kladný počet rund.');
-				return;
-			}
-			const eventAt = createDate(debtDate);
-			if (!eventAt) {
-				setErrorMessage('Neplatné datum dluhu.');
-				return;
-			}
-			await addShotDebtEvent(firebaseApp, {
-				userId: selectedDebtUserId,
-				amount: debtAmount,
-				shotTypeId: shotType.id,
-				shotTypeName: shotType.name,
-				description: debtDescription.trim() || undefined,
-				eventAt,
-				createdByUserId: currentUser?.id,
-			});
-			setErrorMessage(undefined);
-			router.refresh();
-		} catch (error) {
-			console.error(error);
-			setErrorMessage(`${error}`);
-		}
-	};
-
-	const onAddSettlement = async () => {
-		try {
-			if (!selectedSettlementUserId || settlementAmount <= 0) {
-				setErrorMessage('Vyplň prosím hráče a kladný počet rund.');
-				return;
-			}
-			const eventAt = createDate(settlementDate);
-			if (!eventAt) {
-				setErrorMessage('Neplatné datum uhrazení.');
-				return;
-			}
-			await addShotSettlementEvent(firebaseApp, {
-				userId: selectedSettlementUserId,
-				amount: settlementAmount,
-				description: settlementDescription.trim() || undefined,
-				eventAt,
-				createdByUserId: currentUser?.id,
-			});
-			setErrorMessage(undefined);
-			router.refresh();
-		} catch (error) {
-			console.error(error);
-			setErrorMessage(`${error}`);
-		}
-	};
-
-	return <div className='Shots-maintainer'>
-		<h2>Správa Panáků (maintainer)</h2>
-		<div className='Shots-formGrid'>
-			<div className='card'>
-				<div className='card-header'>Přidat dluh</div>
-				<div className='card-body'>
-					<label>Hráč</label>
-					<select className='form-control' value={selectedDebtUserId} onChange={(event) => setSelectedDebtUserId(event.target.value)}>
-						<option value=''>--- vyber hráče ---</option>
-						{players.map((player) => <option key={player.id} value={player.id}>{getUserName(player)}</option>)}
-					</select>
-					<label>Typ Panáku</label>
-					<select className='form-control' value={selectedDebtTypeId} onChange={(event) => onDebtTypeChange(event.target.value)}>
-						<option value=''>--- vyber typ ---</option>
-						{activeShotTypes.map((shotType) => <option key={shotType.id} value={shotType.id}>{shotType.name}</option>)}
-					</select>
-					<label>Počet rund</label>
-					<input type='number' min={1} className='form-control' value={debtAmount} onChange={(event) => setDebtAmount(parseInt(event.target.value))}/>
-					<label>Datum</label>
-					<input type='date' className='form-control' value={debtDate} onChange={(event) => setDebtDate(event.target.value)}/>
-					<label>Popis</label>
-					<textarea className='form-control' value={debtDescription} onChange={(event) => setDebtDescription(event.target.value)} rows={3}/>
-					<button className='btn btn-danger mt-3' onClick={onAddDebt}>Přidat dluh Panáků</button>
-				</div>
-			</div>
-			<div className='card'>
-				<div className='card-header'>Označit uhrazení</div>
-				<div className='card-body'>
-					<label>Hráč</label>
-					<select className='form-control' value={selectedSettlementUserId} onChange={(event) => setSelectedSettlementUserId(event.target.value)}>
-						<option value=''>--- vyber hráče ---</option>
-						{players.map((player) => <option key={player.id} value={player.id}>{getUserName(player)}</option>)}
-					</select>
-					<label>Počet rund</label>
-					<input type='number' min={1} className='form-control' value={settlementAmount} onChange={(event) => setSettlementAmount(parseInt(event.target.value))}/>
-					<label>Datum</label>
-					<input type='date' className='form-control' value={settlementDate} onChange={(event) => setSettlementDate(event.target.value)}/>
-					<label>Popis</label>
-					<textarea className='form-control' value={settlementDescription} onChange={(event) => setSettlementDescription(event.target.value)} rows={3}/>
-					<button className='btn btn-success mt-3' onClick={onAddSettlement}>Označit uhrazení Panáků</button>
-				</div>
-			</div>
-		</div>
 	</div>;
 }
 

@@ -6,7 +6,6 @@ import { IRouterValue, withRouter } from '../Context/RouterContext';
 import Loading from '../Components/Loading';
 import { Modal } from '../Components/Modal/Modal';
 import FormattedDateTime from '../Components/Util/FormattedDateTime';
-import { formatDate } from '../Util/datetime';
 import { IUser, Privilege, TeamRole } from '../Model/collections';
 import { getUserName, hasPrivilege, useAllUsers, useCurrentUser } from '../Model/userFacade';
 import {

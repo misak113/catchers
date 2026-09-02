@@ -1,37 +1,62 @@
-rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() {
-      return request.auth != null;
+
+		function isVerified() {
+      return request.auth.token.firebase.sign_in_provider == "facebook.com"
+      || request.auth != null
+    	//	|| request.auth.token.email_verified == true
+      ;
+    }
+    
+    function isAuthorized() {
+    	return true; // TODO add better check of authorized emails
+    	//return exists(/databases/$(database)/documents/authorizedEmails/$(request.auth.token.email));
+    }
+    
+    function isAdmin() {
+    	return false; // TODO add admin privileges
+    	//return get(/databases/$(database)/documents/authorizedEmails/$(request.auth.token.email)).data.admin == true;
+    }
+    
+    match /authorizedEmails/{authorizedEmail} {
+    	allow read: if isVerified() && isAuthorized();
+      allow write: if isVerified() && isAdmin();
     }
 
-    match /users/{userId} {
-      allow read, write: if isSignedIn();
+		match /matches/{matchId} {
+
+      match /{attendeesResultLog=**} {
+        allow create: if isVerified() && isAuthorized();
+      }
+
+			allow write: if isVerified() && isAuthorized();
     }
 
-    match /matches/{matchId} {
-      allow read, write: if isSignedIn();
+		match /mail/{mailId} {
+      allow update, delete: if false;
+			allow read: if false;
+			allow create: if isVerified() && isAuthorized();
     }
 
-    match /userPlayerLinkRequests/{requestId} {
-      allow read, write: if isSignedIn();
+		match /userPlayerLinkRequests/{userPlayerLinkRequestId} {
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['linkedAt']) && request.resource.data.linkedAt != null;
+      allow delete: if false;
+			allow read: if isAuthorized() && request.auth.uid == resource.data.userUid;
+			allow create: if isVerified() && isAuthorized();
     }
 
-    match /mail/{mailId} {
-      allow create: if isSignedIn();
-      allow read, update, delete: if false;
+		match /users/{userId} {
+			allow read: if isVerified() && isAuthorized();
+      allow update: if isVerified() && (
+	      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['linkedUserUids', 'settleUpProviderName', 'playerPositions', 'teamRoles', 'dressNumber', 'psmfNumber']) // TODO not checked against userPlayerLinkRequest
+      	|| isAdmin()
+      );
+			allow create, delete: if isVerified() && isAdmin();
     }
 
-    match /shotTypes/{shotTypeId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /shotEvents/{shotEventId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /{document=**} {
-      allow read, write: if false;
+		match /{document=**} {
+    	allow read: if isVerified() && isAuthorized();
+      allow write: if isVerified() && isAdmin();
     }
   }
 }

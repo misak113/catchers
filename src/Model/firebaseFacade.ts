@@ -10,8 +10,8 @@ export async function initFirebase() {
 	}
 	const firebaseApp = FirebaseApp.initializeApp(firebaseConfig);
 	const firebaseAuth = FirebaseAuth.getAuth(firebaseApp);
-	const credentials = await FirebaseAuth.signInWithEmailAndPassword(firebaseAuth, email, password);
-	console.log("Logged in", credentials);
+	await FirebaseAuth.signInWithEmailAndPassword(firebaseAuth, email, password);
+	console.log('Firebase authentication succeeded');
 
 	return firebaseApp;
 }

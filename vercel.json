@@ -3,6 +3,11 @@
   "devCommand": "npm run start",
   "installCommand": "npm install",
   "outputDirectory": "build",
+  "functions": {
+    "api/match-notifications.js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     { "source": "/:path", "destination": "/index.html" }
   ],

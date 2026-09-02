@@ -4,7 +4,7 @@ import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
 import { useState } from "react";
 import { getErrorMessage } from '../Util/error';
-import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection } from "./collections";
+import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection, getMailsCollection, IMail } from "./collections";
 import { safeObjectKeys } from '../Util/object';
 import { useAsyncEffect } from '../React/async';
 import { IMatchImport } from './psmfFacade';
@@ -189,17 +189,22 @@ export function getMatchEventName(match: IMatch, teamName: string) {
 	return `Hanspaulka - ${teamName} - ${match.field ?? 'Neuvedeno'}`;
 }
 
-export function updateMatchNotificationSent(
+export function queueMatchNotification(
 	firebaseApp: firebase.FirebaseApp,
 	match: IMatch,
 	user: IUser,
+	mail: IMail,
 ) {
-	return firestore.updateDoc(firestore.doc(getMatchesCollection(firebaseApp), match.id), {
+	const database = firestore.getFirestore(firebaseApp);
+	const batch = firestore.writeBatch(database);
+	batch.set(firestore.doc(getMailsCollection(firebaseApp)), mail);
+	batch.update(firestore.doc(getMatchesCollection(firebaseApp), match.id), {
 		[`notificationsSent.${user.id}`]: {
 			notifiedAt: new Date(),
 			email: user.email,
 		},
 	});
+	return batch.commit();
 }
 
 export async function updateMatch(firebaseApp: firebase.FirebaseApp, existingMatch: IMatch, newMatch: IMatchImport) {

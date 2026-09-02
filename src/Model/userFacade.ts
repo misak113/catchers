@@ -101,7 +101,6 @@ export function usePossibleAttendees(
 export async function getPossibleAttendees(firebaseApp: firebase.FirebaseApp) {
 	const { docs } = await firestore.getDocs(getUsersCollection(firebaseApp));
 	const users = docs.map(mapUser);
-	console.log('users', users);
 	const possibleAttendees = users.filter((user) => user.player);
 	return possibleAttendees;
 }

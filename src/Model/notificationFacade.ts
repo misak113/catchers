@@ -1,10 +1,8 @@
-import * as FirebaseApp from '@firebase/app';
 import { IMail, IMatch, IUser } from './collections';
 import { formatDateTimeHumanized } from '../Util/datetime';
 import { stripHtmlEntities } from '../Util/html';
 import { UNRESPONDED_LATE_FINE } from './fineFacade';
 import { formatCurrencyAmountHumanized } from '../Util/currency';
-import { sendMail } from './mailFacade';
 import { getDeadlineResponseDate } from './matchFacade';
 import { getPSMFFieldUrl } from './psmfFacade';
 import { getCachedTeamName, getPSMFTeamUrl } from './psmfIndependentFacade';
@@ -27,17 +25,22 @@ function createHTMLElementFromText(): (html: string) => HTMLElement {
 	};
 }
 
-export async function sendMatchUnrespondedNotification(firebaseApp: FirebaseApp.FirebaseApp, match: IMatch, unrespondedUser: IUser, apply: boolean, baseUrl: string) {
+export async function createMatchUnrespondedNotification(match: IMatch, unrespondedUser: IUser, baseUrl: string) {
 	const deadlineDate = getDeadlineResponseDate(match);
 	const emails = [unrespondedUser.email];
-	const teamName = await getCachedTeamName(
-		{
-			tournament: match.tournament,
-			group: match.group,
-			code: match.opponent,
-		},
-		createHTMLElementFromText(),
-	) ?? match.opponent;
+	let teamName = match.opponent;
+	try {
+		teamName = await getCachedTeamName(
+			{
+				tournament: match.tournament,
+				group: match.group,
+				code: match.opponent,
+			},
+			createHTMLElementFromText(),
+		) ?? match.opponent;
+	} catch (error) {
+		console.warn('Could not retrieve the PSMF team name; using the team code', error instanceof Error ? error.message : error);
+	}
 	const subject = await getSubject(match, teamName);
 	const matchUrl = getMatchUrl(match, baseUrl);
 	const psmfTeamUrl = match.tournament && match.group ? getPSMFTeamUrl(match.tournament, match.group, match.opponent) : undefined;
@@ -71,10 +74,6 @@ export async function sendMatchUnrespondedNotification(firebaseApp: FirebaseApp.
 			html,
 		},
 	};
-
-	if (apply) {
-		await sendMail(firebaseApp, mail);
-	}
 
 	return mail;
 }

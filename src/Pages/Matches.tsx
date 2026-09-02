@@ -60,31 +60,33 @@ interface IMatchesTableProps {
 
 function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }: IMatchesTableProps) {
 	const now = new Date();
-	return <table className="Matches-table table table-light table-bordered table-hover table-striped table-responsive-md">
-		<thead>
-			<tr>
-				<th>Datum</th>
-				<th>Čas</th>
-				<th>Soupeř</th>
-				<th>Hřiště</th>
-				<th>Účastníci</th>
-				<th>Přidat do kalendáře</th>
-			</tr>
-		</thead>
-		<tbody>
-			{errorMessage
-			? <tr><td colSpan={6}>{errorMessage}</td></tr>
-			: matches
-				? matches.map((match) => <MatchRow
-					key={match.id}
-					match={match}
-					currentUser={currentUser}
-					now={now}
-					possibleAttendees={possibleAttendees}
-				/>)
-				: <tr><td colSpan={6}><Loading size='50px'/></td></tr>}
-		</tbody>
-	</table>;
+	return <div className="table-responsive-md">
+		<table className="Matches-table table table-light table-bordered table-hover table-striped">
+			<thead>
+				<tr>
+					<th>Datum</th>
+					<th>Čas</th>
+					<th>Soupeř</th>
+					<th>Hřiště</th>
+					<th>Účastníci</th>
+					<th>Přidat do kalendáře</th>
+				</tr>
+			</thead>
+			<tbody>
+				{errorMessage
+				? <tr><td colSpan={6}>{errorMessage}</td></tr>
+				: matches
+					? matches.map((match) => <MatchRow
+						key={match.id}
+						match={match}
+						currentUser={currentUser}
+						now={now}
+						possibleAttendees={possibleAttendees}
+					/>)
+					: <tr><td colSpan={6}><Loading size='50px'/></td></tr>}
+			</tbody>
+		</table>
+	</div>;
 }
 
 interface IPastMatchesPaginationProps {

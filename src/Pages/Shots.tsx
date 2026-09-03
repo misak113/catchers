@@ -351,6 +351,12 @@ function PlayerHistoryModal({ player, shotEvents, canManageSingleShots, setConfi
 			.sort((event1, event2) => event2.eventAt.getTime() - event1.eventAt.getTime());
 	}, [player, shotEvents]);
 	const debtRemainders = useMemo(() => calculateDebtRemainders(playerEvents), [playerEvents]);
+	const playerOutstandingDebt = useMemo(() => {
+		return playerEvents
+			.filter((event) => event.type === ShotEventType.Debt)
+			.reduce((sum, event) => sum + (debtRemainders[event.id] ?? event.amount), 0);
+	}, [playerEvents, debtRemainders]);
+	const canSettleAnyDebt = canManageSingleShots && playerOutstandingDebt > 0;
 
 	return <Modal
 		title={player ? `Historie hráče: ${getUserName(player)}` : 'Historie hráče'}
@@ -367,18 +373,18 @@ function PlayerHistoryModal({ player, shotEvents, canManageSingleShots, setConfi
 						<th>Změna</th>
 						<th>Stav</th>
 						<th>Popis</th>
-						{canManageSingleShots && <th>Akce</th>}
+						{canSettleAnyDebt && <th>Akce</th>}
 					</tr>
 				</thead>
 				<tbody>
 					{playerEvents.length < 1
-						? <tr><td colSpan={canManageSingleShots ? 7 : 6}>Zatím bez záznamu.</td></tr>
+						? <tr><td colSpan={canSettleAnyDebt ? 7 : 6}>Zatím bez záznamu.</td></tr>
 						: playerEvents.map((event) => {
 							const remainingDebt = event.type === ShotEventType.Debt ? (debtRemainders[event.id] ?? event.amount) : 0;
 							const isUnpaidDebt = event.type === ShotEventType.Debt && remainingDebt > 0;
 							return <tr key={event.id} className={classNames({
 								'table-danger': isUnpaidDebt,
-								'table-success': event.type === ShotEventType.Settlement || (event.type === ShotEventType.Debt && remainingDebt <= 0),
+								'Shots-playerHistoryRowTransparent': !isUnpaidDebt,
 							})}>
 								<td><FormattedDateTime startsAt={event.eventAt}/></td>
 								<td>{event.type === ShotEventType.Debt ? 'Dluh' : 'Uhrazení'}</td>
@@ -390,7 +396,7 @@ function PlayerHistoryModal({ player, shotEvents, canManageSingleShots, setConfi
 										: 'Uhrazeno'}
 								</td>
 								<td>{event.description ?? <small>Bez popisu</small>}</td>
-								{canManageSingleShots && <td>
+								{canSettleAnyDebt && <td>
 									{isUnpaidDebt
 										? <button className='btn btn-sm btn-success' onClick={() => setConfirmSettlementDebt(event)}>Splatit 1 rundu</button>
 										: null}

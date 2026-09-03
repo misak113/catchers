@@ -72,6 +72,7 @@ export const USERS = 'users';
 
 export enum Privilege {
 	WriteFines = 'writeFines',
+	ManageShots = 'manageShots',
 	SyncMatches = 'syncMatches',
 	ManageUsers = 'manageUsers',
 }

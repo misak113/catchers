@@ -17,6 +17,7 @@ import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
 import PlayerLinkModal from '../Components/PlayerLinking/PlayerLinkModal';
 import LinkPlayer from './LinkPlayer';
 import Fines from './Fines';
+import Shots from './Shots';
 import config from '../config.json';
 import { useLeagueTeamPath } from '../Model/psmfFacade';
 import { PrivacyPolicy } from './PrivacyPolicy';
@@ -62,6 +63,12 @@ const pages = [
 		name: 'Pokuty',
 		path: '/pokuty',
 		render: () => <Fines/>,
+		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
+	},
+	{
+		name: 'Panáky',
+		path: '/panaky',
+		render: () => <Shots/>,
 		hiddenInMenu: (user: firebaseAuth.User | null) => !user,
 	},
 	{

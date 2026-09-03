@@ -8,6 +8,22 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 To allow firbase in application you have to create src/firebase.json file in root directory of project. Content of JSON can be generated here: https://console.firebase.google.com/u/0/project/catchers-dff49
 
+### Firestore Security Rules
+
+This repository now contains Firestore security rules template files:
+
+- `/home/runner/work/catchers/catchers/firestore.rules`
+- `/home/runner/work/catchers/catchers/firestore.indexes.json`
+- `/home/runner/work/catchers/catchers/firebase.json`
+
+To apply rules:
+
+1. Login: `firebase login`
+2. Select project: `firebase use catchers-dff49`
+3. Deploy Firestore rules: `firebase deploy --only firestore:rules`
+
+If you also need indexes later, run: `firebase deploy --only firestore:indexes`.
+
 ## Settle Up
 
 Settle Up live API access uses their Firebase Realtime Database public API. Their public docs no longer publish the live Firebase Web API key, so production deploys should provide the current key in `REACT_APP_SETTLE_UP_API_KEY`.

@@ -17,3 +17,16 @@
 	overflow-y: auto;
 	max-height: calc(100vh - 120px);
 }
+
+.PlayerLinkModal-modal .modal-dialog {
+	width: min(90vw, 1400px);
+	max-width: none;
+	margin: 1.75rem auto;
+}
+
+@media (max-width: 767.98px) {
+	.PlayerLinkModal-modal .modal-dialog {
+		width: calc(100vw - 1rem);
+		margin: 0.5rem auto;
+	}
+}

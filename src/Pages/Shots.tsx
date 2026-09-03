@@ -266,7 +266,13 @@ function ShotBalancesTable({
 							<td className='Shots-actionsCell'>
 								{canManageSingleShots && <>
 									<button className='btn btn-sm btn-danger mr-2 mb-1' onClick={() => openAction('debt', player)}>Přidat Panák</button>
-									<button className='btn btn-sm btn-success mr-2 mb-1' onClick={() => openAction('settlement', player)}>Splatit Panák</button>
+									<button
+										className='btn btn-sm btn-success mr-2 mb-1'
+										onClick={() => openAction('settlement', player)}
+										disabled={balance.balance <= 0}
+									>
+										Splatit Panák
+									</button>
 								</>}
 								<button className='btn btn-sm btn-info mb-1 text-white' onClick={() => setHistoryPlayer(player)}>Historie hráče</button>
 							</td>

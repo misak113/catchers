@@ -448,6 +448,7 @@ type ShotEventsTableProps = {
 
 function ShotEventsTable({ shotEvents, users }: ShotEventsTableProps) {
 	const [expandedDescriptions, setExpandedDescriptions] = useState<{ [eventId: string]: boolean }>({});
+	const [historyExpanded, setHistoryExpanded] = useState(false);
 
 	const getPlayerName = (userId: string) => {
 		const user = users?.find((possibleUser) => possibleUser.id === userId);
@@ -455,8 +456,13 @@ function ShotEventsTable({ shotEvents, users }: ShotEventsTableProps) {
 	};
 
 	return <div className='Shots-events'>
-		<h2>Historie Panáků</h2>
-		<table className='table table-light table-bordered table-hover table-striped table-responsive-md'>
+		<div className='d-flex align-items-center justify-content-between mb-2'>
+			<h2 className='mb-0'>Historie Panáků</h2>
+			<button className='btn btn-sm btn-outline-primary' onClick={() => setHistoryExpanded((value) => !value)}>
+				{historyExpanded ? 'Skrýt historii' : 'Zobrazit historii'}
+			</button>
+		</div>
+		{historyExpanded && <table className='table table-light table-bordered table-hover table-striped table-responsive-md'>
 			<thead>
 				<tr>
 					<th>Datum</th>
@@ -507,7 +513,7 @@ function ShotEventsTable({ shotEvents, users }: ShotEventsTableProps) {
 					</tr>)
 				}
 			</tbody>
-		</table>
+		</table>}
 	</div>;
 }
 

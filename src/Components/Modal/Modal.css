@@ -11,3 +11,16 @@
 	overflow-y: auto;
 	max-height: 90vh;
 }
+
+.Modal .modal-dialog {
+	width: min(90vw, 1400px);
+	max-width: none;
+	margin: 1.75rem auto;
+}
+
+@media (max-width: 767.98px) {
+	.Modal .modal-dialog {
+		width: calc(100vw - 1rem);
+		margin: 0.5rem auto;
+	}
+}

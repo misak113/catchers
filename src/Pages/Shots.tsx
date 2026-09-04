@@ -1,5 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import classNames from 'classnames';
+import {
+	CategoryScale,
+	Chart as ChartJS,
+	Filler,
+	Legend as ChartLegend,
+	LineElement,
+	LinearScale,
+	PointElement,
+	type ChartData,
+	type ChartOptions,
+	Tooltip as ChartTooltip,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
 import { IRouterValue, withRouter } from '../Context/RouterContext';
@@ -31,6 +44,25 @@ type OpenDebt = {
 	event: IShotEvent;
 	remaining: number;
 };
+type ShotTrendPoint = {
+	label: string;
+	balancesByUserId: { [userId: string]: number };
+};
+
+const SHOT_CHART_COLORS = [
+	'#2563eb',
+	'#dc2626',
+	'#16a34a',
+	'#9333ea',
+	'#ea580c',
+	'#0891b2',
+	'#e11d48',
+	'#65a30d',
+	'#7c3aed',
+	'#0f766e',
+];
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ChartTooltip, ChartLegend, Filler);
 
 function hasTeamManagerRole(user: IUser | undefined) {
 	const teamRoles = user?.teamRoles?.map((role) => role.name) ?? [];
@@ -90,6 +122,82 @@ function calculateDebtRemainders(events: IShotEvent[]) {
 	return remainingByDebtId;
 }
 
+function getShotChartColor(index: number) {
+	return SHOT_CHART_COLORS[index % SHOT_CHART_COLORS.length];
+}
+
+function getShotChartDateKey(date: Date) {
+	const month = `${date.getMonth() + 1}`.padStart(2, '0');
+	const day = `${date.getDate()}`.padStart(2, '0');
+	return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function formatShotChartDate(date: Date) {
+	return new Intl.DateTimeFormat('cs-CZ', {
+		day: 'numeric',
+		month: 'numeric',
+		year: 'numeric',
+	}).format(date);
+}
+
+function buildShotTrendPoints(shotEvents: IShotEvent[], players: IUser[]) {
+	const playersById = new Map(players.map((player) => [player.id, player]));
+	const playerIds = Array.from(new Set(shotEvents.map((event) => event.userId)))
+		.filter((userId) => playersById.has(userId))
+		.sort((userId1, userId2) => {
+			return getUserName(playersById.get(userId1)!).localeCompare(getUserName(playersById.get(userId2)!));
+		});
+
+	if (playerIds.length < 1) {
+		return {
+			playerIds: [],
+			playerNamesByUserId: {} as { [userId: string]: string },
+			points: [] as ShotTrendPoint[],
+		};
+	}
+
+	const playerNamesByUserId = playerIds.reduce<{ [userId: string]: string }>((result, userId) => {
+		result[userId] = getUserName(playersById.get(userId)!);
+		return result;
+	}, {});
+	const balancesByUserId = playerIds.reduce<{ [userId: string]: number }>((result, userId) => {
+		result[userId] = 0;
+		return result;
+	}, {});
+	const points: ShotTrendPoint[] = [];
+	let currentDateKey: string | null = null;
+	let currentDateLabel = '';
+
+	for (const event of getSortedEventsAsc(shotEvents)) {
+		if (!(event.userId in playerNamesByUserId)) {
+			continue;
+		}
+		const dateKey = getShotChartDateKey(event.eventAt);
+		if (currentDateKey !== null && currentDateKey !== dateKey) {
+			points.push({
+				label: currentDateLabel,
+				balancesByUserId: { ...balancesByUserId },
+			});
+		}
+		currentDateKey = dateKey;
+		currentDateLabel = formatShotChartDate(event.eventAt);
+		balancesByUserId[event.userId] += event.type === ShotEventType.Debt ? event.amount : -event.amount;
+	}
+
+	if (currentDateKey !== null) {
+		points.push({
+			label: currentDateLabel,
+			balancesByUserId: { ...balancesByUserId },
+		});
+	}
+
+	return {
+		playerIds,
+		playerNamesByUserId,
+		points,
+	};
+}
+
 const Shots: React.FC<IProps> = (props: IProps) => {
 	const [errorMessage, setErrorMessage] = useState<string>();
 	const [currentUser] = useCurrentUser(props.firebaseApp, props.auth.user, setErrorMessage);
@@ -121,6 +229,7 @@ const Shots: React.FC<IProps> = (props: IProps) => {
 			router={props.router}
 			setErrorMessage={setErrorMessage}
 		/>
+		<ShotTrendChart shotEvents={shotEvents} players={players}/>
 		<ShotTypesTable shotTypes={shotTypes}/>
 		<ShotEventsTable
 			shotEvents={shotEvents}
@@ -137,6 +246,118 @@ const Shots: React.FC<IProps> = (props: IProps) => {
 		/>}
 	</div>;
 };
+
+type ShotTrendChartProps = {
+	shotEvents: IShotEvent[];
+	players: IUser[];
+};
+
+function ShotTrendChart({ shotEvents, players }: ShotTrendChartProps) {
+	const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
+	const trendChart = useMemo(() => buildShotTrendPoints(shotEvents, players), [shotEvents, players]);
+	const selectedPoint = selectedPointIndex !== null
+		? trendChart.points[selectedPointIndex] ?? null
+		: trendChart.points[trendChart.points.length - 1] ?? null;
+	const selectedPlayers = useMemo(() => {
+		if (!selectedPoint) {
+			return [];
+		}
+		return [...trendChart.playerIds].sort((userId1, userId2) => {
+			const amountDiff = selectedPoint.balancesByUserId[userId2] - selectedPoint.balancesByUserId[userId1];
+			if (amountDiff !== 0) {
+				return amountDiff;
+			}
+			return trendChart.playerNamesByUserId[userId1].localeCompare(trendChart.playerNamesByUserId[userId2]);
+		});
+	}, [selectedPoint, trendChart.playerIds, trendChart.playerNamesByUserId]);
+	const chartData = useMemo<ChartData<'line'>>(() => ({
+		labels: trendChart.points.map((point) => point.label),
+		datasets: trendChart.playerIds.map((userId, index) => ({
+			label: trendChart.playerNamesByUserId[userId],
+			data: trendChart.points.map((point) => point.balancesByUserId[userId] ?? 0),
+			borderColor: getShotChartColor(index),
+			backgroundColor: `${getShotChartColor(index)}33`,
+			borderWidth: 2,
+			fill: false,
+			pointRadius: 3,
+			pointHoverRadius: 5,
+			stepped: 'after' as const,
+			tension: 0,
+		})),
+	}), [trendChart.playerIds, trendChart.playerNamesByUserId, trendChart.points]);
+	const chartOptions = useMemo<ChartOptions<'line'>>(() => ({
+		responsive: true,
+		maintainAspectRatio: false,
+		interaction: {
+			mode: 'index',
+			intersect: false,
+		},
+		plugins: {
+			legend: {
+				position: 'bottom',
+			},
+			tooltip: {
+				callbacks: {
+					label: (context) => `${context.dataset.label}: ${context.parsed.y} rund`,
+				},
+			},
+		},
+		scales: {
+			x: {
+				title: {
+					display: true,
+					text: 'Datum',
+				},
+			},
+			y: {
+				beginAtZero: true,
+				ticks: {
+					precision: 0,
+				},
+				title: {
+					display: true,
+					text: 'Počet Panáků',
+				},
+			},
+		},
+	}), []);
+
+	return <div className='card'>
+		<div className='card-header'>Trend Panáků v čase</div>
+		<div className='card-body'>
+			{trendChart.points.length < 1
+				? <p className='mb-0'>Zatím bez dat pro graf.</p>
+				: <>
+					<p className='text-muted'>
+						Každá čára ukazuje průběžný stav Panáků za jednotlivé dny. Najetím zobrazíš detail, kliknutím připneš vybraný den.
+					</p>
+					<div className='Shots-trendChartWrapper'>
+						<Line
+							data={chartData}
+							options={chartOptions}
+							onClick={(_, elements) => setSelectedPointIndex(elements[0]?.index ?? null)}
+						/>
+					</div>
+					{selectedPoint && <div className='Shots-trendSelection'>
+						<div className='font-weight-bold mb-2'>Vybraný den: {selectedPoint.label}</div>
+						<div className='Shots-trendSelectionGrid'>
+							{selectedPlayers.map((userId) => {
+								const playerIndex = trendChart.playerIds.indexOf(userId);
+								return <div key={userId} className='Shots-trendSelectionItem'>
+									<span
+										className='Shots-trendSelectionColor'
+										style={{ backgroundColor: getShotChartColor(playerIndex) }}
+									/>
+									<span className='font-weight-bold mr-2'>{trendChart.playerNamesByUserId[userId]}</span>
+									<span>{selectedPoint.balancesByUserId[userId] ?? 0} rund</span>
+								</div>;
+							})}
+						</div>
+					</div>}
+				</>}
+		</div>
+	</div>;
+}
 
 type ShotBalancesTableProps = {
 	players: IUser[];

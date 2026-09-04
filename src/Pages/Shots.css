@@ -31,6 +31,40 @@
 	font-weight: 600;
 }
 
+.Shots-trendChartWrapper {
+	position: relative;
+	height: 380px;
+}
+
+.Shots-trendSelection {
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid #dee2e6;
+}
+
+.Shots-trendSelectionGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 0.75rem;
+}
+
+.Shots-trendSelectionItem {
+	display: flex;
+	align-items: center;
+	padding: 0.5rem 0.75rem;
+	background: rgba(0, 0, 0, 0.03);
+	border-radius: 0.5rem;
+}
+
+.Shots-trendSelectionColor {
+	width: 0.75rem;
+	height: 0.75rem;
+	border-radius: 999px;
+	display: inline-block;
+	margin-right: 0.5rem;
+	flex-shrink: 0;
+}
+
 .Shots-playerHistoryRowTransparent {
 	opacity: 0.55;
 }

@@ -59,6 +59,16 @@ export function getShotEventsCollection(firebaseApp: firebase.FirebaseApp) {
 	return shotEventsCollection as firestore.CollectionReference<ShotEventDoc>;
 }
 
+function getOptionalShotFields(data: {
+	description?: string;
+	createdByUserId?: string;
+}) {
+	return {
+		...(data.description ? { description: data.description } : {}),
+		...(data.createdByUserId ? { createdByUserId: data.createdByUserId } : {}),
+	};
+}
+
 function mapDateValue(value: unknown) {
 	if (value instanceof Date) {
 		return value;
@@ -153,11 +163,11 @@ export async function addShotType(
 	const now = new Date();
 	await firestore.addDoc(getShotTypesCollection(firebaseApp), {
 		name: shotType.name,
-		description: shotType.description,
 		defaultAmount: shotType.defaultAmount,
 		active: true,
 		createdAt: now,
 		updatedAt: now,
+		...(shotType.description ? { description: shotType.description } : {}),
 	});
 }
 
@@ -168,8 +178,13 @@ export async function updateShotType(
 ) {
 	const shotTypeRef = firestore.doc(getShotTypesCollection(firebaseApp), shotTypeId);
 	await firestore.updateDoc(shotTypeRef, {
-		...shotType,
 		updatedAt: new Date(),
+		...(shotType.name !== undefined ? { name: shotType.name } : {}),
+		...('description' in shotType ? {
+			description: shotType.description ?? firestore.deleteField(),
+		} : {}),
+		...(shotType.defaultAmount !== undefined ? { defaultAmount: shotType.defaultAmount } : {}),
+		...(shotType.active !== undefined ? { active: shotType.active } : {}),
 	});
 }
 
@@ -192,9 +207,8 @@ export async function addShotDebtEvent(
 		eventAt: shotEvent.eventAt,
 		shotTypeId: shotEvent.shotTypeId,
 		shotTypeName: shotEvent.shotTypeName,
-		description: shotEvent.description,
-		createdByUserId: shotEvent.createdByUserId,
 		createdAt: new Date(),
+		...getOptionalShotFields(shotEvent),
 	});
 }
 
@@ -219,9 +233,8 @@ export async function addShotSettlementEvent(
 			shotTypeId: shotEvent.shotTypeId,
 			shotTypeName: shotEvent.shotTypeName,
 		} : {}),
-		description: shotEvent.description,
-		createdByUserId: shotEvent.createdByUserId,
 		createdAt: new Date(),
+		...getOptionalShotFields(shotEvent),
 	};
 	await firestore.addDoc(getShotEventsCollection(firebaseApp), shotEventData);
 }
@@ -248,9 +261,8 @@ export async function importShotEvents(
 			type: isSettlement ? ShotEventType.Settlement : ShotEventType.Debt,
 			amount: Math.abs(event.amount),
 			eventAt: event.eventAt,
-			description: event.description,
-			createdByUserId: event.createdByUserId,
 			createdAt: new Date(),
+			...getOptionalShotFields(event),
 			...(isSettlement ? {} : {
 				shotTypeId: event.shotTypeId,
 				shotTypeName: event.shotTypeName,

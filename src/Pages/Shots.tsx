@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import {
 	CategoryScale,
@@ -12,7 +12,7 @@ import {
 	type ChartOptions,
 	Tooltip as ChartTooltip,
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { getElementAtEvent, Line } from 'react-chartjs-2';
 import { IAuthValue, withAuth } from '../Context/AuthContext';
 import { IFirebaseValue, withFirebase } from '../Context/FirebaseContext';
 import { IRouterValue, withRouter } from '../Context/RouterContext';
@@ -253,6 +253,7 @@ type ShotTrendChartProps = {
 };
 
 function ShotTrendChart({ shotEvents, players }: ShotTrendChartProps) {
+	const chartRef = useRef<ChartJS<'line'> | null>(null);
 	const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
 	const trendChart = useMemo(() => buildShotTrendPoints(shotEvents, players), [shotEvents, players]);
 	const selectedPoint = selectedPointIndex !== null
@@ -333,9 +334,13 @@ function ShotTrendChart({ shotEvents, players }: ShotTrendChartProps) {
 					</p>
 					<div className='Shots-trendChartWrapper'>
 						<Line
+							ref={chartRef}
 							data={chartData}
 							options={chartOptions}
-							onClick={(_, elements) => setSelectedPointIndex(elements[0]?.index ?? null)}
+							onClick={(event) => {
+								const selectedElements = chartRef.current ? getElementAtEvent(chartRef.current, event) : [];
+								setSelectedPointIndex(selectedElements[0]?.index ?? null);
+							}}
 						/>
 					</div>
 					{selectedPoint && <div className='Shots-trendSelection'>

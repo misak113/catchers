@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 import config from '../config.json';
-import { IPSMFHistoricalMatch, IPSMFHistoricalRawTable, IPSMFHistoricalScorer } from './psmfMatchHistoryFacade';
+import { IPSMFHistoricalMatch, IPSMFHistoricalRawTable, IPSMFHistoricalScorer } from './psmfMatchHistoryShared';
 
 const PSMF_BASE_URL = 'https://www.psmf.cz';
 const TEAM_CODE_NAME = 'catchers-sc';

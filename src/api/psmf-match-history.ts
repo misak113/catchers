@@ -1,5 +1,4 @@
 import * as firestore from '@firebase/firestore';
-import { JSDOM } from 'jsdom';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { initFirebase } from '../Model/firebaseFacade';
 import {
@@ -9,7 +8,7 @@ import {
 	IPSMFSeason,
 	IPSMFSeasonHistoryCacheDocument,
 	parsePSMFSeasonKey,
-} from '../Model/psmfMatchHistoryFacade';
+} from '../Model/psmfMatchHistoryShared';
 import { collectRelevantDetailLines, collectRelevantDetailTables, extractScorers, parseTeamPageMatches } from '../Model/psmfMatchHistoryParser';
 
 const MATCH_HISTORY_COLLECTION = 'psmfMatchHistory';
@@ -188,6 +187,7 @@ async function fetchHtml(url: string) {
 }
 
 function createDom(html: string) {
+	const { JSDOM } = require('jsdom');
 	return new JSDOM(html);
 }
 

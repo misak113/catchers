@@ -36,8 +36,10 @@ import {
 	getNextPSMFSeason,
 	getPreviousPSMFSeason,
 	isSamePSMFSeason,
-	IPSMFHistoricalMatch,
-	IPSMFSeason,
+	type IPSMFHistoricalMatch,
+	type IPSMFSeason,
+} from '../Model/psmfMatchHistoryShared';
+import {
 	useSeasonMatchHistory,
 } from '../Model/psmfMatchHistoryFacade';
 

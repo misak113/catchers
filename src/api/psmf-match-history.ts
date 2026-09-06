@@ -242,7 +242,7 @@ function parseTeamPageMatches(document: Document, teamPagePath: string): IPSMFHi
 		.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
 }
 
-function parseTeamPageMatchRow(row: HTMLTableRowElement, tournament: string, group: string, index: number) {
+function parseTeamPageMatchRow(row: HTMLTableRowElement, tournament: string, group: string, index: number): IPSMFHistoricalMatch | null {
 	const cells = [...row.querySelectorAll<HTMLTableCellElement>('td')];
 	if (cells.length < 4) {
 		return null;
@@ -264,7 +264,8 @@ function parseTeamPageMatchRow(row: HTMLTableRowElement, tournament: string, gro
 	const rowCells = cells.map((cell) => normalizeText(cell.textContent));
 	const detailPath = getDetailPath(row);
 	const scoreCell = rowCells.find((cellText) => Boolean(parseScore(cellText)));
-	const score = scoreCell ? parseScore(scoreCell) : undefined;
+	const parsedScore = scoreCell ? parseScore(scoreCell) : null;
+	const score = parsedScore ?? undefined;
 	const matchId = detailPath?.match(/\/zapas\/(?<matchId>[^/?#]+)/)?.groups?.matchId ?? `${tournament}-${group}-${index}`;
 
 	return {
@@ -310,6 +311,9 @@ function parseTeamAnchor(anchor: HTMLAnchorElement | undefined) {
 	const href = anchor.getAttribute('href');
 	const pathname = href ? new URL(href, PSMF_BASE_URL).pathname : '';
 	const code = pathname.split('/').filter(Boolean).pop();
+	if (!code) {
+		return null;
+	}
 	return {
 		code,
 		name: normalizeText(anchor.textContent) || code,
@@ -487,7 +491,7 @@ function collectRelevantDetailLines(document: Document, match: IPSMFHistoricalMa
 }
 
 function collectRelevantDetailTables(document: Document, match: IPSMFHistoricalMatch): IPSMFHistoricalRawTable[] {
-	return [...document.querySelectorAll<HTMLTableElement>('table')]
+	const tables: (IPSMFHistoricalRawTable | null)[] = [...document.querySelectorAll<HTMLTableElement>('table')]
 		.map((table) => {
 			const rows = [...table.querySelectorAll<HTMLTableRowElement>('tr')]
 				.map((row) => [...row.querySelectorAll<HTMLTableCellElement | HTMLTableHeaderCellElement>('td,th')]
@@ -510,8 +514,8 @@ function collectRelevantDetailTables(document: Document, match: IPSMFHistoricalM
 				rows: rows.slice(0, 20),
 			};
 		})
-		.filter((table): table is IPSMFHistoricalRawTable => Boolean(table))
 		.slice(0, 6);
+	return tables.filter((table): table is IPSMFHistoricalRawTable => table !== null);
 }
 
 function getSideFromText(value: string | undefined, match: IPSMFHistoricalMatch): 'home' | 'guest' | 'unknown' {

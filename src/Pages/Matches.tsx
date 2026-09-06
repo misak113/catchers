@@ -214,7 +214,7 @@ function SeasonHistoryChart({
 			},
 			tooltip: {
 				callbacks: {
-					label: (context) => `${context.dataset.label}: ${Math.abs(context.parsed.y)}`,
+					label: (context) => `${context.dataset.label}: ${Math.abs(Number(context.parsed.y ?? 0))}`,
 				},
 			},
 		},

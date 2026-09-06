@@ -1,29 +1,23 @@
 import * as firestore from '@firebase/firestore';
 import { JSDOM } from 'jsdom';
-import moment from 'moment-timezone';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import config from '../config.json';
 import { initFirebase } from '../Model/firebaseFacade';
 import {
 	buildPSMFSeasonKey,
 	formatPSMFSeasonLabel,
 	getCurrentPSMFSeason,
-	IPSMFHistoricalMatch,
-	IPSMFHistoricalRawTable,
-	IPSMFHistoricalScorer,
 	IPSMFSeason,
 	IPSMFSeasonHistoryCacheDocument,
 	parsePSMFSeasonKey,
 } from '../Model/psmfMatchHistoryFacade';
+import { collectRelevantDetailLines, collectRelevantDetailTables, extractScorers, parseTeamPageMatches } from '../Model/psmfMatchHistoryParser';
 
 const MATCH_HISTORY_COLLECTION = 'psmfMatchHistory';
 const PSMF_BASE_URL = 'https://www.psmf.cz';
 const TEAM_QUERY_NAME = 'Catchers+SC';
-const TEAM_CODE_NAME = 'catchers-sc';
 const CACHE_VERSION = 1;
 const CURRENT_SEASON_REFRESH_AGE_MS = 12 * 60 * 60 * 1e3;
 const SEARCH_URL = `${PSMF_BASE_URL}/vyhledavani/?query=${TEAM_QUERY_NAME}`;
-const MATCH_ROW_SELECTOR = 'section.component--opener table.games-new-table tr';
 const PSMF_HEADERS = {
 	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 	'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -34,12 +28,6 @@ const PSMF_HEADERS = {
 
 type CachedHistoryDocument = Omit<IPSMFSeasonHistoryCacheDocument, 'season'> & {
 	season: IPSMFSeason;
-};
-
-type GoalBlock = {
-	title?: string;
-	lines: string[];
-	columns?: { side: 'home' | 'guest' | 'unknown'; lines: string[] }[];
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -62,17 +50,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	const currentSeasonKey = buildPSMFSeasonKey(currentSeason);
 	const cache = await getHistoryCacheDocument(seasonKey);
 
-	if (cache.cachedData) {
-		if (!shouldRefreshCache(cache.cachedData, seasonKey === currentSeasonKey)) {
-			res.status(200).json({
-				...cache.cachedData,
-				source: {
-					...cache.cachedData.source,
-					fromCache: true,
-				},
-			});
-			return;
-		}
+	if (cache.cachedData && !shouldRefreshCache(cache.cachedData, seasonKey === currentSeasonKey)) {
+		res.status(200).json({
+			...cache.cachedData,
+			source: {
+				...cache.cachedData.source,
+				fromCache: true,
+			},
+		});
+		return;
 	}
 
 	try {
@@ -201,7 +187,7 @@ async function fetchHtml(url: string) {
 	return response.text();
 }
 
-export function createDom(html: string) {
+function createDom(html: string) {
 	return new JSDOM(html);
 }
 
@@ -226,7 +212,7 @@ function getSeasonTeamPagePath(document: Document, seasonKey: string) {
 function getTournamentGroupPath(path: string) {
 	const pathname = new URL(path, PSMF_BASE_URL).pathname;
 	const match = pathname.match(/^\/souteze\/(?<tournament>[^/]+)\/(?<group>[^/]+)\/tymy\/(?<teamCode>[^/]+)\/?$/);
-	if (!match?.groups || match.groups.teamCode !== TEAM_CODE_NAME) {
+	if (!match?.groups || match.groups.teamCode !== 'catchers-sc') {
 		return null;
 	}
 	return {
@@ -246,325 +232,6 @@ function getSeasonKeyFromTournament(tournament: string) {
 		return null;
 	}
 	return `${yearMatch.groups.year}-${half}`;
-}
-
-export function parseTeamPageMatches(document: Document, teamPagePath: string): IPSMFHistoricalMatch[] {
-	const tournamentGroup = getTournamentGroupPath(teamPagePath);
-	if (!tournamentGroup) {
-		return [];
-	}
-	const rows = [...document.querySelectorAll<HTMLTableRowElement>(MATCH_ROW_SELECTOR)];
-	return rows.map((row, index) => parseTeamPageMatchRow(row, tournamentGroup.tournament, tournamentGroup.group, index))
-		.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
-}
-
-function parseTeamPageMatchRow(row: HTMLTableRowElement, tournament: string, group: string, index: number): IPSMFHistoricalMatch | null {
-	const cells = [...row.querySelectorAll<HTMLTableCellElement>('td')];
-	if (cells.length < 4) {
-		return null;
-	}
-
-	const startsAt = parseMatchStartsAt(
-		normalizeText(cells[0]?.innerHTML),
-		normalizeText(cells[1]?.textContent),
-	);
-	const teamAnchors = [...row.querySelectorAll<HTMLAnchorElement>('td:nth-child(4) a[href^="/souteze/"]')];
-	const homeTeam = parseTeamAnchor(teamAnchors[0]);
-	const guestTeam = parseTeamAnchor(teamAnchors[1]);
-	if (!startsAt || !homeTeam?.code || !guestTeam?.code) {
-		return null;
-	}
-
-	const isCatchersHome = homeTeam.code === TEAM_CODE_NAME;
-	const opponent = isCatchersHome ? guestTeam : homeTeam;
-	const rowCells = cells.map((cell) => normalizeText(cell.textContent));
-	const detailPath = getDetailPath(row);
-	const scoreCell = rowCells.find((cellText) => Boolean(parseScore(cellText)));
-	const parsedScore = scoreCell ? parseScore(scoreCell) : null;
-	const score = parsedScore ?? undefined;
-	const matchId = detailPath?.match(/\/zapas\/(?<matchId>[^/?#]+)/)?.groups?.matchId ?? `${tournament}-${group}-${index}`;
-
-	return {
-		id: matchId,
-		startsAtIso: startsAt.toISOString(),
-		tournament,
-		group,
-		field: normalizeText(cells[2]?.textContent) || undefined,
-		round: getRoundLabel(rowCells),
-		opponentCode: opponent.code,
-		opponentName: opponent.name || opponent.code,
-		homeTeamCode: homeTeam.code,
-		homeTeamName: homeTeam.name,
-		guestTeamCode: guestTeam.code,
-		guestTeamName: guestTeam.name,
-		detailPath,
-		score,
-		status: score ? 'finished' : startsAt.getTime() < Date.now() ? 'playedWithoutScore' : 'scheduled',
-		scorers: [],
-		raw: {
-			rowCells,
-			scoreCell: scoreCell || undefined,
-		},
-	};
-}
-
-function parseMatchStartsAt(dateCellHtml: string, timeCellText: string) {
-	const dateText = dateCellHtml.split('&nbsp;').pop() ?? dateCellHtml;
-	const parts = dateText.split('.').map((part) => part.trim()).filter(Boolean);
-	if (parts.length < 3 || !timeCellText) {
-		return null;
-	}
-	const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
-	const dateIso = `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}T${timeCellText.padStart(5, '0')}`;
-	const startsAt = moment.tz(dateIso, config.timezone);
-	return startsAt.isValid() ? startsAt.toDate() : null;
-}
-
-function parseTeamAnchor(anchor: HTMLAnchorElement | undefined) {
-	if (!anchor) {
-		return null;
-	}
-	const href = anchor.getAttribute('href');
-	const pathname = href ? new URL(href, PSMF_BASE_URL).pathname : '';
-	const code = pathname.split('/').filter(Boolean).pop();
-	if (!code) {
-		return null;
-	}
-	return {
-		code,
-		name: normalizeText(anchor.textContent) || code,
-	};
-}
-
-function getDetailPath(row: HTMLTableRowElement) {
-	const detailHref = [...row.querySelectorAll<HTMLAnchorElement>('a')]
-		.map((anchor) => anchor.getAttribute('href'))
-		.find((href) => Boolean(href && /\/zapas\//.test(href)));
-	if (!detailHref) {
-		return undefined;
-	}
-	return new URL(detailHref, PSMF_BASE_URL).pathname;
-}
-
-function getRoundLabel(rowCells: string[]) {
-	return rowCells.find((cell) => /^\d+\.$/.test(cell)) || undefined;
-}
-
-function parseScore(value: string) {
-	const match = value.match(/(?<home>\d+)\s*:\s*(?<guest>\d+)/);
-	if (!match?.groups) {
-		return null;
-	}
-	return {
-		home: Number(match.groups.home),
-		guest: Number(match.groups.guest),
-		raw: `${match.groups.home}:${match.groups.guest}`,
-	};
-}
-
-export function extractScorers(document: Document, match: IPSMFHistoricalMatch) {
-	const goalBlocks = collectGoalBlocks(document, match);
-	const scorers: IPSMFHistoricalScorer[] = [];
-
-	for (const block of goalBlocks) {
-		if (block.columns && block.columns.length > 0) {
-			for (const column of block.columns) {
-				for (const line of column.lines) {
-					scorers.push(...parseScorerLine(line, column.side));
-				}
-			}
-			continue;
-		}
-		const teamSide = getSideFromText(block.title, match);
-		for (const line of block.lines) {
-			scorers.push(...parseScorerLine(line, teamSide));
-		}
-	}
-
-	return scorers.filter((scorer, index, array) => {
-		return array.findIndex((candidate) =>
-			candidate.playerName === scorer.playerName
-			&& candidate.minute === scorer.minute
-			&& candidate.teamSide === scorer.teamSide
-			&& candidate.rawText === scorer.rawText
-		) === index;
-	});
-}
-
-function collectGoalBlocks(document: Document, match: IPSMFHistoricalMatch): GoalBlock[] {
-	const blocks: GoalBlock[] = [];
-	for (const table of document.querySelectorAll<HTMLTableElement>('table')) {
-		const tableText = normalizeText(table.textContent).toLowerCase();
-		if (!tableText || !/gól|brank|střelec/.test(tableText)) {
-			continue;
-		}
-		const rows = [...table.querySelectorAll<HTMLTableRowElement>('tr')];
-		if (rows.length < 1) {
-			continue;
-		}
-		const headerRow = rows[0];
-		const headerCells = [...headerRow.querySelectorAll<HTMLTableCellElement | HTMLTableHeaderCellElement>('td,th')]
-			.map((cell) => normalizeText(cell.textContent));
-		const columnSides = headerCells.map((headerCell) => getSideFromText(headerCell, match));
-		const columns = columnSides.map((side, index) => ({
-			side,
-			lines: rows.slice(1).flatMap((row) => {
-				const cell = [...row.querySelectorAll<HTMLTableCellElement | HTMLTableHeaderCellElement>('td,th')][index];
-				return cell ? splitHtmlLines(cell.innerHTML) : [];
-			}).filter(Boolean),
-		})).filter((column) => column.lines.length > 0);
-		blocks.push({
-			title: headerCells.join(' | '),
-			lines: rows.flatMap((row) => [...row.querySelectorAll<HTMLTableCellElement | HTMLTableHeaderCellElement>('td,th')].flatMap((cell) => splitHtmlLines(cell.innerHTML))),
-			columns,
-		});
-	}
-
-	if (blocks.length > 0) {
-		return blocks;
-	}
-
-	return [...document.querySelectorAll<HTMLElement>('h1,h2,h3,h4,strong')]
-		.filter((heading) => /gól|brank|střelec/i.test(normalizeText(heading.textContent)))
-		.map((heading) => {
-			const lines: string[] = [];
-			let currentElement = heading.nextElementSibling;
-			while (currentElement && !/^H[1-4]$/i.test(currentElement.tagName)) {
-				lines.push(...splitHtmlLines(currentElement.innerHTML));
-				currentElement = currentElement.nextElementSibling as HTMLElement | null;
-			}
-			return {
-				title: normalizeText(heading.textContent),
-				lines,
-			};
-		})
-		.filter((block) => block.lines.length > 0);
-}
-
-function parseScorerLine(line: string, teamSide: 'home' | 'guest' | 'unknown') {
-	const cleanedLine = normalizeText(line)
-		.replace(/^[•·\-–—]\s*/, '')
-		.replace(/\s+/g, ' ')
-		.trim();
-	if (!cleanedLine || /gól|brank|střelec/i.test(cleanedLine) || /^\d+\s*:\s*\d+$/.test(cleanedLine)) {
-		return [];
-	}
-
-	const linesToParse = cleanedLine.split(/\s{2,}|;\s*/).map((part) => part.trim()).filter(Boolean);
-	return linesToParse.flatMap((value) => {
-		const minuteMatches = [...value.matchAll(/\b(?<minute>\d{1,3})\./g)];
-		if (minuteMatches.length > 0) {
-			const minutes = minuteMatches.map((match) => Number(match.groups?.minute)).filter((minute) => Number.isFinite(minute));
-			const playerName = normalizeText(value.replace(/\b\d{1,3}\./g, '').replace(/[(),]/g, ' ')).trim();
-			if (!playerName) {
-				return [];
-			}
-			return minutes.map((minute) => ({
-				playerName,
-				minute,
-				rawMinute: `${minute}.`,
-				teamSide,
-				rawText: value,
-			}));
-		}
-
-		const minuteAtEnd = value.match(/^(?<player>.+?)\s+(?<minutes>\d{1,3}(?:\s*,\s*\d{1,3})*)$/);
-		if (minuteAtEnd?.groups) {
-			const playerName = normalizeText(minuteAtEnd.groups.player);
-			return minuteAtEnd.groups.minutes.split(',').map((minuteValue) => {
-				const minute = Number(minuteValue.trim());
-				return {
-					playerName,
-					minute,
-					rawMinute: minuteValue.trim(),
-					teamSide,
-					rawText: value,
-				};
-			});
-		}
-
-		return [{
-			playerName: value,
-			teamSide,
-			rawText: value,
-		}];
-	});
-}
-
-function collectRelevantDetailLines(document: Document, match: IPSMFHistoricalMatch) {
-	const detailText = normalizeText(document.body.textContent);
-	return detailText
-		.split(/\s{2,}/)
-		.map((line) => line.trim())
-		.filter((line) => line.length > 2)
-		.filter((line) => {
-			const lowerLine = line.toLowerCase();
-			return /gól|brank|žlut|červen|karta|střelec/.test(lowerLine)
-				|| lowerLine.includes((match.homeTeamName || '').toLowerCase())
-				|| lowerLine.includes((match.guestTeamName || '').toLowerCase());
-		})
-		.slice(0, 30);
-}
-
-function collectRelevantDetailTables(document: Document, match: IPSMFHistoricalMatch): IPSMFHistoricalRawTable[] {
-	const tables: (IPSMFHistoricalRawTable | null)[] = [...document.querySelectorAll<HTMLTableElement>('table')]
-		.map((table) => {
-			const rows = [...table.querySelectorAll<HTMLTableRowElement>('tr')]
-				.map((row) => [...row.querySelectorAll<HTMLTableCellElement | HTMLTableHeaderCellElement>('td,th')]
-					.map((cell) => normalizeText(cell.textContent))
-					.filter(Boolean))
-				.filter((row) => row.length > 0);
-			const flattened = rows.flat().join(' ').toLowerCase();
-			if (!flattened) {
-				return null;
-			}
-			const hasRelevantContent = /gól|brank|žlut|červen|karta|střelec/.test(flattened)
-				|| flattened.includes((match.homeTeamName || '').toLowerCase())
-				|| flattened.includes((match.guestTeamName || '').toLowerCase());
-			if (!hasRelevantContent) {
-				return null;
-			}
-			const title = normalizeText(table.previousElementSibling?.textContent);
-			return {
-				title: title || undefined,
-				rows: rows.slice(0, 20),
-			};
-		})
-		.slice(0, 6);
-	return tables.filter((table): table is IPSMFHistoricalRawTable => table !== null);
-}
-
-function getSideFromText(value: string | undefined, match: IPSMFHistoricalMatch): 'home' | 'guest' | 'unknown' {
-	const normalizedValue = normalizeText(value).toLowerCase();
-	if (!normalizedValue) {
-		return 'unknown';
-	}
-	if (normalizedValue.includes('domác')) {
-		return 'home';
-	}
-	if (normalizedValue.includes('host')) {
-		return 'guest';
-	}
-	if (match.homeTeamName && normalizedValue.includes(match.homeTeamName.toLowerCase())) {
-		return 'home';
-	}
-	if (match.guestTeamName && normalizedValue.includes(match.guestTeamName.toLowerCase())) {
-		return 'guest';
-	}
-	if (match.homeTeamCode && normalizedValue.includes(match.homeTeamCode.toLowerCase())) {
-		return 'home';
-	}
-	if (match.guestTeamCode && normalizedValue.includes(match.guestTeamCode.toLowerCase())) {
-		return 'guest';
-	}
-	return 'unknown';
-}
-
-function splitHtmlLines(html: string) {
-	return html
-		.split(/<br\s*\/?>/i)
-		.map((line) => normalizeText(line.replace(/<[^>]+>/g, ' ')))
-		.filter(Boolean);
 }
 
 function normalizeText(value: string | null | undefined) {

@@ -1,4 +1,9 @@
-import { createDom, extractScorers, parseTeamPageMatches } from './psmf-match-history';
+// @ts-nocheck
+import { extractScorers, parseTeamPageMatches } from '../Model/psmfMatchHistoryParser';
+
+function createDom(html: string) {
+	return new DOMParser().parseFromString(html, 'text/html');
+}
 
 describe('psmf match history parser', () => {
 	it('parses team page rows with scores and detail links', () => {
@@ -21,7 +26,7 @@ describe('psmf match history parser', () => {
 			</section>
 		`);
 
-		const matches = parseTeamPageMatches(dom.window.document, '/souteze/2026-hanspaulska-liga-podzim/8-c/tymy/catchers-sc/');
+		const matches = parseTeamPageMatches(dom, '/souteze/2026-hanspaulska-liga-podzim/8-c/tymy/catchers-sc/');
 
 		expect(matches).toHaveLength(1);
 		expect(matches[0]).toMatchObject({
@@ -79,7 +84,7 @@ describe('psmf match history parser', () => {
 			</table>
 		`);
 
-		const scorers = extractScorers(dom.window.document, match);
+		const scorers = extractScorers(dom, match);
 
 		expect(scorers).toEqual([
 			{

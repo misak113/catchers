@@ -59,19 +59,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	}
 
 	const seasonKey = buildPSMFSeasonKey(requestedSeason);
-	const firebaseApp = await initFirebase();
-	const historyCollection = firestore.collection(firestore.getFirestore(firebaseApp), MATCH_HISTORY_COLLECTION) as firestore.CollectionReference<CachedHistoryDocument>;
-	const historyDocRef = firestore.doc(historyCollection, seasonKey);
-	const cachedDoc = await firestore.getDoc(historyDocRef);
 	const currentSeasonKey = buildPSMFSeasonKey(currentSeason);
+	const cache = await getHistoryCacheDocument(seasonKey);
 
-	if (cachedDoc.exists()) {
-		const cachedData = cachedDoc.data();
-		if (!shouldRefreshCache(cachedData, seasonKey === currentSeasonKey)) {
+	if (cache.cachedData) {
+		if (!shouldRefreshCache(cache.cachedData, seasonKey === currentSeasonKey)) {
 			res.status(200).json({
-				...cachedData,
+				...cache.cachedData,
 				source: {
-					...cachedData.source,
+					...cache.cachedData.source,
 					fromCache: true,
 				},
 			});
@@ -81,15 +77,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 	try {
 		const seasonHistory = await loadSeasonHistory(requestedSeason);
-		await firestore.setDoc(historyDocRef, seasonHistory);
+		if (cache.historyDocRef) {
+			await firestore.setDoc(cache.historyDocRef, seasonHistory);
+		}
 		res.status(200).json(seasonHistory);
 	} catch (error) {
-		if (cachedDoc.exists()) {
-			const cachedData = cachedDoc.data();
+		if (cache.cachedData) {
 			res.status(200).json({
-				...cachedData,
+				...cache.cachedData,
 				source: {
-					...cachedData.source,
+					...cache.cachedData.source,
 					fromCache: true,
 					stale: true,
 					errorMessage: error instanceof Error ? error.message : 'Nepodařilo se obnovit historii zápasů.',
@@ -100,6 +97,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 		console.error('Failed to load PSMF match history', error);
 		res.status(500).json({ error: error instanceof Error ? error.message : 'Nepodařilo se načíst historii zápasů.' });
+	}
+}
+
+async function getHistoryCacheDocument(seasonKey: string) {
+	try {
+		const firebaseApp = await initFirebase();
+		const historyCollection = firestore.collection(firestore.getFirestore(firebaseApp), MATCH_HISTORY_COLLECTION) as firestore.CollectionReference<CachedHistoryDocument>;
+		const historyDocRef = firestore.doc(historyCollection, seasonKey);
+		const cachedDoc = await firestore.getDoc(historyDocRef);
+		return {
+			historyDocRef,
+			cachedData: cachedDoc.exists() ? cachedDoc.data() : null,
+		};
+	} catch (error) {
+		console.warn('PSMF history cache unavailable, continuing without shared cache', error instanceof Error ? error.message : error);
+		return {
+			historyDocRef: null,
+			cachedData: null,
+		};
 	}
 }
 
@@ -185,7 +201,7 @@ async function fetchHtml(url: string) {
 	return response.text();
 }
 
-function createDom(html: string) {
+export function createDom(html: string) {
 	return new JSDOM(html);
 }
 
@@ -232,7 +248,7 @@ function getSeasonKeyFromTournament(tournament: string) {
 	return `${yearMatch.groups.year}-${half}`;
 }
 
-function parseTeamPageMatches(document: Document, teamPagePath: string): IPSMFHistoricalMatch[] {
+export function parseTeamPageMatches(document: Document, teamPagePath: string): IPSMFHistoricalMatch[] {
 	const tournamentGroup = getTournamentGroupPath(teamPagePath);
 	if (!tournamentGroup) {
 		return [];
@@ -346,7 +362,7 @@ function parseScore(value: string) {
 	};
 }
 
-function extractScorers(document: Document, match: IPSMFHistoricalMatch) {
+export function extractScorers(document: Document, match: IPSMFHistoricalMatch) {
 	const goalBlocks = collectGoalBlocks(document, match);
 	const scorers: IPSMFHistoricalScorer[] = [];
 

@@ -125,7 +125,7 @@ export function useSeasonMatchHistory(season: IPSMFSeason) {
 		setLoading(true);
 		try {
 			const response = await fetch(`${PSMF_MATCH_HISTORY_ENDPOINT}?season=${encodeURIComponent(seasonKey)}`);
-			const responseData = await response.json() as IPSMFSeasonHistoryCacheDocument | { error?: string };
+			const responseData = await parseMatchHistoryResponse(response);
 			if (!response.ok) {
 				throw new Error('error' in responseData ? responseData.error || 'Nepodařilo se načíst historii zápasů.' : 'Nepodařilo se načíst historii zápasů.');
 			}
@@ -144,4 +144,21 @@ export function useSeasonMatchHistory(season: IPSMFSeason) {
 		errorMessage,
 		loading,
 	};
+}
+
+export async function parseMatchHistoryResponse(response: Pick<Response, 'text'>): Promise<IPSMFSeasonHistoryCacheDocument | { error?: string }> {
+	const responseText = await response.text();
+	if (!responseText) {
+		return {};
+	}
+	try {
+		return JSON.parse(responseText) as IPSMFSeasonHistoryCacheDocument | { error?: string };
+	} catch {
+		const normalizedMessage = responseText.startsWith('<') || responseText.startsWith('A server error')
+			? 'Server vrátil neplatnou odpověď při načítání historie zápasů.'
+			: responseText.slice(0, 200);
+		return {
+			error: normalizedMessage,
+		};
+	}
 }

@@ -13,6 +13,7 @@ import {
 } from '../Model/psmfMatchHistoryShared';
 import {
 	getGroupPagePath,
+	parseGroupPageMatches,
 	getSeasonPagePath,
 	getSeasonTeamPagePath,
 	parseGroupPageResultPaths,
@@ -116,12 +117,15 @@ async function getHistoryCacheDocument(seasonKey: string) {
 	}
 }
 
-function shouldRefreshCache(cache: CachedHistoryDocument, isCurrentSeason: boolean) {
+export function shouldRefreshCache(cache: CachedHistoryDocument, isCurrentSeason: boolean) {
 	if (cache.source.cacheVersion !== CACHE_VERSION) {
 		return true;
 	}
 	if (!isCurrentSeason) {
 		return false;
+	}
+	if (cache.matches.length < 1 || cache.matches.every((match) => !match.score)) {
+		return true;
 	}
 	const fetchedAt = Date.parse(cache.fetchedAtIso);
 	return Number.isNaN(fetchedAt) || Date.now() - fetchedAt > CURRENT_SEASON_REFRESH_AGE_MS;
@@ -154,10 +158,11 @@ async function loadSeasonHistory(season: IPSMFSeason): Promise<CachedHistoryDocu
 		seasonPagePath ? fetchHtml(new URL(seasonPagePath, PSMF_BASE_URL).toString()) : Promise.resolve(''),
 	]);
 	const teamMatches = parseTeamPageMatches(teamPageHtml, teamPagePath);
+	const groupMatches = groupPageHtml && groupPagePath ? parseGroupPageMatches(groupPageHtml, groupPagePath) : [];
 	const resultPaths = groupPageHtml ? parseGroupPageResultPaths(groupPageHtml) : [];
 	const roundMatches = await loadRoundMatches(resultPaths, groupPagePath);
 	const statsCategories = seasonPageHtml ? await loadStatsCategories(seasonPageHtml) : [];
-	const matches = mergeMatches(teamMatches, roundMatches);
+	const matches = mergeMatches(teamMatches, mergeMatches(groupMatches, roundMatches));
 
 	return {
 		seasonKey,

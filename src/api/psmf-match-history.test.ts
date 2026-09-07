@@ -1,6 +1,7 @@
 // @ts-nocheck
 import {
 	extractScorers,
+	parseGroupPageMatches,
 	getSeasonTeamPagePath,
 	parseRoundResults,
 	parseStatsCategories,
@@ -295,6 +296,46 @@ describe('psmf match history parser', () => {
 					],
 				},
 			],
+		});
+	});
+
+	it('parses visible group page result rows as fallback', () => {
+		const matches = parseGroupPageMatches(`
+			<table class="component__table">
+				<tr>
+					<th>Datum</th>
+					<th>Čas</th>
+					<th>Hřiště</th>
+					<th>Domácí - Hosté</th>
+					<th>Kolo</th>
+					<th>Výsledek</th>
+				</tr>
+				<tr>
+					<td>Út 1.9.26</td>
+					<td>19:15</td>
+					<td><a href="/hriste/#MALES">MALES</a></td>
+					<td>
+						<a href="/souteze/2026-hanspaulska-liga-podzim/6-e/tymy/catchers-sc/">Catchers SC</a>
+						<a href="/souteze/2026-hanspaulska-liga-podzim/6-e/tymy/youngsters-fc-b/">Youngsters FC B</a>
+					</td>
+					<td>1.</td>
+					<td>2:6 <a class="component__table-info game-result-info-link" href="#gameResults" data-round="1" data-gameid="301999" title="Info"></a></td>
+				</tr>
+			</table>
+		`, '/souteze/2026-hanspaulska-liga-podzim/6-e/');
+
+		expect(matches).toHaveLength(1);
+		expect(matches[0]).toMatchObject({
+			id: '301999',
+			score: {
+				home: 2,
+				guest: 6,
+				raw: '2:6',
+			},
+			raw: {
+				groupResultGameId: '301999',
+				groupResultRound: '1',
+			},
 		});
 	});
 });

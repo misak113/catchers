@@ -68,6 +68,21 @@ export function parseGroupPageResultPaths(groupPageHtml: string) {
 	);
 }
 
+export function parseGroupPageMatches(groupPageHtml: string, groupPagePath: string) {
+	const tournamentGroup = getGroupTournamentPath(groupPagePath);
+	if (!tournamentGroup) {
+		return [];
+	}
+	return extractRows(groupPageHtml)
+		.map((rowHtml, index) => parseGroupPageMatchRow(rowHtml, {
+			tournament: tournamentGroup.tournament,
+			group: tournamentGroup.group,
+			index,
+			sourcePath: groupPagePath,
+		}))
+		.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
+}
+
 export function parseStatsCategories(html: string) {
 	return uniqueBy(
 		matchAll(html, /<a\b[^>]*class=["'][^"']*stats-action[^"']*["'][^>]*data-url=["'](?<path>[^"']+)["'][^>]*>(?<title>[\s\S]*?)<\/a>/gi)
@@ -99,6 +114,29 @@ export function parseStatsCategoryTables(statsHtml: string, category: Pick<IPSMF
 					.filter((row) => row.length > 0),
 			}))
 			.filter((table) => table.rows.length > 0),
+	};
+}
+
+function parseGroupPageMatchRow(rowHtml: string, options: ParseMatchRowOptions) {
+	const cells = extractCells(rowHtml);
+	if (cells.length < 6 || !cells.some((cell) => Boolean(parseScore(stripAndDecode(cell))))) {
+		return null;
+	}
+	const infoLinkHtml = matchAll(rowHtml, /<a\b[^>]*class=["'][^"']*game-result-info-link[^"']*["'][^>]*>/gi)[0]?.[0];
+	const match = parseMatchRow(rowHtml, {
+		...options,
+		matchId: readAttribute(infoLinkHtml || rowHtml, 'data-gameid') || options.matchId,
+	});
+	if (!match) {
+		return null;
+	}
+	return {
+		...match,
+		raw: {
+			...match.raw,
+			groupResultGameId: readAttribute(infoLinkHtml || rowHtml, 'data-gameid') || match.raw.groupResultGameId,
+			groupResultRound: readAttribute(infoLinkHtml || rowHtml, 'data-round') || match.raw.groupResultRound,
+		},
 	};
 }
 
@@ -604,6 +642,11 @@ function decodePath(value: string | undefined) {
 		return undefined;
 	}
 	return decodeHtml(value).trim();
+}
+
+function readAttribute(html: string, attributeName: string) {
+	const match = html.match(new RegExp(`${escapeRegExp(attributeName)}=["'](?<value>[^"']+)["']`, 'i'));
+	return match?.groups?.value;
 }
 
 function unwrapHtmlPayload(value: string) {

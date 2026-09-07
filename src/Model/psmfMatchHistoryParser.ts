@@ -108,7 +108,7 @@ export function parseRoundResults(responseText: string, groupPagePath: string): 
 		return [];
 	}
 	const payloadHtml = unwrapHtmlPayload(responseText);
-	return matchAll(payloadHtml, /<div\b[^>]*id=["']GameResultItem(?<gameId>\d+)["'][^>]*>(?<content>[\s\S]*?)(?=<div\b[^>]*id=["']GameResultItem\d+["']|$)/gi)
+	const parsedMatches: Array<IPSMFHistoricalMatch | null> = matchAll(payloadHtml, /<div\b[^>]*id=["']GameResultItem(?<gameId>\d+)["'][^>]*>(?<content>[\s\S]*?)(?=<div\b[^>]*id=["']GameResultItem\d+["']|$)/gi)
 		.map((blockMatch, index) => {
 			const gameId = blockMatch.groups?.gameId;
 			const blockHtml = blockMatch[0];
@@ -134,8 +134,8 @@ export function parseRoundResults(responseText: string, groupPagePath: string): 
 					detailTables: detailData.detailTables,
 				},
 			};
-		})
-		.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
+		});
+	return parsedMatches.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
 }
 
 type ParseMatchRowOptions = {
@@ -398,7 +398,7 @@ function collectGoalBlocks(detailHtml: string, match: IPSMFHistoricalMatch): Goa
 			continue;
 		}
 		const headerCells = extractHeaderOrCells(rows[0]).map(stripAndDecode);
-		const columnSides = headerCells.map((headerCell) => getSideFromText(headerCell, match));
+		const columnSides = inferColumnSides(headerCells, match);
 		const columns = columnSides.map((side, index) => ({
 			side,
 			lines: rows.slice(1).flatMap((rowHtml) => splitHtmlLines(extractHeaderOrCells(rowHtml)[index] || '')),
@@ -501,6 +501,26 @@ function getSideFromText(value: string | undefined, match: IPSMFHistoricalMatch)
 		return 'guest';
 	}
 	return 'unknown';
+}
+
+function inferColumnSides(headerCells: string[], match: IPSMFHistoricalMatch) {
+	const resolvedSides = headerCells.map((headerCell) => getSideFromText(headerCell, match));
+	if (resolvedSides.some((side) => side !== 'unknown')) {
+		return resolvedSides;
+	}
+	if (headerCells.length >= 4) {
+		const middleIndex = Math.floor(headerCells.length / 2);
+		return headerCells.map((_, index) => {
+			if (index < middleIndex) {
+				return 'home';
+			}
+			if (index > middleIndex) {
+				return 'guest';
+			}
+			return headerCells.length % 2 === 0 ? 'guest' : 'unknown';
+		});
+	}
+	return resolvedSides;
 }
 
 function extractTableByClass(html: string, className: string) {

@@ -1,7 +1,18 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import moment from 'moment-timezone';
 import classNames from 'classnames';
 import { AddToCalendarButton } from 'add-to-calendar-button-react';
+import {
+	BarElement,
+	CategoryScale,
+	Chart as ChartJS,
+	Legend as ChartLegend,
+	LinearScale,
+	type ChartData,
+	type ChartOptions,
+	Tooltip as ChartTooltip,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
 import Anchor from '../Components/Anchor';
 import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
 import Loading from '../Components/Loading';
@@ -19,15 +30,32 @@ import config from '../config.json';
 import { getPSMFFieldUrl, getPSMFGroupUrl, getPSMFTournamentUrl, useTeamName } from '../Model/psmfFacade';
 import { TeamName } from '../Components/Team/TeamName';
 import { getPSMFTeamUrl } from '../Model/psmfIndependentFacade';
+import {
+	formatPSMFSeasonLabel,
+	getCurrentPSMFSeason,
+	getNextPSMFSeason,
+	getPreviousPSMFSeason,
+	isSamePSMFSeason,
+	type IPSMFHistoricalMatch,
+	type IPSMFSeason,
+} from '../Model/psmfMatchHistoryShared';
+import {
+	useSeasonMatchHistory,
+} from '../Model/psmfMatchHistoryFacade';
 
 interface IProps {}
 
+ChartJS.register(CategoryScale, LinearScale, BarElement, ChartTooltip, ChartLegend);
+
 const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & IFirebaseValue & IAuthValue) => {
 	const [errorMessage, setErrorMessage] = useState<string>();
+	const [selectedSeason, setSelectedSeason] = useState<IPSMFSeason>(() => getCurrentPSMFSeason());
 	const [possibleAttendees] = usePossibleAttendees(props.firebaseApp, props.auth.user, setErrorMessage);
 	const [currentUser] = useCurrentUser(props.firebaseApp, props.auth.user, setErrorMessage);
 	const upcomingMatches = useUpcomingMatches(props.firebaseApp);
 	const pastMatchesPagination = usePastMatches(props.firebaseApp, props.auth.user, setErrorMessage);
+	const seasonHistory = useSeasonMatchHistory(selectedSeason);
+	const currentSeason = getCurrentPSMFSeason();
 
 	return <>
 		<h1>Zápasy</h1>
@@ -36,6 +64,14 @@ const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps &
 		<MatchesTable matches={upcomingMatches} possibleAttendees={possibleAttendees} errorMessage={errorMessage} currentUser={currentUser}/>
 
 		{hasPrivilege(currentUser, Privilege.SyncMatches) && <SyncMatches/>}
+
+		<SeasonHistoryChart
+			season={selectedSeason}
+			currentSeason={currentSeason}
+			onPreviousSeason={() => setSelectedSeason((season) => getPreviousPSMFSeason(season))}
+			onNextSeason={() => setSelectedSeason((season) => getNextPSMFSeason(season))}
+			seasonHistory={seasonHistory}
+		/>
 
 		<h2 className="Matches-pastHeader">Minulé</h2>
 		<MatchesTable matches={pastMatchesPagination.matches} possibleAttendees={possibleAttendees} errorMessage={errorMessage} currentUser={currentUser}/>
@@ -130,6 +166,140 @@ function PastMatchesPagination({
 			Zobrazuje se nejvýše {PAST_MATCHES_PAGE_SIZE} minulých zápasů.
 		</span>
 	</div>;
+}
+
+interface ISeasonHistoryChartProps {
+	season: IPSMFSeason;
+	currentSeason: IPSMFSeason;
+	onPreviousSeason: () => void;
+	onNextSeason: () => void;
+	seasonHistory: ReturnType<typeof useSeasonMatchHistory>;
+}
+
+function SeasonHistoryChart({
+	season,
+	currentSeason,
+	onPreviousSeason,
+	onNextSeason,
+	seasonHistory,
+}: ISeasonHistoryChartProps) {
+	const finishedMatches = useMemo(() => {
+		return [...(seasonHistory.data?.matches ?? [])]
+			.filter((match) => Boolean(match.score))
+			.sort((match1, match2) => Date.parse(match1.startsAtIso) - Date.parse(match2.startsAtIso));
+	}, [seasonHistory.data?.matches]);
+	const chartData = useMemo<ChartData<'bar'>>(() => ({
+		labels: finishedMatches.map((match) => formatSeasonMatchLabel(match)),
+		datasets: [
+			{
+				label: 'Vstřelené góly',
+				data: finishedMatches.map((match) => getCatchersGoals(match).scored),
+				backgroundColor: '#16a34a',
+				borderColor: '#15803d',
+				borderWidth: 1,
+			},
+			{
+				label: 'Inkasované góly',
+				data: finishedMatches.map((match) => -getCatchersGoals(match).received),
+				backgroundColor: '#dc2626',
+				borderColor: '#b91c1c',
+				borderWidth: 1,
+			},
+		],
+	}), [finishedMatches]);
+	const chartOptions = useMemo<ChartOptions<'bar'>>(() => ({
+		responsive: true,
+		maintainAspectRatio: false,
+		plugins: {
+			legend: {
+				position: 'bottom',
+			},
+			tooltip: {
+				callbacks: {
+					label: (context) => `${context.dataset.label}: ${Math.abs(Number(context.parsed.y ?? 0))}`,
+				},
+			},
+		},
+		scales: {
+			x: {
+				title: {
+					display: true,
+					text: 'Zápasy',
+				},
+			},
+			y: {
+				ticks: {
+					precision: 0,
+					callback: (value) => `${Math.abs(Number(value))}`,
+				},
+				title: {
+					display: true,
+					text: 'Góly',
+				},
+			},
+		},
+	}), []);
+
+	return <section className="Matches-seasonHistory card">
+		<div className="card-header Matches-seasonHistoryHeader">
+			<h2 className="Matches-seasonHistoryTitle">Historie výsledků</h2>
+			<div className="Matches-seasonHistoryControls">
+				<button
+					type="button"
+					className="btn btn-outline-secondary"
+					onClick={onPreviousSeason}
+					aria-label="Předchozí sezóna"
+				>
+					<span aria-hidden="true">←</span>
+				</button>
+				<span className="Matches-seasonHistoryLabel">{formatPSMFSeasonLabel(season)}</span>
+				<button
+					type="button"
+					className="btn btn-outline-secondary"
+					onClick={onNextSeason}
+					disabled={isSamePSMFSeason(season, currentSeason)}
+					aria-label="Další sezóna"
+				>
+					<span aria-hidden="true">→</span>
+				</button>
+			</div>
+		</div>
+		<div className="card-body">
+			<p className="Matches-seasonHistoryLegend text-muted">
+				Zeleně vstřelené góly, červeně inkasované góly.
+			</p>
+			{seasonHistory.errorMessage && <div className="alert alert-danger mb-3">{seasonHistory.errorMessage}</div>}
+			{seasonHistory.loading && !seasonHistory.data
+				? <Loading size='50px'/>
+				: finishedMatches.length < 1
+					? <p className="mb-0">Pro tuto sezónu zatím nejsou k dispozici žádné odehrané zápasy.</p>
+					: <div className="Matches-seasonHistoryChartWrapper">
+						<Bar data={chartData} options={chartOptions}/>
+					</div>}
+		</div>
+	</section>;
+}
+
+function formatSeasonMatchLabel(match: IPSMFHistoricalMatch) {
+	const date = new Date(match.startsAtIso);
+	const formattedDate = new Intl.DateTimeFormat('cs-CZ', {
+		day: 'numeric',
+		month: 'numeric',
+	}).format(date);
+	return `${formattedDate} ${match.opponentName}`;
+}
+
+function getCatchersGoals(match: IPSMFHistoricalMatch) {
+	if (!match.score) {
+		return {
+			scored: 0,
+			received: 0,
+		};
+	}
+	const catchersHome = match.homeTeamCode === 'catchers-sc';
+	return catchersHome
+		? { scored: match.score.home, received: match.score.guest }
+		: { scored: match.score.guest, received: match.score.home };
 }
 
 interface MatchRowProps {

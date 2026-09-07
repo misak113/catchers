@@ -62,16 +62,19 @@ export function getSeasonPagePath(teamPagePath: string) {
 
 export function parseGroupPageResultPaths(groupPageHtml: string) {
 	return uniqueStrings(
-		matchAll(groupPageHtml, /<a\b[^>]*class=["'][^"']*results-action[^"']*["'][^>]*data-url=["'](?<path>[^"']+)["'][^>]*>/gi)
-			.map((match) => decodePath(match.groups?.path))
+		extractAnchorTags(groupPageHtml)
+			.filter((anchorHtml) => hasClass(anchorHtml, 'results-action'))
+			.map((anchorHtml) => decodePath(readAttribute(anchorHtml, 'data-url')))
 			.filter((path): path is string => Boolean(path))
 	);
 }
 
 export function parseGroupPageOldMatchPaths(groupPageHtml: string) {
 	return uniqueStrings(
-		matchAll(groupPageHtml, /<a\b[^>]*class=["'][^"']*games-action[^"']*["'][^>]*data-gtype=["']old["'][^>]*data-url=["'](?<path>[^"']+)["'][^>]*>/gi)
-			.map((match) => decodePath(match.groups?.path))
+		extractAnchorTags(groupPageHtml)
+			.filter((anchorHtml) => hasClass(anchorHtml, 'games-action'))
+			.filter((anchorHtml) => readAttribute(anchorHtml, 'data-gtype') === 'old')
+			.map((anchorHtml) => decodePath(readAttribute(anchorHtml, 'data-url')))
 			.filter((path): path is string => Boolean(path))
 	);
 }
@@ -101,9 +104,10 @@ export function parseOldMatchPage(responseText: string, groupPagePath: string) {
 
 export function parseStatsCategories(html: string) {
 	return uniqueBy(
-		matchAll(html, /<a\b[^>]*class=["'][^"']*stats-action[^"']*["'][^>]*data-url=["'](?<path>[^"']+)["'][^>]*>(?<title>[\s\S]*?)<\/a>/gi)
+		matchAll(html, /<a\b(?<attrs>[^>]*)>(?<title>[\s\S]*?)<\/a>/gi)
+			.filter((match) => hasClass(match[0], 'stats-action'))
 			.map((match) => {
-				const path = decodePath(match.groups?.path);
+				const path = decodePath(readAttribute(match[0], 'data-url'));
 				if (!path) {
 					return null;
 				}
@@ -157,7 +161,8 @@ function parseGroupPageMatchRow(rowHtml: string, options: ParseMatchRowOptions) 
 }
 
 function parseOldMatchMorePath(html: string) {
-	return decodePath(matchAll(html, /<a\b[^>]*class=["'][^"']*games-old-more[^"']*["'][^>]*data-url=["'](?<path>[^"']+)["'][^>]*>/gi)[0]?.groups?.path);
+	const moreAnchorHtml = extractAnchorTags(html).find((anchorHtml) => hasClass(anchorHtml, 'games-old-more'));
+	return decodePath(readAttribute(moreAnchorHtml || '', 'data-url'));
 }
 
 export function parseRoundResults(responseText: string, groupPagePath: string): IPSMFHistoricalMatch[] {
@@ -619,6 +624,15 @@ function extractAnchors(html: string) {
 		href: match.groups?.href || '',
 		text: stripAndDecode(match.groups?.text || ''),
 	}));
+}
+
+function extractAnchorTags(html: string) {
+	return matchAll(html, /<a\b[^>]*>/gi).map((match) => match[0]);
+}
+
+function hasClass(html: string, className: string) {
+	const classes = readAttribute(html, 'class');
+	return classes ? classes.split(/\s+/).includes(className) : false;
 }
 
 function extractFirstText(html: string, regexes: RegExp[]) {

@@ -73,14 +73,14 @@ export function parseGroupPageMatches(groupPageHtml: string, groupPagePath: stri
 	if (!tournamentGroup) {
 		return [];
 	}
-	return extractRows(groupPageHtml)
+	const parsedMatches: Array<IPSMFHistoricalMatch | null> = extractRows(groupPageHtml)
 		.map((rowHtml, index) => parseGroupPageMatchRow(rowHtml, {
 			tournament: tournamentGroup.tournament,
 			group: tournamentGroup.group,
 			index,
 			sourcePath: groupPagePath,
-		}))
-		.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
+		}));
+	return parsedMatches.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
 }
 
 export function parseStatsCategories(html: string) {

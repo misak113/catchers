@@ -9,7 +9,7 @@ import {
 	IPSMFSeasonHistoryCacheDocument,
 	parsePSMFSeasonKey,
 } from '../Model/psmfMatchHistoryShared';
-import { collectRelevantDetailLines, collectRelevantDetailTables, extractScorers, parseTeamPageMatches } from '../Model/psmfMatchHistoryParser';
+import { extractMatchDetailData, getSeasonTeamPagePath, parseTeamPageMatches } from '../Model/psmfMatchHistoryParser';
 
 const MATCH_HISTORY_COLLECTION = 'psmfMatchHistory';
 const PSMF_BASE_URL = 'https://www.psmf.cz';
@@ -118,8 +118,7 @@ function shouldRefreshCache(cache: CachedHistoryDocument, isCurrentSeason: boole
 async function loadSeasonHistory(season: IPSMFSeason): Promise<CachedHistoryDocument> {
 	const seasonKey = buildPSMFSeasonKey(season);
 	const searchHtml = await fetchHtml(SEARCH_URL);
-	const searchDom = createDom(searchHtml);
-	const teamPagePath = getSeasonTeamPagePath(searchDom.window.document, seasonKey);
+	const teamPagePath = getSeasonTeamPagePath(searchHtml, seasonKey);
 	if (!teamPagePath) {
 		return {
 			seasonKey,
@@ -136,23 +135,22 @@ async function loadSeasonHistory(season: IPSMFSeason): Promise<CachedHistoryDocu
 
 	const teamPageUrl = new URL(teamPagePath, PSMF_BASE_URL).toString();
 	const teamPageHtml = await fetchHtml(teamPageUrl);
-	const teamPageDom = createDom(teamPageHtml);
-	const matches = parseTeamPageMatches(teamPageDom.window.document, teamPagePath);
+	const matches = parseTeamPageMatches(teamPageHtml, teamPagePath);
 	const matchesWithDetails = await Promise.all(matches.map(async (match) => {
 		if (!match.detailPath || !match.score) {
 			return match;
 		}
 		try {
 			const detailHtml = await fetchHtml(new URL(match.detailPath, PSMF_BASE_URL).toString());
-			const detailDom = createDom(detailHtml);
+			const detailData = extractMatchDetailData(detailHtml, match);
 			return {
 				...match,
-				scorers: extractScorers(detailDom.window.document, match),
+				scorers: detailData.scorers,
 				raw: {
 					...match.raw,
-					detailTitle: normalizeText(detailDom.window.document.querySelector('.component--title .component__title, h1')?.textContent),
-					detailLines: collectRelevantDetailLines(detailDom.window.document, match),
-					detailTables: collectRelevantDetailTables(detailDom.window.document, match),
+					detailTitle: detailData.detailTitle,
+					detailLines: detailData.detailLines,
+					detailTables: detailData.detailTables,
 				},
 			};
 		} catch (error) {
@@ -184,60 +182,4 @@ async function fetchHtml(url: string) {
 		throw new Error(`PSMF request failed for ${url} with status ${response.status}`);
 	}
 	return response.text();
-}
-
-function createDom(html: string) {
-	const { JSDOM } = require('jsdom');
-	return new JSDOM(html);
-}
-
-function getSeasonTeamPagePath(document: Document, seasonKey: string) {
-	const listItems = [...document.querySelectorAll<HTMLLIElement>('section.component--content .container .component__wrap .component__text .search-content ul li')];
-	for (const listItem of listItems) {
-		const href = listItem.querySelector<HTMLAnchorElement>('a')?.getAttribute('href');
-		if (!href) {
-			continue;
-		}
-		const tournamentGroupPath = getTournamentGroupPath(href);
-		if (!tournamentGroupPath) {
-			continue;
-		}
-		if (getSeasonKeyFromTournament(tournamentGroupPath.tournament) === seasonKey) {
-			return tournamentGroupPath.teamPagePath;
-		}
-	}
-	return undefined;
-}
-
-function getTournamentGroupPath(path: string) {
-	const pathname = new URL(path, PSMF_BASE_URL).pathname;
-	const match = pathname.match(/^\/souteze\/(?<tournament>[^/]+)\/(?<group>[^/]+)\/tymy\/(?<teamCode>[^/]+)\/?$/);
-	if (!match?.groups || match.groups.teamCode !== 'catchers-sc') {
-		return null;
-	}
-	return {
-		tournament: match.groups.tournament,
-		group: match.groups.group,
-		teamPagePath: pathname.endsWith('/') ? pathname : `${pathname}/`,
-	};
-}
-
-function getSeasonKeyFromTournament(tournament: string) {
-	const yearMatch = tournament.match(/(?<year>\d{4})/);
-	if (!yearMatch?.groups?.year) {
-		return null;
-	}
-	const half = /podzim/i.test(tournament) ? 'podzim' : /jaro/i.test(tournament) ? 'jaro' : null;
-	if (!half) {
-		return null;
-	}
-	return `${yearMatch.groups.year}-${half}`;
-}
-
-function normalizeText(value: string | null | undefined) {
-	return (value ?? '')
-		.replace(/&nbsp;/g, ' ')
-		.replace(/\u00a0/g, ' ')
-		.replace(/\s+/g, ' ')
-		.trim();
 }

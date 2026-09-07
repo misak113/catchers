@@ -1,13 +1,24 @@
 // @ts-nocheck
-import { extractScorers, parseTeamPageMatches } from '../Model/psmfMatchHistoryParser';
-
-function createDom(html: string) {
-	return new DOMParser().parseFromString(html, 'text/html');
-}
+import { extractScorers, getSeasonTeamPagePath, parseTeamPageMatches } from '../Model/psmfMatchHistoryParser';
 
 describe('psmf match history parser', () => {
+	it('finds the requested season team page from search html', () => {
+		const teamPagePath = getSeasonTeamPagePath(`
+			<section class="component--content">
+				<div class="search-content">
+					<ul>
+						<li><a href="/souteze/2026-hanspaulska-liga-jaro/6-d/tymy/catchers-sc/">2026 jaro</a></li>
+						<li><a href="/souteze/2026-hanspaulska-liga-podzim/8-c/tymy/catchers-sc/">2026 podzim</a></li>
+					</ul>
+				</div>
+			</section>
+		`, '2026-podzim');
+
+		expect(teamPagePath).toBe('/souteze/2026-hanspaulska-liga-podzim/8-c/tymy/catchers-sc/');
+	});
+
 	it('parses team page rows with scores and detail links', () => {
-		const dom = createDom(`
+		const matches = parseTeamPageMatches(`
 			<section class="component--opener">
 				<table class="games-new-table">
 					<tr>
@@ -24,9 +35,7 @@ describe('psmf match history parser', () => {
 					</tr>
 				</table>
 			</section>
-		`);
-
-		const matches = parseTeamPageMatches(dom, '/souteze/2026-hanspaulska-liga-podzim/8-c/tymy/catchers-sc/');
+		`, '/souteze/2026-hanspaulska-liga-podzim/8-c/tymy/catchers-sc/');
 
 		expect(matches).toHaveLength(1);
 		expect(matches[0]).toMatchObject({
@@ -70,7 +79,7 @@ describe('psmf match history parser', () => {
 				raw: '2:1',
 			},
 		};
-		const dom = createDom(`
+		const scorers = extractScorers(`
 			<h2>Střelci branek</h2>
 			<table>
 				<tr>
@@ -82,9 +91,7 @@ describe('psmf match history parser', () => {
 					<td>67. Karel Dvořák</td>
 				</tr>
 			</table>
-		`);
-
-		const scorers = extractScorers(dom, match);
+		`, match);
 
 		expect(scorers).toEqual([
 			{

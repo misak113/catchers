@@ -4,26 +4,55 @@ import { IPSMFHistoricalMatch, IPSMFHistoricalRawTable, IPSMFHistoricalScorer } 
 
 const PSMF_BASE_URL = 'https://www.psmf.cz';
 const TEAM_CODE_NAME = 'catchers-sc';
-const MATCH_ROW_SELECTOR = 'section.component--opener table.games-new-table tr';
 
-type GoalBlock = {
-	title?: string;
-	lines: string[];
-	columns?: { side: 'home' | 'guest' | 'unknown'; lines: string[] }[];
-};
+export function getSeasonTeamPagePath(searchHtml: string, seasonKey: string) {
+	const teamPaths = matchAll(searchHtml, /href=["'](?<href>[^"']*\/souteze\/[^"']+\/[^"']+\/tymy\/catchers-sc\/?)["']/gi)
+		.map((match) => match.groups?.href)
+		.filter((href): href is string => Boolean(href));
 
-export function parseTeamPageMatches(document: Document, teamPagePath: string): IPSMFHistoricalMatch[] {
+	for (const href of teamPaths) {
+		const tournamentGroupPath = getTournamentGroupPath(href);
+		if (!tournamentGroupPath) {
+			continue;
+		}
+		if (getSeasonKeyFromTournament(tournamentGroupPath.tournament) === seasonKey) {
+			return tournamentGroupPath.teamPagePath;
+		}
+	}
+
+	return undefined;
+}
+
+export function parseTeamPageMatches(teamPageHtml: string, teamPagePath: string): IPSMFHistoricalMatch[] {
 	const tournamentGroup = getTournamentGroupPath(teamPagePath);
 	if (!tournamentGroup) {
 		return [];
 	}
-	const rows = [...document.querySelectorAll<HTMLTableRowElement>(MATCH_ROW_SELECTOR)];
-	return rows.map((row, index) => parseTeamPageMatchRow(row, tournamentGroup.tournament, tournamentGroup.group, index))
+
+	const tableHtml = extractTableByClass(teamPageHtml, 'games-new-table');
+	if (!tableHtml) {
+		return [];
+	}
+
+	return extractRows(tableHtml)
+		.map((rowHtml, index) => parseTeamPageMatchRow(rowHtml, tournamentGroup.tournament, tournamentGroup.group, index))
 		.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
 }
 
-export function extractScorers(document: Document, match: IPSMFHistoricalMatch) {
-	const goalBlocks = collectGoalBlocks(document, match);
+export function extractMatchDetailData(detailHtml: string, match: IPSMFHistoricalMatch) {
+	return {
+		detailTitle: extractFirstText(detailHtml, [
+			/<[^>]*class=["'][^"']*component__title[^"']*["'][^>]*>(?<text>[\s\S]*?)<\/[^>]+>/i,
+			/<h1[^>]*>(?<text>[\s\S]*?)<\/h1>/i,
+		]),
+		scorers: extractScorers(detailHtml, match),
+		detailLines: collectRelevantDetailLines(detailHtml, match),
+		detailTables: collectRelevantDetailTables(detailHtml, match),
+	};
+}
+
+export function extractScorers(detailHtml: string, match: IPSMFHistoricalMatch) {
+	const goalBlocks = collectGoalBlocks(detailHtml, match);
 	const scorers: IPSMFHistoricalScorer[] = [];
 
 	for (const block of goalBlocks) {
@@ -51,43 +80,72 @@ export function extractScorers(document: Document, match: IPSMFHistoricalMatch) 
 	});
 }
 
-function getTournamentGroupPath(path: string) {
-	const pathname = new URL(path, PSMF_BASE_URL).pathname;
-	const match = pathname.match(/^\/souteze\/(?<tournament>[^/]+)\/(?<group>[^/]+)\/tymy\/(?<teamCode>[^/]+)\/?$/);
-	if (!match?.groups || match.groups.teamCode !== TEAM_CODE_NAME) {
-		return null;
-	}
-	return {
-		tournament: match.groups.tournament,
-		group: match.groups.group,
-		teamPagePath: pathname.endsWith('/') ? pathname : `${pathname}/`,
-	};
+export function collectRelevantDetailLines(detailHtml: string, match: IPSMFHistoricalMatch) {
+	const detailText = decodeHtml(stripTags(detailHtml));
+	return detailText
+		.split(/\s{2,}/)
+		.map((line) => line.trim())
+		.filter((line) => line.length > 2)
+		.filter((line) => {
+			const lowerLine = line.toLowerCase();
+			return /gól|brank|žlut|červen|karta|střel/.test(lowerLine)
+				|| lowerLine.includes((match.homeTeamName || '').toLowerCase())
+				|| lowerLine.includes((match.guestTeamName || '').toLowerCase());
+		})
+		.slice(0, 30);
 }
 
-function parseTeamPageMatchRow(row: HTMLTableRowElement, tournament: string, group: string, index: number): IPSMFHistoricalMatch | null {
-	const cells = [...row.querySelectorAll<HTMLTableCellElement>('td')];
+export function collectRelevantDetailTables(detailHtml: string, match: IPSMFHistoricalMatch): IPSMFHistoricalRawTable[] {
+	const tables: IPSMFHistoricalRawTable[] = [];
+	for (const { tableHtml, previousHeadingHtml } of extractTables(detailHtml)) {
+		const rows = extractRows(tableHtml).map((rowHtml) => extractCells(rowHtml).map(stripAndDecode).filter(Boolean)).filter((row) => row.length > 0);
+		const flattened = rows.flat().join(' ').toLowerCase();
+		if (!flattened) {
+			continue;
+		}
+		const hasRelevantContent = /gól|brank|žlut|červen|karta|střel/.test(flattened)
+			|| flattened.includes((match.homeTeamName || '').toLowerCase())
+			|| flattened.includes((match.guestTeamName || '').toLowerCase());
+		if (!hasRelevantContent) {
+			continue;
+		}
+		tables.push({
+			title: previousHeadingHtml ? stripAndDecode(previousHeadingHtml) || undefined : undefined,
+			rows: rows.slice(0, 20),
+		});
+		if (tables.length >= 6) {
+			break;
+		}
+	}
+	return tables;
+}
+
+type GoalBlock = {
+	title?: string;
+	lines: string[];
+	columns?: { side: 'home' | 'guest' | 'unknown'; lines: string[] }[];
+};
+
+function parseTeamPageMatchRow(rowHtml: string, tournament: string, group: string, index: number): IPSMFHistoricalMatch | null {
+	const cells = extractCells(rowHtml);
 	if (cells.length < 4) {
 		return null;
 	}
 
-	const startsAt = parseMatchStartsAt(
-		normalizeText(cells[0]?.innerHTML),
-		normalizeText(cells[1]?.textContent),
-	);
-	const teamAnchors = [...row.querySelectorAll<HTMLAnchorElement>('td:nth-child(4) a[href^="/souteze/"]')];
+	const startsAt = parseMatchStartsAt(cells[0], stripAndDecode(cells[1]));
+	const teamAnchors = extractAnchors(cells[3]).filter((anchor) => /\/souteze\//.test(anchor.href));
 	const homeTeam = parseTeamAnchor(teamAnchors[0]);
 	const guestTeam = parseTeamAnchor(teamAnchors[1]);
 	if (!startsAt || !homeTeam?.code || !guestTeam?.code) {
 		return null;
 	}
 
-	const isCatchersHome = homeTeam.code === TEAM_CODE_NAME;
-	const opponent = isCatchersHome ? guestTeam : homeTeam;
-	const rowCells = cells.map((cell) => normalizeText(cell.textContent));
-	const detailPath = getDetailPath(row);
+	const opponent = homeTeam.code === TEAM_CODE_NAME ? guestTeam : homeTeam;
+	const rowCells = cells.map(stripAndDecode);
+	const detailAnchor = extractAnchors(rowHtml).find((anchor) => /\/zapas\//.test(anchor.href));
+	const detailPath = detailAnchor ? new URL(detailAnchor.href, PSMF_BASE_URL).pathname : undefined;
 	const scoreCell = rowCells.slice(4).find((cellText) => Boolean(parseScore(cellText)));
-	const parsedScore = scoreCell ? parseScore(scoreCell) : null;
-	const score = parsedScore ?? undefined;
+	const score = scoreCell ? parseScore(scoreCell) ?? undefined : undefined;
 	const matchId = detailPath?.match(/\/zapas\/(?<matchId>[^/?#]+)/)?.groups?.matchId ?? `${tournament}-${group}-${index}`;
 
 	return {
@@ -95,7 +153,7 @@ function parseTeamPageMatchRow(row: HTMLTableRowElement, tournament: string, gro
 		startsAtIso: startsAt.toISOString(),
 		tournament,
 		group,
-		field: normalizeText(cells[2]?.textContent) || undefined,
+		field: stripAndDecode(cells[2]) || undefined,
 		round: getRoundLabel(rowCells),
 		opponentCode: opponent.code,
 		opponentName: opponent.name || opponent.code,
@@ -115,7 +173,7 @@ function parseTeamPageMatchRow(row: HTMLTableRowElement, tournament: string, gro
 }
 
 function parseMatchStartsAt(dateCellHtml: string, timeCellText: string) {
-	const normalizedDate = normalizeText(dateCellHtml);
+	const normalizedDate = stripAndDecode(dateCellHtml);
 	const dateMatch = normalizedDate.match(/(?<day>\d{1,2})\.(?<month>\d{1,2})\.(?<year>\d{2,4})/);
 	if (!dateMatch?.groups || !timeCellText) {
 		return null;
@@ -126,30 +184,44 @@ function parseMatchStartsAt(dateCellHtml: string, timeCellText: string) {
 	return startsAt.isValid() ? startsAt.toDate() : null;
 }
 
-function parseTeamAnchor(anchor: HTMLAnchorElement | undefined) {
+function parseTeamAnchor(anchor: { href: string; text: string } | undefined) {
 	if (!anchor) {
 		return null;
 	}
-	const href = anchor.getAttribute('href');
-	const pathname = href ? new URL(href, PSMF_BASE_URL).pathname : '';
+	const pathname = new URL(anchor.href, PSMF_BASE_URL).pathname;
 	const code = pathname.split('/').filter(Boolean).pop();
 	if (!code) {
 		return null;
 	}
 	return {
 		code,
-		name: normalizeText(anchor.textContent) || code,
+		name: anchor.text || code,
 	};
 }
 
-function getDetailPath(row: HTMLTableRowElement) {
-	const detailHref = [...row.querySelectorAll<HTMLAnchorElement>('a')]
-		.map((anchor) => anchor.getAttribute('href'))
-		.find((href) => Boolean(href && /\/zapas\//.test(href)));
-	if (!detailHref) {
-		return undefined;
+function getTournamentGroupPath(path: string) {
+	const pathname = new URL(path, PSMF_BASE_URL).pathname;
+	const match = pathname.match(/^\/souteze\/(?<tournament>[^/]+)\/(?<group>[^/]+)\/tymy\/(?<teamCode>[^/]+)\/?$/);
+	if (!match?.groups || match.groups.teamCode !== TEAM_CODE_NAME) {
+		return null;
 	}
-	return new URL(detailHref, PSMF_BASE_URL).pathname;
+	return {
+		tournament: match.groups.tournament,
+		group: match.groups.group,
+		teamPagePath: pathname.endsWith('/') ? pathname : `${pathname}/`,
+	};
+}
+
+function getSeasonKeyFromTournament(tournament: string) {
+	const yearMatch = tournament.match(/(?<year>\d{4})/);
+	if (!yearMatch?.groups?.year) {
+		return null;
+	}
+	const half = /podzim/i.test(tournament) ? 'podzim' : /jaro/i.test(tournament) ? 'jaro' : null;
+	if (!half) {
+		return null;
+	}
+	return `${yearMatch.groups.year}-${half}`;
 }
 
 function getRoundLabel(rowCells: string[]) {
@@ -168,32 +240,27 @@ function parseScore(value: string) {
 	};
 }
 
-function collectGoalBlocks(document: Document, match: IPSMFHistoricalMatch): GoalBlock[] {
+function collectGoalBlocks(detailHtml: string, match: IPSMFHistoricalMatch): GoalBlock[] {
 	const blocks: GoalBlock[] = [];
-	for (const table of document.querySelectorAll<HTMLTableElement>('table')) {
-		const tableText = normalizeText(table.textContent).toLowerCase();
-		const relatedHeadingText = normalizeText(table.previousElementSibling?.textContent).toLowerCase();
+	for (const { tableHtml, previousHeadingHtml } of extractTables(detailHtml)) {
+		const tableText = stripAndDecode(tableHtml).toLowerCase();
+		const relatedHeadingText = previousHeadingHtml ? stripAndDecode(previousHeadingHtml).toLowerCase() : '';
 		if (!tableText || (!/gól|brank|střel/.test(tableText) && !/gól|brank|střel/.test(relatedHeadingText))) {
 			continue;
 		}
-		const rows = [...table.querySelectorAll<HTMLTableRowElement>('tr')];
+		const rows = extractRows(tableHtml);
 		if (rows.length < 1) {
 			continue;
 		}
-		const headerRow = rows[0];
-		const headerCells = [...headerRow.querySelectorAll<HTMLTableCellElement | HTMLTableHeaderCellElement>('td,th')]
-			.map((cell) => normalizeText(cell.textContent));
+		const headerCells = extractHeaderOrCells(rows[0]).map(stripAndDecode);
 		const columnSides = headerCells.map((headerCell) => getSideFromText(headerCell, match));
 		const columns = columnSides.map((side, index) => ({
 			side,
-			lines: rows.slice(1).flatMap((row) => {
-				const cell = [...row.querySelectorAll<HTMLTableCellElement | HTMLTableHeaderCellElement>('td,th')][index];
-				return cell ? splitHtmlLines(cell.innerHTML) : [];
-			}).filter(Boolean),
+			lines: rows.slice(1).flatMap((rowHtml) => splitHtmlLines(extractHeaderOrCells(rowHtml)[index] || '')),
 		})).filter((column) => column.lines.length > 0);
 		blocks.push({
 			title: headerCells.join(' | '),
-			lines: rows.flatMap((row) => [...row.querySelectorAll<HTMLTableCellElement | HTMLTableHeaderCellElement>('td,th')].flatMap((cell) => splitHtmlLines(cell.innerHTML))),
+			lines: rows.flatMap((rowHtml) => extractHeaderOrCells(rowHtml).flatMap((cellHtml) => splitHtmlLines(cellHtml))),
 			columns,
 		});
 	}
@@ -202,25 +269,21 @@ function collectGoalBlocks(document: Document, match: IPSMFHistoricalMatch): Goa
 		return blocks;
 	}
 
-	return [...document.querySelectorAll<HTMLElement>('h1,h2,h3,h4,strong')]
-		.filter((heading) => /gól|brank|střel/i.test(normalizeText(heading.textContent)))
-		.map((heading) => {
-			const lines: string[] = [];
-			let currentElement = heading.nextElementSibling;
-			while (currentElement && !/^H[1-4]$/i.test(currentElement.tagName)) {
-				lines.push(...splitHtmlLines(currentElement.innerHTML));
-				currentElement = currentElement.nextElementSibling as HTMLElement | null;
-			}
-			return {
-				title: normalizeText(heading.textContent),
-				lines,
-			};
-		})
-		.filter((block) => block.lines.length > 0);
+	return matchAll(detailHtml, /<(?<tag>h1|h2|h3|h4|strong)[^>]*>(?<title>[\s\S]*?)<\/\1>(?<after>[\s\S]*?)(?=<h1|<h2|<h3|<h4|<strong|$)/gi)
+		.map((section) => ({
+			title: stripAndDecode(section.groups?.title || ''),
+			after: section.groups?.after || '',
+		}))
+		.filter((section) => /gól|brank|střel/i.test(section.title))
+		.map((section) => ({
+			title: section.title,
+			lines: splitHtmlLines(section.after),
+		}))
+		.filter((section) => section.lines.length > 0);
 }
 
 function parseScorerLine(line: string, teamSide: 'home' | 'guest' | 'unknown') {
-	const cleanedLine = normalizeText(line)
+	const cleanedLine = stripAndDecode(line)
 		.replace(/^[•·\-–—]\s*/, '')
 		.replace(/\s+/g, ' ')
 		.trim();
@@ -233,7 +296,7 @@ function parseScorerLine(line: string, teamSide: 'home' | 'guest' | 'unknown') {
 		const minuteMatches = [...value.matchAll(/\b(?<minute>\d{1,3})\./g)];
 		if (minuteMatches.length > 0) {
 			const minutes = minuteMatches.map((match) => Number(match.groups?.minute)).filter((minute) => Number.isFinite(minute));
-			const playerName = normalizeText(value.replace(/\b\d{1,3}\./g, '').replace(/[(),]/g, ' ')).trim();
+			const playerName = stripAndDecode(value.replace(/\b\d{1,3}\./g, '').replace(/[(),]/g, ' ')).trim();
 			if (!playerName) {
 				return [];
 			}
@@ -248,7 +311,7 @@ function parseScorerLine(line: string, teamSide: 'home' | 'guest' | 'unknown') {
 
 		const minuteAtEnd = value.match(/^(?<player>.+?)\s+(?<minutes>\d{1,3}(?:\s*,\s*\d{1,3})*)$/);
 		if (minuteAtEnd?.groups) {
-			const playerName = normalizeText(minuteAtEnd.groups.player);
+			const playerName = stripAndDecode(minuteAtEnd.groups.player);
 			return minuteAtEnd.groups.minutes.split(',').map((minuteValue) => {
 				const minute = Number(minuteValue.trim());
 				return {
@@ -270,7 +333,7 @@ function parseScorerLine(line: string, teamSide: 'home' | 'guest' | 'unknown') {
 }
 
 function getSideFromText(value: string | undefined, match: IPSMFHistoricalMatch): 'home' | 'guest' | 'unknown' {
-	const normalizedValue = normalizeText(value).toLowerCase();
+	const normalizedValue = stripAndDecode(value || '').toLowerCase();
 	if (!normalizedValue) {
 		return 'unknown';
 	}
@@ -295,60 +358,86 @@ function getSideFromText(value: string | undefined, match: IPSMFHistoricalMatch)
 	return 'unknown';
 }
 
+function extractTableByClass(html: string, className: string) {
+	return extractTables(html).find(({ tableHtml }) => new RegExp(`class=["'][^"']*${escapeRegExp(className)}[^"']*["']`, 'i').test(tableHtml))?.tableHtml;
+}
+
+function extractTables(html: string) {
+	const results: { tableHtml: string; previousHeadingHtml?: string }[] = [];
+	const tableRegex = /<table\b[^>]*>[\s\S]*?<\/table>/gi;
+	let match: RegExpExecArray | null;
+	while ((match = tableRegex.exec(html)) !== null) {
+		const prefix = html.slice(0, match.index);
+		const previousHeadingMatches = matchAll(prefix, /<(h1|h2|h3|h4|strong)\b[^>]*>[\s\S]*?<\/\1>/gi);
+		const previousHeadingHtml = previousHeadingMatches.length > 0 ? previousHeadingMatches[previousHeadingMatches.length - 1][0] : undefined;
+		results.push({
+			tableHtml: match[0],
+			previousHeadingHtml,
+		});
+	}
+	return results;
+}
+
+function extractRows(tableHtml: string) {
+	return matchAll(tableHtml, /<tr\b[^>]*>(?<content>[\s\S]*?)<\/tr>/gi).map((match) => match.groups?.content || '');
+}
+
+function extractCells(rowHtml: string) {
+	return matchAll(rowHtml, /<td\b[^>]*>(?<content>[\s\S]*?)<\/td>/gi).map((match) => match.groups?.content || '');
+}
+
+function extractHeaderOrCells(rowHtml: string) {
+	const headers = matchAll(rowHtml, /<th\b[^>]*>(?<content>[\s\S]*?)<\/th>/gi).map((match) => match.groups?.content || '');
+	return headers.length > 0 ? headers : extractCells(rowHtml);
+}
+
+function extractAnchors(html: string) {
+	return matchAll(html, /<a\b[^>]*href=["'](?<href>[^"']+)["'][^>]*>(?<text>[\s\S]*?)<\/a>/gi).map((match) => ({
+		href: match.groups?.href || '',
+		text: stripAndDecode(match.groups?.text || ''),
+	}));
+}
+
+function extractFirstText(html: string, regexes: RegExp[]) {
+	for (const regex of regexes) {
+		const match = regex.exec(html);
+		if (match?.groups?.text) {
+			return stripAndDecode(match.groups.text) || undefined;
+		}
+	}
+	return undefined;
+}
+
 function splitHtmlLines(html: string) {
 	return html
 		.split(/<br\s*\/?>/i)
-		.map((line) => normalizeText(line.replace(/<[^>]+>/g, ' ')))
+		.map(stripAndDecode)
 		.filter(Boolean);
 }
 
-function normalizeText(value: string | null | undefined) {
-	return (value ?? '')
-		.replace(/&nbsp;/g, ' ')
-		.replace(/\u00a0/g, ' ')
-		.replace(/\s+/g, ' ')
-		.trim();
+function stripAndDecode(value: string) {
+	return decodeHtml(stripTags(value)).replace(/\s+/g, ' ').trim();
 }
 
-export function collectRelevantDetailLines(document: Document, match: IPSMFHistoricalMatch) {
-	const detailText = normalizeText(document.body.textContent);
-	return detailText
-		.split(/\s{2,}/)
-		.map((line) => line.trim())
-		.filter((line) => line.length > 2)
-		.filter((line) => {
-			const lowerLine = line.toLowerCase();
-			return /gól|brank|žlut|červen|karta|střel/.test(lowerLine)
-				|| lowerLine.includes((match.homeTeamName || '').toLowerCase())
-				|| lowerLine.includes((match.guestTeamName || '').toLowerCase());
-		})
-		.slice(0, 30);
+function stripTags(value: string) {
+	return value.replace(/<[^>]+>/g, ' ');
 }
 
-export function collectRelevantDetailTables(document: Document, match: IPSMFHistoricalMatch): IPSMFHistoricalRawTable[] {
-	const tables: (IPSMFHistoricalRawTable | null)[] = [...document.querySelectorAll<HTMLTableElement>('table')]
-		.map((table) => {
-			const rows = [...table.querySelectorAll<HTMLTableRowElement>('tr')]
-				.map((row) => [...row.querySelectorAll<HTMLTableCellElement | HTMLTableHeaderCellElement>('td,th')]
-					.map((cell) => normalizeText(cell.textContent))
-					.filter(Boolean))
-				.filter((row) => row.length > 0);
-			const flattened = rows.flat().join(' ').toLowerCase();
-			if (!flattened) {
-				return null;
-			}
-			const hasRelevantContent = /gól|brank|žlut|červen|karta|střel/.test(flattened)
-				|| flattened.includes((match.homeTeamName || '').toLowerCase())
-				|| flattened.includes((match.guestTeamName || '').toLowerCase());
-			if (!hasRelevantContent) {
-				return null;
-			}
-			const title = normalizeText(table.previousElementSibling?.textContent);
-			return {
-				title: title || undefined,
-				rows: rows.slice(0, 20),
-			};
-		})
-		.slice(0, 6);
-	return tables.filter((table): table is IPSMFHistoricalRawTable => table !== null);
+function decodeHtml(value: string) {
+	return value
+		.replace(/&nbsp;/gi, ' ')
+		.replace(/&quot;/gi, '"')
+		.replace(/&#39;/gi, "'")
+		.replace(/&lt;/gi, '<')
+		.replace(/&gt;/gi, '>')
+		.replace(/&amp;/gi, '&')
+		.replace(/\u00a0/g, ' ');
+}
+
+function matchAll(value: string, regex: RegExp) {
+	return Array.from(value.matchAll(regex));
+}
+
+function escapeRegExp(value: string) {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

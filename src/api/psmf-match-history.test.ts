@@ -2,6 +2,8 @@
 import {
 	extractScorers,
 	parseGroupPageMatches,
+	parseGroupPageOldMatchPaths,
+	parseOldMatchPage,
 	getSeasonTeamPagePath,
 	parseRoundResults,
 	parseStatsCategories,
@@ -335,6 +337,60 @@ describe('psmf match history parser', () => {
 			raw: {
 				groupResultGameId: '301999',
 				groupResultRound: '1',
+			},
+		});
+	});
+
+	it('discovers old match history endpoints from group page filters', () => {
+		expect(parseGroupPageOldMatchPaths(`
+			<ul class="component__filter">
+				<li><a class="games-action is-active" data-gtype="old" data-url="/souteze/2026-hanspaulska-liga-podzim/6-e/?cmd=games&type=old">Nejnovější</a></li>
+				<li><a class="games-action" data-gtype="old" data-url="/souteze/2026-hanspaulska-liga-podzim/6-e/?cmd=games&type=old&round=1">1. kolo</a></li>
+				<li><a class="games-action games-old-more" data-gtype="old" data-url="/souteze/2026-hanspaulska-liga-podzim/6-e/?cmd=games&type=old&page=2&lines=1">Další výsledky</a></li>
+			</ul>
+		`)).toEqual([
+			'/souteze/2026-hanspaulska-liga-podzim/6-e/?cmd=games&type=old',
+			'/souteze/2026-hanspaulska-liga-podzim/6-e/?cmd=games&type=old&round=1',
+			'/souteze/2026-hanspaulska-liga-podzim/6-e/?cmd=games&type=old&page=2&lines=1',
+		]);
+	});
+
+	it('parses old match payloads and discovers next history page', () => {
+		const page = parseOldMatchPage(JSON.stringify({
+			html: `
+				<table class="component__table">
+					<tr>
+						<th>Datum</th>
+						<th>Čas</th>
+						<th>Hřiště</th>
+						<th>Domácí - Hosté</th>
+						<th>Kolo</th>
+						<th>Výsledek</th>
+					</tr>
+					<tr>
+						<td>Út 1.9.26</td>
+						<td>19:15</td>
+						<td><a href="/hriste/#MALES">MALES</a></td>
+						<td>
+							<a href="/souteze/2026-hanspaulska-liga-podzim/6-e/tymy/catchers-sc/">Catchers SC</a>
+							<a href="/souteze/2026-hanspaulska-liga-podzim/6-e/tymy/youngsters-fc-b/">Youngsters FC B</a>
+						</td>
+						<td>1.</td>
+						<td>2:6 <a class="component__table-info game-result-info-link" href="#gameResults" data-round="1" data-gameid="301999" title="Info"></a></td>
+					</tr>
+				</table>
+				<a href="#" data-url="/souteze/2026-hanspaulska-liga-podzim/6-e/?cmd=games&type=old&page=2&lines=1" data-gtype="old" class="games-action games-old-more" title="Další výsledky">Další výsledky</a>
+			`,
+		}), '/souteze/2026-hanspaulska-liga-podzim/6-e/');
+
+		expect(page.nextPath).toBe('/souteze/2026-hanspaulska-liga-podzim/6-e/?cmd=games&type=old&page=2&lines=1');
+		expect(page.matches).toHaveLength(1);
+		expect(page.matches[0]).toMatchObject({
+			id: '301999',
+			score: {
+				home: 2,
+				guest: 6,
+				raw: '2:6',
 			},
 		});
 	});

@@ -68,6 +68,14 @@ export function parseGroupPageResultPaths(groupPageHtml: string) {
 	);
 }
 
+export function parseGroupPageOldMatchPaths(groupPageHtml: string) {
+	return uniqueStrings(
+		matchAll(groupPageHtml, /<a\b[^>]*class=["'][^"']*games-action[^"']*["'][^>]*data-gtype=["']old["'][^>]*data-url=["'](?<path>[^"']+)["'][^>]*>/gi)
+			.map((match) => decodePath(match.groups?.path))
+			.filter((path): path is string => Boolean(path))
+	);
+}
+
 export function parseGroupPageMatches(groupPageHtml: string, groupPagePath: string) {
 	const tournamentGroup = getGroupTournamentPath(groupPagePath);
 	if (!tournamentGroup) {
@@ -81,6 +89,14 @@ export function parseGroupPageMatches(groupPageHtml: string, groupPagePath: stri
 			sourcePath: groupPagePath,
 		}));
 	return parsedMatches.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
+}
+
+export function parseOldMatchPage(responseText: string, groupPagePath: string) {
+	const payloadHtml = unwrapHtmlPayload(responseText);
+	return {
+		matches: parseGroupPageMatches(payloadHtml, groupPagePath),
+		nextPath: parseOldMatchMorePath(payloadHtml),
+	};
 }
 
 export function parseStatsCategories(html: string) {
@@ -138,6 +154,10 @@ function parseGroupPageMatchRow(rowHtml: string, options: ParseMatchRowOptions) 
 			groupResultRound: readAttribute(infoLinkHtml || rowHtml, 'data-round') || match.raw.groupResultRound,
 		},
 	};
+}
+
+function parseOldMatchMorePath(html: string) {
+	return decodePath(matchAll(html, /<a\b[^>]*class=["'][^"']*games-old-more[^"']*["'][^>]*data-url=["'](?<path>[^"']+)["'][^>]*>/gi)[0]?.groups?.path);
 }
 
 export function parseRoundResults(responseText: string, groupPagePath: string): IPSMFHistoricalMatch[] {

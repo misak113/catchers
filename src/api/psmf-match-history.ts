@@ -13,7 +13,9 @@ import {
 } from '../Model/psmfMatchHistoryShared';
 import {
 	getGroupPagePath,
+	parseGroupPageOldMatchPaths,
 	parseGroupPageMatches,
+	parseOldMatchPage,
 	getSeasonPagePath,
 	getSeasonTeamPagePath,
 	parseGroupPageResultPaths,
@@ -159,10 +161,12 @@ async function loadSeasonHistory(season: IPSMFSeason): Promise<CachedHistoryDocu
 	]);
 	const teamMatches = parseTeamPageMatches(teamPageHtml, teamPagePath);
 	const groupMatches = groupPageHtml && groupPagePath ? parseGroupPageMatches(groupPageHtml, groupPagePath) : [];
+	const oldMatchPaths = groupPageHtml ? parseGroupPageOldMatchPaths(groupPageHtml) : [];
+	const historicalMatches = await loadHistoricalMatches(oldMatchPaths, groupPagePath);
 	const resultPaths = groupPageHtml ? parseGroupPageResultPaths(groupPageHtml) : [];
 	const roundMatches = await loadRoundMatches(resultPaths, groupPagePath);
 	const statsCategories = seasonPageHtml ? await loadStatsCategories(seasonPageHtml) : [];
-	const matches = mergeMatches(teamMatches, mergeMatches(groupMatches, roundMatches));
+	const matches = mergeMatches(teamMatches, mergeMatches(groupMatches, mergeMatches(historicalMatches, roundMatches)));
 
 	return {
 		seasonKey,
@@ -176,6 +180,7 @@ async function loadSeasonHistory(season: IPSMFSeason): Promise<CachedHistoryDocu
 			teamPageUrl,
 			groupPagePath,
 			groupPageUrl: groupPagePath ? new URL(groupPagePath, PSMF_BASE_URL).toString() : undefined,
+			oldMatchPaths: oldMatchPaths.length > 0 ? oldMatchPaths : undefined,
 			resultPaths: resultPaths.length > 0 ? resultPaths : undefined,
 			statsPaths: statsCategories.length > 0 ? statsCategories.map((category) => category.sourcePath) : undefined,
 		},
@@ -208,6 +213,35 @@ async function loadRoundMatches(resultPaths: string[], groupPagePath: string | u
 		}
 	}));
 	return roundMatches.flat();
+}
+
+async function loadHistoricalMatches(oldMatchPaths: string[], groupPagePath: string | undefined) {
+	if (!groupPagePath || oldMatchPaths.length < 1) {
+		return [];
+	}
+	const matches: IPSMFHistoricalMatch[] = [];
+	const queuedPaths = [...oldMatchPaths];
+	const visitedPaths = new Set<string>();
+
+	while (queuedPaths.length > 0) {
+		const path = queuedPaths.shift();
+		if (!path || visitedPaths.has(path)) {
+			continue;
+		}
+		visitedPaths.add(path);
+		try {
+			const responseText = await fetchHtml(new URL(path, PSMF_BASE_URL).toString());
+			const page = parseOldMatchPage(responseText, groupPagePath);
+			matches.push(...page.matches);
+			if (page.nextPath && !visitedPaths.has(page.nextPath)) {
+				queuedPaths.push(page.nextPath);
+			}
+		} catch (error) {
+			console.error('Failed to load PSMF old matches', path, error);
+		}
+	}
+
+	return matches;
 }
 
 async function loadStatsCategories(seasonPageHtml: string): Promise<IPSMFHistoricalStatsCategory[]> {

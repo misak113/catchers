@@ -72,6 +72,7 @@ export interface IPSMFSeasonHistoryCacheDocument {
 		teamPageUrl?: string;
 		groupPagePath?: string;
 		groupPageUrl?: string;
+		oldMatchPaths?: string[];
 		resultPaths?: string[];
 		statsPaths?: string[];
 		fromCache?: boolean;

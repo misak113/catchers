@@ -10,6 +10,7 @@ import {
 	parsePSMFSeasonKey,
 } from '../Model/psmfMatchHistoryShared';
 import { extractMatchDetailData, getSeasonTeamPagePath, parseTeamPageMatches } from '../Model/psmfMatchHistoryParser';
+import { omitUndefinedDeep } from '../Util/object';
 
 const MATCH_HISTORY_COLLECTION = 'psmfMatchHistory';
 const PSMF_BASE_URL = 'https://www.psmf.cz';
@@ -63,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	try {
 		const seasonHistory = await loadSeasonHistory(requestedSeason);
 		if (cache.historyDocRef) {
-			await firestore.setDoc(cache.historyDocRef, seasonHistory);
+			await firestore.setDoc(cache.historyDocRef, omitUndefinedDeep(seasonHistory));
 		}
 		res.status(200).json(seasonHistory);
 	} catch (error) {

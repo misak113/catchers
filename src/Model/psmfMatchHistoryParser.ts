@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 import config from '../config.json';
-import { IPSMFHistoricalMatch, IPSMFHistoricalRawTable, IPSMFHistoricalScorer } from './psmfMatchHistoryShared';
+import { IPSMFHistoricalMatch, IPSMFHistoricalRawTable, IPSMFHistoricalScorer, IPSMFHistoricalStatsCategory } from './psmfMatchHistoryShared';
 
 const PSMF_BASE_URL = 'https://www.psmf.cz';
 const TEAM_CODE_NAME = 'catchers-sc';
@@ -35,9 +35,116 @@ export function parseTeamPageMatches(teamPageHtml: string, teamPagePath: string)
 	}
 
 	return extractRows(tableHtml)
-		.map((rowHtml, index) => parseTeamPageMatchRow(rowHtml, tournamentGroup.tournament, tournamentGroup.group, index))
+		.map((rowHtml, index) => parseMatchRow(rowHtml, {
+			tournament: tournamentGroup.tournament,
+			group: tournamentGroup.group,
+			index,
+			sourcePath: tournamentGroup.teamPagePath,
+		}))
 		.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
 }
+
+export function getGroupPagePath(teamPagePath: string) {
+	const tournamentGroup = getTournamentGroupPath(teamPagePath);
+	if (!tournamentGroup) {
+		return undefined;
+	}
+	return `/souteze/${tournamentGroup.tournament}/${tournamentGroup.group}/`;
+}
+
+export function getSeasonPagePath(teamPagePath: string) {
+	const tournamentGroup = getTournamentGroupPath(teamPagePath);
+	if (!tournamentGroup) {
+		return undefined;
+	}
+	return `/souteze/${tournamentGroup.tournament}/`;
+}
+
+export function parseGroupPageResultPaths(groupPageHtml: string) {
+	return uniqueStrings(
+		matchAll(groupPageHtml, /<a\b[^>]*class=["'][^"']*results-action[^"']*["'][^>]*data-url=["'](?<path>[^"']+)["'][^>]*>/gi)
+			.map((match) => decodePath(match.groups?.path))
+			.filter((path): path is string => Boolean(path))
+	);
+}
+
+export function parseStatsCategories(html: string) {
+	return uniqueBy(
+		matchAll(html, /<a\b[^>]*class=["'][^"']*stats-action[^"']*["'][^>]*data-url=["'](?<path>[^"']+)["'][^>]*>(?<title>[\s\S]*?)<\/a>/gi)
+			.map((match) => {
+				const path = decodePath(match.groups?.path);
+				if (!path) {
+					return null;
+				}
+				return {
+					key: getStatsCategoryKey(path),
+					title: stripAndDecode(match.groups?.title || '') || 'Statistiky',
+					sourcePath: path,
+				};
+			})
+			.filter((category): category is Pick<IPSMFHistoricalStatsCategory, 'key' | 'title' | 'sourcePath'> => Boolean(category)),
+		(category) => category.sourcePath
+	);
+}
+
+export function parseStatsCategoryTables(statsHtml: string, category: Pick<IPSMFHistoricalStatsCategory, 'key' | 'title' | 'sourcePath'>): IPSMFHistoricalStatsCategory {
+	const payloadHtml = unwrapHtmlPayload(statsHtml);
+	return {
+		...category,
+		tables: extractTables(payloadHtml)
+			.map(({ tableHtml, previousHeadingHtml }) => ({
+				title: previousHeadingHtml ? stripAndDecode(previousHeadingHtml) || undefined : undefined,
+				rows: extractRows(tableHtml)
+					.map((rowHtml) => extractHeaderOrCells(rowHtml).map(stripAndDecode).filter(Boolean))
+					.filter((row) => row.length > 0),
+			}))
+			.filter((table) => table.rows.length > 0),
+	};
+}
+
+export function parseRoundResults(responseText: string, groupPagePath: string): IPSMFHistoricalMatch[] {
+	const tournamentGroup = getGroupTournamentPath(groupPagePath);
+	if (!tournamentGroup) {
+		return [];
+	}
+	const payloadHtml = unwrapHtmlPayload(responseText);
+	return matchAll(payloadHtml, /<div\b[^>]*id=["']GameResultItem(?<gameId>\d+)["'][^>]*>(?<content>[\s\S]*?)(?=<div\b[^>]*id=["']GameResultItem\d+["']|$)/gi)
+		.map((blockMatch, index) => {
+			const gameId = blockMatch.groups?.gameId;
+			const blockHtml = blockMatch[0];
+			const match = parseResultBlock(blockHtml, {
+				tournament: tournamentGroup.tournament,
+				group: tournamentGroup.group,
+				index,
+				matchId: gameId,
+				sourcePath: groupPagePath,
+			});
+			if (!match) {
+				return null;
+			}
+			const detailData = extractMatchDetailData(blockHtml, match);
+			return {
+				...match,
+				scorers: detailData.scorers,
+				raw: {
+					...match.raw,
+					groupResultGameId: gameId || undefined,
+					detailTitle: detailData.detailTitle,
+					detailLines: detailData.detailLines,
+					detailTables: detailData.detailTables,
+				},
+			};
+		})
+		.filter((match): match is IPSMFHistoricalMatch => Boolean(match));
+}
+
+type ParseMatchRowOptions = {
+	tournament: string;
+	group: string;
+	index: number;
+	matchId?: string;
+	sourcePath?: string;
+};
 
 export function extractMatchDetailData(detailHtml: string, match: IPSMFHistoricalMatch) {
 	return {
@@ -126,14 +233,18 @@ type GoalBlock = {
 	columns?: { side: 'home' | 'guest' | 'unknown'; lines: string[] }[];
 };
 
-function parseTeamPageMatchRow(rowHtml: string, tournament: string, group: string, index: number): IPSMFHistoricalMatch | null {
+function parseMatchRow(rowHtml: string, { tournament, group, index, matchId, sourcePath }: ParseMatchRowOptions): IPSMFHistoricalMatch | null {
 	const cells = extractCells(rowHtml);
 	if (cells.length < 4) {
 		return null;
 	}
 
 	const startsAt = parseMatchStartsAt(cells[0], stripAndDecode(cells[1]));
-	const teamAnchors = extractAnchors(cells[3]).filter((anchor) => /\/souteze\//.test(anchor.href));
+	const teamsCellHtml = cells.find((cellHtml) => extractAnchors(cellHtml).filter((anchor) => isTeamPath(anchor.href)).length >= 2);
+	if (!teamsCellHtml) {
+		return null;
+	}
+	const teamAnchors = extractAnchors(teamsCellHtml).filter((anchor) => isTeamPath(anchor.href));
 	const homeTeam = parseTeamAnchor(teamAnchors[0]);
 	const guestTeam = parseTeamAnchor(teamAnchors[1]);
 	if (!startsAt || !homeTeam?.code || !guestTeam?.code) {
@@ -146,10 +257,12 @@ function parseTeamPageMatchRow(rowHtml: string, tournament: string, group: strin
 	const detailPath = detailAnchor ? new URL(detailAnchor.href, PSMF_BASE_URL).pathname : undefined;
 	const scoreCell = rowCells.slice(4).find((cellText) => Boolean(parseScore(cellText)));
 	const score = scoreCell ? parseScore(scoreCell) ?? undefined : undefined;
-	const matchId = detailPath?.match(/\/zapas\/(?<matchId>[^/?#]+)/)?.groups?.matchId ?? `${tournament}-${group}-${index}`;
+	const resolvedMatchId = matchId
+		|| detailPath?.match(/\/zapas\/(?<matchId>[^/?#]+)/)?.groups?.matchId
+		|| `${tournament}-${group}-${index}`;
 
 	return {
-		id: matchId,
+		id: resolvedMatchId,
 		startsAtIso: startsAt.toISOString(),
 		tournament,
 		group,
@@ -167,9 +280,20 @@ function parseTeamPageMatchRow(rowHtml: string, tournament: string, group: strin
 		scorers: [],
 		raw: {
 			rowCells,
+			sourcePath,
 			scoreCell: scoreCell || undefined,
 		},
 	};
+}
+
+function parseResultBlock(blockHtml: string, options: ParseMatchRowOptions) {
+	const summaryTable = extractTables(blockHtml)
+		.find(({ tableHtml }) => /Domácí\s*-\s*Hosté/i.test(tableHtml) && /Výsledek/i.test(tableHtml));
+	if (!summaryTable) {
+		return null;
+	}
+	const summaryRow = extractRows(summaryTable.tableHtml).find((rowHtml) => extractCells(rowHtml).length >= 6 && extractAnchors(rowHtml).some((anchor) => isTeamPath(anchor.href)));
+	return summaryRow ? parseMatchRow(summaryRow, options) : null;
 }
 
 function parseMatchStartsAt(dateCellHtml: string, timeCellText: string) {
@@ -196,6 +320,19 @@ function parseTeamAnchor(anchor: { href: string; text: string } | undefined) {
 	return {
 		code,
 		name: anchor.text || code,
+	};
+}
+
+function getGroupTournamentPath(path: string) {
+	const pathname = new URL(path, PSMF_BASE_URL).pathname;
+	const match = pathname.match(/^\/souteze\/(?<tournament>[^/]+)\/(?<group>[^/]+)\/?$/);
+	if (!match?.groups) {
+		return null;
+	}
+	return {
+		tournament: match.groups.tournament,
+		group: match.groups.group,
+		groupPagePath: pathname.endsWith('/') ? pathname : `${pathname}/`,
 	};
 }
 
@@ -238,6 +375,14 @@ function parseScore(value: string) {
 		guest: Number(match.groups.guest),
 		raw: `${match.groups.home}:${match.groups.guest}`,
 	};
+}
+
+function getStatsCategoryKey(path: string) {
+	return path.match(/[?&]subtype=(?<subtype>[^&#]+)/)?.groups?.subtype || 'default';
+}
+
+function isTeamPath(path: string) {
+	return /\/souteze\/[^/]+\/[^/]+\/tymy\/[^/]+\/?/.test(path);
 }
 
 function collectGoalBlocks(detailHtml: string, match: IPSMFHistoricalMatch): GoalBlock[] {
@@ -434,10 +579,46 @@ function decodeHtml(value: string) {
 		.replace(/\u00a0/g, ' ');
 }
 
+function decodePath(value: string | undefined) {
+	if (!value) {
+		return undefined;
+	}
+	return decodeHtml(value).trim();
+}
+
+function unwrapHtmlPayload(value: string) {
+	const trimmedValue = value.trim();
+	if (!trimmedValue.startsWith('{')) {
+		return trimmedValue;
+	}
+	try {
+		const parsed = JSON.parse(trimmedValue) as { html?: string };
+		return parsed.html || trimmedValue;
+	} catch {
+		return trimmedValue;
+	}
+}
+
 function matchAll(value: string, regex: RegExp) {
 	return Array.from(value.matchAll(regex));
 }
 
 function escapeRegExp(value: string) {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function uniqueStrings(values: string[]) {
+	return [...new Set(values)];
+}
+
+function uniqueBy<T>(values: T[], getKey: (value: T) => string) {
+	const keys = new Set<string>();
+	return values.filter((value) => {
+		const key = getKey(value);
+		if (keys.has(key)) {
+			return false;
+		}
+		keys.add(key);
+		return true;
+	});
 }

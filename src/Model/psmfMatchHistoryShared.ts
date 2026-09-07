@@ -24,6 +24,13 @@ export interface IPSMFHistoricalRawTable {
 	rows: string[][];
 }
 
+export interface IPSMFHistoricalStatsCategory {
+	key: string;
+	title: string;
+	sourcePath: string;
+	tables: IPSMFHistoricalRawTable[];
+}
+
 export interface IPSMFHistoricalMatch {
 	id: string;
 	startsAtIso: string;
@@ -44,6 +51,9 @@ export interface IPSMFHistoricalMatch {
 	raw: {
 		rowCells: string[];
 		scoreCell?: string;
+		sourcePath?: string;
+		groupResultGameId?: string;
+		groupResultRound?: string;
 		detailTitle?: string;
 		detailLines?: string[];
 		detailTables?: IPSMFHistoricalRawTable[];
@@ -60,11 +70,16 @@ export interface IPSMFSeasonHistoryCacheDocument {
 		searchUrl: string;
 		teamPagePath?: string;
 		teamPageUrl?: string;
+		groupPagePath?: string;
+		groupPageUrl?: string;
+		resultPaths?: string[];
+		statsPaths?: string[];
 		fromCache?: boolean;
 		stale?: boolean;
 		errorMessage?: string;
 	};
 	matches: IPSMFHistoricalMatch[];
+	statsCategories?: IPSMFHistoricalStatsCategory[];
 }
 
 export function getCurrentPSMFSeason(now = new Date()): IPSMFSeason {

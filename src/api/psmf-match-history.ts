@@ -5,11 +5,22 @@ import {
 	buildPSMFSeasonKey,
 	formatPSMFSeasonLabel,
 	getCurrentPSMFSeason,
+	IPSMFHistoricalMatch,
+	IPSMFHistoricalStatsCategory,
 	IPSMFSeason,
 	IPSMFSeasonHistoryCacheDocument,
 	parsePSMFSeasonKey,
 } from '../Model/psmfMatchHistoryShared';
-import { extractMatchDetailData, getSeasonTeamPagePath, parseTeamPageMatches } from '../Model/psmfMatchHistoryParser';
+import {
+	getGroupPagePath,
+	getSeasonPagePath,
+	getSeasonTeamPagePath,
+	parseGroupPageResultPaths,
+	parseRoundResults,
+	parseStatsCategories,
+	parseStatsCategoryTables,
+	parseTeamPageMatches,
+} from '../Model/psmfMatchHistoryParser';
 import { omitUndefinedDeep } from '../Util/object';
 
 const MATCH_HISTORY_COLLECTION = 'psmfMatchHistory';
@@ -136,29 +147,17 @@ async function loadSeasonHistory(season: IPSMFSeason): Promise<CachedHistoryDocu
 
 	const teamPageUrl = new URL(teamPagePath, PSMF_BASE_URL).toString();
 	const teamPageHtml = await fetchHtml(teamPageUrl);
-	const matches = parseTeamPageMatches(teamPageHtml, teamPagePath);
-	const matchesWithDetails = await Promise.all(matches.map(async (match) => {
-		if (!match.detailPath || !match.score) {
-			return match;
-		}
-		try {
-			const detailHtml = await fetchHtml(new URL(match.detailPath, PSMF_BASE_URL).toString());
-			const detailData = extractMatchDetailData(detailHtml, match);
-			return {
-				...match,
-				scorers: detailData.scorers,
-				raw: {
-					...match.raw,
-					detailTitle: detailData.detailTitle,
-					detailLines: detailData.detailLines,
-					detailTables: detailData.detailTables,
-				},
-			};
-		} catch (error) {
-			console.error('Failed to load PSMF match detail', match.detailPath, error);
-			return match;
-		}
-	}));
+	const groupPagePath = getGroupPagePath(teamPagePath);
+	const seasonPagePath = getSeasonPagePath(teamPagePath);
+	const [groupPageHtml, seasonPageHtml] = await Promise.all([
+		groupPagePath ? fetchHtml(new URL(groupPagePath, PSMF_BASE_URL).toString()) : Promise.resolve(''),
+		seasonPagePath ? fetchHtml(new URL(seasonPagePath, PSMF_BASE_URL).toString()) : Promise.resolve(''),
+	]);
+	const teamMatches = parseTeamPageMatches(teamPageHtml, teamPagePath);
+	const resultPaths = groupPageHtml ? parseGroupPageResultPaths(groupPageHtml) : [];
+	const roundMatches = await loadRoundMatches(resultPaths, groupPagePath);
+	const statsCategories = seasonPageHtml ? await loadStatsCategories(seasonPageHtml) : [];
+	const matches = mergeMatches(teamMatches, roundMatches);
 
 	return {
 		seasonKey,
@@ -170,8 +169,13 @@ async function loadSeasonHistory(season: IPSMFSeason): Promise<CachedHistoryDocu
 			searchUrl: SEARCH_URL,
 			teamPagePath,
 			teamPageUrl,
+			groupPagePath,
+			groupPageUrl: groupPagePath ? new URL(groupPagePath, PSMF_BASE_URL).toString() : undefined,
+			resultPaths: resultPaths.length > 0 ? resultPaths : undefined,
+			statsPaths: statsCategories.length > 0 ? statsCategories.map((category) => category.sourcePath) : undefined,
 		},
-		matches: matchesWithDetails,
+		matches,
+		statsCategories: statsCategories.length > 0 ? statsCategories : undefined,
 	};
 }
 
@@ -183,4 +187,85 @@ async function fetchHtml(url: string) {
 		throw new Error(`PSMF request failed for ${url} with status ${response.status}`);
 	}
 	return response.text();
+}
+
+async function loadRoundMatches(resultPaths: string[], groupPagePath: string | undefined) {
+	if (!groupPagePath || resultPaths.length < 1) {
+		return [];
+	}
+	const roundMatches = await Promise.all(resultPaths.map(async (resultPath) => {
+		try {
+			const responseText = await fetchHtml(new URL(resultPath, PSMF_BASE_URL).toString());
+			return parseRoundResults(responseText, groupPagePath);
+		} catch (error) {
+			console.error('Failed to load PSMF round results', resultPath, error);
+			return [];
+		}
+	}));
+	return roundMatches.flat();
+}
+
+async function loadStatsCategories(seasonPageHtml: string): Promise<IPSMFHistoricalStatsCategory[]> {
+	const categories = parseStatsCategories(seasonPageHtml);
+	const loadedCategories = await Promise.all(categories.map(async (category) => {
+		try {
+			const statsHtml = await fetchHtml(new URL(category.sourcePath, PSMF_BASE_URL).toString());
+			return parseStatsCategoryTables(statsHtml, category);
+		} catch (error) {
+			console.error('Failed to load PSMF stats category', category.sourcePath, error);
+			return {
+				...category,
+				tables: [],
+			};
+		}
+	}));
+	return loadedCategories.filter((category) => category.tables.length > 0);
+}
+
+function mergeMatches(teamMatches: IPSMFHistoricalMatch[], roundMatches: IPSMFHistoricalMatch[]) {
+	const matchesByKey = new Map<string, IPSMFHistoricalMatch>();
+	for (const match of roundMatches) {
+		matchesByKey.set(getMatchMergeKey(match), match);
+	}
+	for (const match of teamMatches) {
+		const key = getMatchMergeKey(match);
+		const existingMatch = matchesByKey.get(key);
+		matchesByKey.set(key, existingMatch ? mergeMatch(existingMatch, match) : match);
+	}
+	return [...matchesByKey.values()].sort((match1, match2) => Date.parse(match1.startsAtIso) - Date.parse(match2.startsAtIso));
+}
+
+function getMatchMergeKey(match: IPSMFHistoricalMatch) {
+	return [
+		match.round || '',
+		match.startsAtIso,
+		match.homeTeamCode || '',
+		match.guestTeamCode || '',
+		match.opponentCode,
+	].join('|');
+}
+
+function mergeMatch(preferredMatch: IPSMFHistoricalMatch, fallbackMatch: IPSMFHistoricalMatch): IPSMFHistoricalMatch {
+	return {
+		...fallbackMatch,
+		...preferredMatch,
+		field: preferredMatch.field || fallbackMatch.field,
+		round: preferredMatch.round || fallbackMatch.round,
+		opponentName: preferredMatch.opponentName || fallbackMatch.opponentName,
+		homeTeamName: preferredMatch.homeTeamName || fallbackMatch.homeTeamName,
+		guestTeamName: preferredMatch.guestTeamName || fallbackMatch.guestTeamName,
+		detailPath: preferredMatch.detailPath || fallbackMatch.detailPath,
+		score: preferredMatch.score || fallbackMatch.score,
+		status: preferredMatch.score
+			? preferredMatch.status
+			: fallbackMatch.score
+				? fallbackMatch.status
+				: preferredMatch.status,
+		scorers: preferredMatch.scorers.length > 0 ? preferredMatch.scorers : fallbackMatch.scorers,
+		raw: {
+			...fallbackMatch.raw,
+			...preferredMatch.raw,
+			rowCells: preferredMatch.raw.rowCells.length > 0 ? preferredMatch.raw.rowCells : fallbackMatch.raw.rowCells,
+		},
+	};
 }

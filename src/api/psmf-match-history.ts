@@ -18,6 +18,7 @@ import {
 	parseOldMatchPage,
 	getSeasonPagePath,
 	getSeasonTeamPagePath,
+	isCatchersMatch,
 	parseGroupPageResultPaths,
 	parseRoundResults,
 	parseStatsCategories,
@@ -29,7 +30,7 @@ import { omitUndefinedDeep } from '../Util/object';
 const MATCH_HISTORY_COLLECTION = 'psmfMatchHistory';
 const PSMF_BASE_URL = 'https://www.psmf.cz';
 const TEAM_QUERY_NAME = 'Catchers+SC';
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 const CURRENT_SEASON_REFRESH_AGE_MS = 12 * 60 * 60 * 1e3;
 const SEARCH_URL = `${PSMF_BASE_URL}/vyhledavani/?query=${TEAM_QUERY_NAME}`;
 const PSMF_HEADERS = {
@@ -183,7 +184,7 @@ async function loadSeasonHistory(season: IPSMFSeason): Promise<CachedHistoryDocu
 	const resultPaths = groupPageHtml ? parseGroupPageResultPaths(groupPageHtml) : [];
 	const roundMatches = await loadRoundMatches(resultPaths, groupPagePath);
 	const statsCategories = seasonPageHtml ? await loadStatsCategories(seasonPageHtml) : [];
-	const matches = mergeMatches(teamMatches, mergeMatches(groupMatches, mergeMatches(historicalMatches, roundMatches)));
+	const matches = mergeMatches(teamMatches, mergeMatches(groupMatches, mergeMatches(historicalMatches, roundMatches))).filter(isCatchersMatch);
 
 	return {
 		seasonKey,

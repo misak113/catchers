@@ -29,7 +29,7 @@ describe('psmf match history cache refresh', () => {
 			},
 			fetchedAtIso: new Date().toISOString(),
 			source: {
-				cacheVersion: 2,
+				cacheVersion: 3,
 				searchUrl: 'https://www.psmf.cz/vyhledavani/?query=Catchers+SC',
 			},
 			matches: [{

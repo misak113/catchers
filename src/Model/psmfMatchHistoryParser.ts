@@ -23,6 +23,10 @@ export function getSeasonTeamPagePath(searchHtml: string, seasonKey: string) {
 	return undefined;
 }
 
+export function isCatchersMatch(match: IPSMFHistoricalMatch) {
+	return match.homeTeamCode === TEAM_CODE_NAME || match.guestTeamCode === TEAM_CODE_NAME;
+}
+
 export function parseTeamPageMatches(teamPageHtml: string, teamPagePath: string): IPSMFHistoricalMatch[] {
 	const tournamentGroup = getTournamentGroupPath(teamPagePath);
 	if (!tournamentGroup) {

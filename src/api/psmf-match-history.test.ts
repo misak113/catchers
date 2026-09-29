@@ -5,6 +5,7 @@ import {
 	parseGroupPageOldMatchPaths,
 	parseOldMatchPage,
 	getSeasonTeamPagePath,
+	isCatchersMatch,
 	parseRoundResults,
 	parseStatsCategories,
 	parseStatsCategoryTables,
@@ -12,6 +13,12 @@ import {
 } from '../Model/psmfMatchHistoryParser';
 
 describe('psmf match history parser', () => {
+	it('rejects group matches that do not include Catchers', () => {
+		expect(isCatchersMatch({ homeTeamCode: 'catchers-sc', guestTeamCode: 'other' })).toBe(true);
+		expect(isCatchersMatch({ homeTeamCode: 'other', guestTeamCode: 'catchers-sc' })).toBe(true);
+		expect(isCatchersMatch({ homeTeamCode: 'other', guestTeamCode: 'another' })).toBe(false);
+	});
+
 	it('finds the requested season team page from search html', () => {
 		const teamPagePath = getSeasonTeamPagePath(`
 			<section class="component--content">

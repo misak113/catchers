@@ -29,7 +29,7 @@ import { omitUndefinedDeep } from '../Util/object';
 const MATCH_HISTORY_COLLECTION = 'psmfMatchHistory';
 const PSMF_BASE_URL = 'https://www.psmf.cz';
 const TEAM_QUERY_NAME = 'Catchers+SC';
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const CURRENT_SEASON_REFRESH_AGE_MS = 12 * 60 * 60 * 1e3;
 const SEARCH_URL = `${PSMF_BASE_URL}/vyhledavani/?query=${TEAM_QUERY_NAME}`;
 const PSMF_HEADERS = {
@@ -78,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	try {
 		const seasonHistory = await loadSeasonHistory(requestedSeason);
 		if (cache.historyDocRef) {
-			await firestore.setDoc(cache.historyDocRef, omitUndefinedDeep(seasonHistory));
+			await firestore.setDoc(cache.historyDocRef, omitUndefinedDeep(toFirestoreHistory(seasonHistory)));
 		}
 		res.status(200).json(seasonHistory);
 	} catch (error) {
@@ -103,12 +103,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 async function getHistoryCacheDocument(seasonKey: string) {
 	try {
 		const firebaseApp = await initFirebase();
-		const historyCollection = firestore.collection(firestore.getFirestore(firebaseApp), MATCH_HISTORY_COLLECTION) as firestore.CollectionReference<CachedHistoryDocument>;
+		const historyCollection = firestore.collection(firestore.getFirestore(firebaseApp), MATCH_HISTORY_COLLECTION) as firestore.CollectionReference<firestore.DocumentData>;
 		const historyDocRef = firestore.doc(historyCollection, seasonKey);
 		const cachedDoc = await firestore.getDoc(historyDocRef);
 		return {
 			historyDocRef,
-			cachedData: cachedDoc.exists() ? cachedDoc.data() : null,
+			cachedData: cachedDoc.exists() ? cachedDoc.data() as CachedHistoryDocument : null,
 		};
 	} catch (error) {
 		console.warn('PSMF history cache unavailable, continuing without shared cache', error instanceof Error ? error.message : error);
@@ -117,6 +117,23 @@ async function getHistoryCacheDocument(seasonKey: string) {
 			cachedData: null,
 		};
 	}
+}
+
+function toFirestoreHistory(history: CachedHistoryDocument) {
+	return {
+		...history,
+		matches: history.matches.map((match) => ({
+			...match,
+			scorers: undefined,
+			raw: {
+				...match.raw,
+				rowCells: undefined,
+				detailLines: undefined,
+				detailTables: undefined,
+			},
+		})),
+		statsCategories: undefined,
+	};
 }
 
 export function shouldRefreshCache(cache: CachedHistoryDocument, isCurrentSeason: boolean) {

@@ -29,3 +29,78 @@
 	display: block;
 	max-width: 100%;
 }
+
+.Match-responseHistory {
+	position: relative;
+	display: inline-block;
+	margin-left: 6px;
+}
+
+.Match-responseHistoryButton {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: #337ab7;
+	cursor: pointer;
+}
+
+.Match-responseHistoryPanel {
+	display: none;
+	position: absolute;
+	z-index: 10;
+	bottom: 100%;
+	left: 50%;
+	width: 280px;
+	max-width: 80vw;
+	transform: translateX(-50%);
+	white-space: normal;
+	text-align: left;
+	color: #212529;
+	background: #fff;
+	border: 1px solid #adb5bd;
+	border-radius: 4px;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+.Match-responseHistoryTitle,
+.Match-responseHistoryEntries {
+	display: block;
+	padding: 8px 12px;
+	background: #fff;
+}
+
+.Match-responseHistoryTitle {
+	background: #f1f3f5;
+	border-bottom: 1px solid #dee2e6;
+}
+
+.Match-responseHistory:hover .Match-responseHistoryPanel,
+.Match-responseHistory:focus-within .Match-responseHistoryPanel,
+.Match-responseHistory.open .Match-responseHistoryPanel {
+	display: block;
+}
+
+.Match-responseHistoryEntry {
+	display: flex;
+	flex-direction: column;
+	padding: 4px 0;
+}
+
+.Match-responseHistoryEntry + .Match-responseHistoryEntry {
+	border-top: 1px solid #ddd;
+}
+
+@media (max-width: 767px) {
+	.Match-responseHistory {
+		display: block;
+		margin: 6px 0 0;
+	}
+
+	.Match-responseHistoryPanel {
+		position: static;
+		width: 100%;
+		max-width: 100%;
+		transform: none;
+		margin-top: 6px;
+	}
+}

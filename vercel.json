@@ -4,6 +4,9 @@
   "installCommand": "npm install",
   "outputDirectory": "build",
   "functions": {
+    "api/psmf-match-history.js": {
+      "maxDuration": 60
+    },
     "api/match-notifications.js": {
       "maxDuration": 60
     }

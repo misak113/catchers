@@ -1,6 +1,43 @@
 
+.Matches-seasonHistory {
+	margin-top: 32px;
+}
+
+.Matches-seasonHistoryHeader {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: space-between;
+}
+
+.Matches-seasonHistoryTitle {
+	font-size: 1.5rem;
+	margin: 0;
+}
+
+.Matches-seasonHistoryControls {
+	align-items: center;
+	display: flex;
+	gap: 12px;
+}
+
+.Matches-seasonHistoryLabel {
+	font-weight: 600;
+	min-width: 120px;
+	text-align: center;
+}
+
+.Matches-seasonHistoryLegend {
+	margin-bottom: 16px;
+}
+
+.Matches-seasonHistoryChartWrapper {
+	height: 320px;
+}
+
 .Matches-pastHeader {
-	margin-top: 100px;
+	margin-top: 48px;
 }
 
 .Matches-table td,
@@ -32,6 +69,20 @@
 }
 
 @media (max-width: 575.98px) {
+	.Matches-seasonHistoryHeader,
+	.Matches-seasonHistoryControls {
+		justify-content: center;
+	}
+
+	.Matches-seasonHistoryTitle {
+		width: 100%;
+		text-align: center;
+	}
+
+	.Matches-seasonHistoryChartWrapper {
+		height: 280px;
+	}
+
 	.Matches-pagination .btn {
 		flex: 1 1 120px;
 	}

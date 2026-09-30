@@ -30,8 +30,8 @@ import { omitUndefinedDeep } from '../Util/object';
 const MATCH_HISTORY_COLLECTION = 'psmfMatchHistory';
 const PSMF_BASE_URL = 'https://www.psmf.cz';
 const TEAM_QUERY_NAME = 'Catchers+SC';
-const CACHE_VERSION = 3;
-const CURRENT_SEASON_REFRESH_AGE_MS = 12 * 60 * 60 * 1e3;
+const CACHE_VERSION = 4;
+const CURRENT_SEASON_REFRESH_AGE_MS = 30 * 60 * 1e3;
 const SEARCH_URL = `${PSMF_BASE_URL}/vyhledavani/?query=${TEAM_QUERY_NAME}`;
 const PSMF_HEADERS = {
 	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

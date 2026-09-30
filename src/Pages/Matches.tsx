@@ -197,6 +197,7 @@ function SeasonHistoryChart({
 				backgroundColor: '#16a34a',
 				borderColor: '#15803d',
 				borderWidth: 1,
+				grouped: false,
 			},
 			{
 				label: 'Inkasované góly',
@@ -204,6 +205,7 @@ function SeasonHistoryChart({
 				backgroundColor: '#dc2626',
 				borderColor: '#b91c1c',
 				borderWidth: 1,
+				grouped: false,
 			},
 		],
 	}), [finishedMatches]);

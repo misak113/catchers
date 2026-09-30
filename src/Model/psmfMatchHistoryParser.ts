@@ -33,7 +33,10 @@ export function parseTeamPageMatches(teamPageHtml: string, teamPagePath: string)
 		return [];
 	}
 
-	const tableHtml = extractTableByClass(teamPageHtml, 'games-new-table');
+	const tableHtml = [
+		extractTableByClass(teamPageHtml, 'games-new-table'),
+		extractTableByClass(teamPageHtml, 'games-old-table'),
+	].filter((table): table is string => Boolean(table)).join('\n');
 	if (!tableHtml) {
 		return [];
 	}

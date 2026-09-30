@@ -73,6 +73,28 @@ describe('psmf match history parser', () => {
 		});
 	});
 
+	it('parses completed rows from the team page old-games table', () => {
+		const matches = parseTeamPageMatches(`
+			<table class="games-old-table">
+				<tr>
+					<td>Út&nbsp;01.09.2026</td>
+					<td>19:15</td>
+					<td>MALES</td>
+					<td>
+						<a href="/souteze/2026-hanspaulska-liga-podzim/6-e/tymy/catchers-sc/">Catchers SC</a>
+						<a href="/souteze/2026-hanspaulska-liga-podzim/6-e/tymy/youngsters-fc-b/">Youngsters FC B</a>
+					</td>
+					<td>1.</td>
+					<td class="is-result">2:6</td>
+				</tr>
+			</table>
+		`, '/souteze/2026-hanspaulska-liga-podzim/6-e/tymy/catchers-sc/');
+
+		expect(matches).toHaveLength(1);
+		expect(matches[0].score).toMatchObject({ home: 2, guest: 6, raw: '2:6' });
+		expect(matches[0].status).toBe('finished');
+	});
+
 	it('parses scorer tables from match detail', () => {
 		const match = {
 			id: '123456',

@@ -30,6 +30,12 @@ Settle Up live API access uses their Firebase Realtime Database public API. Thei
 
 If production login fails with `auth/requests-from-referer-...-are-blocked`, ask Settle Up for a production key that allows `https://www.sccatchers.cz` as an HTTP referrer.
 
+## Sentry monitoring
+
+Production builds can report browser errors, failed page loads, navigation timing, Web Vitals, long tasks, and fetch/XHR spans to Sentry. Monitoring is disabled unless `REACT_APP_SENTRY_DSN` is set in a production build. Default PII collection and Session Replay are disabled.
+
+Create a Sentry project for a browser JavaScript app and add its **DSN** to Vercel's production environment variables. DSN is public frontend configuration; do not create or expose Sentry auth token. `REACT_APP_SENTRY_TRACE_SAMPLE_RATE` controls sampled performance traces and defaults to `0.1`.
+
 ## Development documentation
 
 - [Development docs index](docs/README.md)

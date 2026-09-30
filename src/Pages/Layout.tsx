@@ -1,5 +1,5 @@
 import * as firebaseAuth from '@firebase/auth';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import './Layout.css';
 import Anchor from '../Components/Anchor';
@@ -26,6 +26,7 @@ import facebookIcon from './icons/icon-facebook-2021.svg';
 import psmfIcon from './icons/icon-psmf.ico';
 import { IRouterValue, withRouter } from '../Context/RouterContext';
 import { CodeOfRules } from './CodeOfRules';
+import { recordNavigation } from '../monitoring';
 
 const PAGE_LINK_PLAYER = {
 	name: 'Spojení hráčů',
@@ -119,10 +120,18 @@ const Layout: React.FC<IProps & IFirebaseValue & IAuthValue & IRouterValue> = (p
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [loginEmailShown, setShowLoginEmail] = useState(false);
 	const [currentPath, changePath] = useState(window.location.pathname);
+	const hasMounted = useRef(false);
 	const psmfLeagueTeamUrl = useLeagueTeamPath((errorMessage) => console.error(errorMessage));
 	useEffect(() => {
 		window.onpopstate = window.history.onpushstate = () => setTimeout(() => changePath(window.location.pathname));
 	});
+	useEffect(() => {
+		if (hasMounted.current) {
+			recordNavigation(currentPath);
+		} else {
+			hasMounted.current = true;
+		}
+	}, [currentPath]);
 	const currentPage = pages.find((page) => matchPage(page.path, currentPath));
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps

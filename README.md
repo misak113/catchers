@@ -30,6 +30,15 @@ Settle Up live API access uses their Firebase Realtime Database public API. Thei
 
 If production login fails with `auth/requests-from-referer-...-are-blocked`, ask Settle Up for a production key that allows `https://www.sccatchers.cz` as an HTTP referrer.
 
+## Development documentation
+
+- [Development docs index](docs/README.md)
+- [Feature workflow](docs/workflow.md)
+- [Code and tests](docs/code-and-tests.md)
+- [Match data](docs/match-data.md)
+- [Deployment and E2E](docs/deployment-e2e.md)
+- [Secrets](docs/secrets.md)
+
 ## Available Scripts
 
 In the project directory, you can run:

@@ -18,10 +18,43 @@ import AttendanceResponseForm from '../Components/Match/AttendenceResponseForm';
 import FormattedDateTime from '../Components/Util/FormattedDateTime';
 import SetFine from '../Components/Fine/SetFine';
 import { formatDateTimeHumanized } from '../Util/datetime';
+import { IPersonResult, AttendeeType } from '../Model/collections';
 
 interface IProps {
 	matchId: string;
 }
+
+interface IResponseHistoryProps {
+	entries: (IPersonResult & { type: AttendeeType })[];
+}
+
+const responseTypeLabels: Record<AttendeeType, string> = {
+	attendee: 'Potvrdil účast',
+	nonAttendee: 'Odmítl účast',
+	maybeAttendee: 'Možná účast',
+};
+
+const ResponseHistory = ({ entries }: IResponseHistoryProps) => {
+	const [open, setOpen] = useState(false);
+	if (entries.length === 0) {
+		return null;
+	}
+	return <span className={`Match-responseHistory${open ? ' open' : ''}`}>
+		<button type="button" className="Match-responseHistoryButton" aria-label="Zobrazit historii odpovědí" aria-expanded={open} onClick={() => setOpen(!open)}>
+			<i className="fa fa-info-circle" aria-hidden="true"/>
+		</button>
+		<div className="Match-responseHistoryPanel" aria-hidden={!open}>
+			<strong className="Match-responseHistoryTitle">Historie odpovědí</strong>
+			<div className="Match-responseHistoryEntries">
+				{entries.map((entry, index) => <div className="Match-responseHistoryEntry" key={`${entry.resultAt.getTime()}-${index}`}>
+					<strong>{responseTypeLabels[entry.type]}</strong>
+					<time dateTime={entry.resultAt.toISOString()}>{formatDateTimeHumanized(entry.resultAt)}</time>
+					{entry.note && <span>{entry.note}</span>}
+				</div>)}
+			</div>
+		</div>
+	</span>;
+};
 
 const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & IFirebaseValue & IAuthValue) => {
 	const [errorMessage, setErrorMessage] = useState<string>();
@@ -41,9 +74,15 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 		if (!match) {
 			return undefined;
 		}
-		return match.attendeesResultLog
-			?.sort((a, b) => a.resultAt.getTime() - b.resultAt.getTime())
-			?.find((log) => log.userId === userId);
+		return [...match.attendeesResultLog || []]
+			.sort((a, b) => a.resultAt.getTime() - b.resultAt.getTime())
+			.find((log) => log.userId === userId);
+	}
+
+	function getResponseHistory(userId: string) {
+		return match?.attendeesResultLog
+			?.filter((log) => log.userId === userId)
+			.sort((a, b) => a.resultAt.getTime() - b.resultAt.getTime()) || [];
 	}
 
 	function getClassNameByUserId(userId: string) {
@@ -106,7 +145,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 							{match ? attendees.map((attendee) => (
 								<tr key={attendee.userId}><td>
 									<SetFine userId={attendee.userId} users={possibleAttendees} currentUser={currentUser} match={match}/>
-									{getUserName(mapPersonResultToUser(attendee))}<br/>
+									{getUserName(mapPersonResultToUser(attendee))}<ResponseHistory entries={getResponseHistory(attendee.userId)}/><br/>
 									<footer className="blockquote-footer"><FormattedDateTime startsAt={attendee.resultAt} className={getClassNameByUserId(attendee.userId)} title={getFirstResultLogTitle(getFirstAttendeeResultLog(attendee.userId)?.resultAt)}/></footer>
 									{attendee.note && <footer className="blockquote-footer">{attendee.note}</footer>}
 								</td></tr>
@@ -114,7 +153,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 							{match ? maybeAttendees.map((maybeAttendee) => (
 								<tr className="table-warning" key={maybeAttendee.userId}><td>
 									<SetFine userId={maybeAttendee.userId} users={possibleAttendees} currentUser={currentUser} match={match}/>
-									{getUserName(mapPersonResultToUser(maybeAttendee))}<br/>
+									{getUserName(mapPersonResultToUser(maybeAttendee))}<ResponseHistory entries={getResponseHistory(maybeAttendee.userId)}/><br/>
 									<footer className="blockquote-footer"><FormattedDateTime startsAt={maybeAttendee.resultAt} className={getClassNameByUserId(maybeAttendee.userId)} title={getFirstResultLogTitle(getFirstAttendeeResultLog(maybeAttendee.userId)?.resultAt)}/></footer>
 									{maybeAttendee.note && <footer className="blockquote-footer">{maybeAttendee.note}</footer>}
 								</td></tr>
@@ -131,7 +170,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 							{match ? nonAttendees.map((nonAttendee) => (
 								<tr key={nonAttendee.userId}><td>
 									<SetFine userId={nonAttendee.userId} users={possibleAttendees} currentUser={currentUser} match={match}/>
-									{getUserName(mapPersonResultToUser(nonAttendee))}<br/>
+									{getUserName(mapPersonResultToUser(nonAttendee))}<ResponseHistory entries={getResponseHistory(nonAttendee.userId)}/><br/>
 									<footer className="blockquote-footer"><FormattedDateTime startsAt={nonAttendee.resultAt} className={getClassNameByUserId(nonAttendee.userId)} title={getFirstResultLogTitle(getFirstAttendeeResultLog(nonAttendee.userId)?.resultAt)}/></footer>
 									{nonAttendee.note && <footer className="blockquote-footer">{nonAttendee.note}</footer>}
 								</td></tr>

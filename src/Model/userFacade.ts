@@ -85,15 +85,28 @@ export function usePossibleAttendees(
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [possibleAttendees, setPossibleAttendees] = useState<IUser[]>();
-	useAsyncEffect(async () => {
-		try {
-			const possibleAttendees = await getPossibleAttendees(firebaseApp);
-			setPossibleAttendees(possibleAttendees);
-			setErrorMessage(undefined);
-		} catch (error) {
-			console.error(error);
-			setErrorMessage(getErrorMessage(error));
+	useEffect(() => {
+		let active = true;
+		setPossibleAttendees(undefined);
+		if (!user) {
+			return;
 		}
+		setErrorMessage(undefined);
+		const load = async () => {
+			try {
+				const possibleAttendees = await getPossibleAttendees(firebaseApp);
+				if (active) {
+					setPossibleAttendees(possibleAttendees);
+				}
+			} catch (error) {
+				if (active) {
+					console.error(error);
+					setErrorMessage(getErrorMessage(error));
+				}
+			}
+		};
+		void load();
+		return () => { active = false; };
 	}, [firebaseApp, user, setErrorMessage]);
 	return [possibleAttendees];
 }
@@ -132,26 +145,33 @@ export function useCurrentUser(
 ) {
 	const [currentUser, setCurrentUser] = useState<IUser>();
 	const [loading, setLoading] = useState<boolean>(true);
-	useAsyncEffect(async () => {
+	useEffect(() => {
+		let active = true;
+		setCurrentUser(undefined);
+		setLoading(Boolean(user));
 		if (!user) {
 			return;
 		}
-		setLoading(true);
-		try {
-			const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp), firestore.where('linkedUserUids', 'array-contains', user.uid)));
-			if (docs.length < 1) {
-				return;
+		setErrorMessage(undefined);
+		const load = async () => {
+			try {
+				const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp), firestore.where('linkedUserUids', 'array-contains', user.uid)));
+				if (active && docs.length > 0) {
+					setCurrentUser(mapUser(docs[0]));
+				}
+			} catch (error) {
+				if (active) {
+					console.error(error);
+					setErrorMessage(getErrorMessage(error));
+				}
+			} finally {
+				if (active) {
+					setLoading(false);
+				}
 			}
-			const currentUser = mapUser(docs[0]);
-			console.log('currentUser', user, currentUser);
-			setCurrentUser(currentUser);
-			setErrorMessage(undefined);
-		} catch (error) {
-			console.error(error);
-			setErrorMessage(getErrorMessage(error));
-		} finally {
-			setLoading(false);
-		}
+		};
+		void load();
+		return () => { active = false; };
 	}, [firebaseApp, user, setErrorMessage]);
 	return [currentUser, loading] as const;
 }

@@ -52,7 +52,7 @@ const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps &
 	const [selectedSeason, setSelectedSeason] = useState<IPSMFSeason>(() => getCurrentPSMFSeason());
 	const [possibleAttendees] = usePossibleAttendees(props.firebaseApp, props.auth.user, setErrorMessage);
 	const [currentUser] = useCurrentUser(props.firebaseApp, props.auth.user, setErrorMessage);
-	const upcomingMatches = useUpcomingMatches(props.firebaseApp);
+	const upcomingMatches = useUpcomingMatches({ firebaseApp: props.firebaseApp, user: props.auth.user, setErrorMessage });
 	const pastMatchesPagination = usePastMatches(props.firebaseApp, props.auth.user, setErrorMessage);
 	const seasonHistory = useSeasonMatchHistory(selectedSeason);
 	const currentSeason = getCurrentPSMFSeason();

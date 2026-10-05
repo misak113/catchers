@@ -2,7 +2,7 @@ import moment from "moment-timezone";
 import * as firebase from '@firebase/app';
 import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getErrorMessage } from '../Util/error';
 import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection, getMailsCollection, IMail } from "./collections";
 import { safeObjectKeys } from '../Util/object';
@@ -43,40 +43,58 @@ export function usePastMatches(
 	const [pageIndex, setPageIndex] = useState(0);
 	const [matches, setMatches] = useState<IMatch[]>();
 	const [hasNextPage, setHasNextPage] = useState(false);
-	const [pageCursors, setPageCursors] = useState<(firestore.QueryDocumentSnapshot<IMatch> | undefined)[]>([undefined]);
+	const pageCursors = useRef<(firestore.QueryDocumentSnapshot<IMatch> | undefined)[]>([undefined]);
+	const paginationUser = useRef(user?.uid);
 
-	useAsyncEffect(async () => {
-		try {
+	useEffect(() => {
+		let active = true;
+		if (paginationUser.current !== user?.uid || !user) {
+			paginationUser.current = user?.uid;
+			pageCursors.current = [undefined];
 			setMatches(undefined);
-			const cursor = pageCursors[pageIndex];
-			const constraints: firestore.QueryConstraint[] = [
-				firestore.where('startsAt', '<', new Date()),
-				firestore.orderBy('startsAt', 'desc'),
-			];
-			if (cursor) {
-				constraints.push(firestore.startAfter(cursor));
+			setHasNextPage(false);
+			setPageIndex(0);
+			if (!user || pageIndex !== 0) {
+				return;
 			}
-			constraints.push(firestore.limit(pageSize + 1));
+		}
+		setErrorMessage(undefined);
+		const load = async () => {
+			try {
+				setMatches(undefined);
+				const cursor = pageCursors.current[pageIndex];
+				const constraints: firestore.QueryConstraint[] = [
+					firestore.where('startsAt', '<', new Date()),
+					firestore.orderBy('startsAt', 'desc'),
+				];
+				if (cursor) {
+					constraints.push(firestore.startAfter(cursor));
+				}
+				constraints.push(firestore.limit(pageSize + 1));
 
-			const query = firestore.query(getMatchesCollection(firebaseApp), ...constraints);
-			const { docs } = await firestore.getDocs(query);
-			const pageDocs = docs.slice(0, pageSize);
-			const matches = pageDocs.map(mapMatch);
-			console.log('past matches', matches);
-			setMatches(matches);
-			setHasNextPage(docs.length > pageSize);
-			setPageCursors((currentPageCursors) => {
-				const newPageCursors = currentPageCursors.slice(0, pageIndex + 1);
+				const query = firestore.query(getMatchesCollection(firebaseApp), ...constraints);
+				const { docs } = await firestore.getDocs(query);
+				if (!active) {
+					return;
+				}
+				const pageDocs = docs.slice(0, pageSize);
+				const matches = pageDocs.map(mapMatch);
+				setMatches(matches);
+				setHasNextPage(docs.length > pageSize);
+				const newPageCursors = pageCursors.current.slice(0, pageIndex + 1);
 				if (docs.length > pageSize && pageDocs.length > 0) {
 					newPageCursors[pageIndex + 1] = pageDocs[pageDocs.length - 1];
 				}
-				return newPageCursors;
-			});
-			setErrorMessage(undefined);
-		} catch (error) {
-			console.error(error);
-			setErrorMessage(getErrorMessage(error));
-		}
+				pageCursors.current = newPageCursors;
+			} catch (error) {
+				if (active) {
+					console.error(error);
+					setErrorMessage(getErrorMessage(error));
+				}
+			}
+		};
+		void load();
+		return () => { active = false; };
 	}, [firebaseApp, user, setErrorMessage, pageIndex, pageSize]);
 
 	return {
@@ -101,17 +119,30 @@ export function useMatch(
 ) {
 	const [reloadIndex, setReloadIndex] = useState(0);
 	const [match, setMatch] = useState<IMatch | null>(null);
-	useAsyncEffect(async () => {
-		try {
-			const doc = await firestore.getDoc(firestore.doc(getMatchesCollection(firebaseApp), matchId));
-			const match = mapMatch(doc);
-			console.log('match', match);
-			setMatch(match);
-			setErrorMessage(undefined);
-		} catch (error) {
-			console.error(error);
-			setErrorMessage(getErrorMessage(error));
+	useEffect(() => {
+		let active = true;
+		setMatch(null);
+		if (!user) {
+			return;
 		}
+		setErrorMessage(undefined);
+		const load = async () => {
+			try {
+				const doc = await firestore.getDoc(firestore.doc(getMatchesCollection(firebaseApp), matchId));
+				if (!active) {
+					return;
+				}
+				const match = mapMatch(doc);
+				setMatch(match);
+			} catch (error) {
+				if (active) {
+					console.error(error);
+					setErrorMessage(getErrorMessage(error));
+				}
+			}
+		};
+		void load();
+		return () => { active = false; };
 	}, [matchId, firebaseApp, user, setErrorMessage, reloadIndex]);
 
 	return { match, reloadMatch: () => setReloadIndex(reloadIndex + 1) };
@@ -169,12 +200,35 @@ export async function getUpcomingMatches(firebaseApp: firebase.FirebaseApp): Pro
 	return upcomingMatches;
 }
 
-export function useUpcomingMatches(firebaseApp: firebase.FirebaseApp) {
+export function useUpcomingMatches({ firebaseApp, user, setErrorMessage }: {
+	firebaseApp: firebase.FirebaseApp;
+	user: FirebaseUser | null;
+	setErrorMessage: (errorMessage: string | undefined) => void;
+}) {
 	const [upcomingMatches, setUpcomingMatches] = useState<IMatch[]>();
-	useAsyncEffect(async () => {
-		const upcomingMatches = await getUpcomingMatches(firebaseApp);
-		setUpcomingMatches(upcomingMatches);
-	}, [firebaseApp]);
+	useEffect(() => {
+		let active = true;
+		setUpcomingMatches(undefined);
+		if (!user) {
+			return;
+		}
+		setErrorMessage(undefined);
+		const load = async () => {
+			try {
+				const matches = await getUpcomingMatches(firebaseApp);
+				if (active) {
+					setUpcomingMatches(matches);
+				}
+			} catch (error) {
+				if (active) {
+					console.error(error);
+					setErrorMessage(getErrorMessage(error));
+				}
+			}
+		};
+		void load();
+		return () => { active = false; };
+	}, [firebaseApp, user, setErrorMessage]);
 
 	return upcomingMatches;
 }

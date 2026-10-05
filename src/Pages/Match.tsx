@@ -106,7 +106,7 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 
 	return <>
 		<h1>Zápas</h1>
-		{errorMessage ? errorMessage : <>
+		{errorMessage ? <div className="alert alert-danger">{errorMessage}</div> : <>
 			{currentUser?.player && !currentUserResponded && <div className="Match-unresponded jumbotron alert alert-warning">
 				<AttendanceResponseForm
 					title="K tomuto zápasu ses ještě nevyjádřil"

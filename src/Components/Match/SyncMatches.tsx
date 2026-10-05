@@ -7,6 +7,7 @@ import FormattedDateTime from '../Util/FormattedDateTime';
 import { IFirebaseValue, withFirebase } from '../../Context/FirebaseContext';
 import { addMatch, updateMatch, useUpcomingMatches } from '../../Model/matchFacade';
 import classNames from 'classnames';
+import { IAuthValue, withAuth } from '../../Context/AuthContext';
 import { IRouterValue, withRouter } from '../../Context/RouterContext';
 import { TeamName } from '../Team/TeamName';
 
@@ -68,9 +69,9 @@ interface SyncLeagueMatchesProps {
 	setErrorMessage: (message: string | undefined) => void;
 }
 
-const SyncLeagueMatches = withFirebase(withRouter(({ league, setErrorMessage, firebaseApp, router }: SyncLeagueMatchesProps & IFirebaseValue & IRouterValue) => {
+const SyncLeagueMatches = withFirebase(withRouter(withAuth(({ league, setErrorMessage, firebaseApp, router, auth }: SyncLeagueMatchesProps & IFirebaseValue & IRouterValue & IAuthValue) => {
 	const newMatches = useTeamMatches(league, setErrorMessage);
-	const existingMatches = useUpcomingMatches(firebaseApp);
+	const existingMatches = useUpcomingMatches({ firebaseApp, user: auth.user, setErrorMessage });
 
 	const [synchronizing, setSynchronizing] = useState(false);
 
@@ -148,4 +149,4 @@ const SyncLeagueMatches = withFirebase(withRouter(({ league, setErrorMessage, fi
 				&& <button type="button" className="btn btn-success" onClick={synchronize} disabled={synchronizing}>Synchronizovat</button>}
 		</div>
 	);
-}));
+})));

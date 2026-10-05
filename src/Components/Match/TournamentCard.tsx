@@ -18,7 +18,7 @@ function TournamentCard(props: IProps) {
 						<a href={getPSMFTournamentUrl(props.tournament)} target='_blank' rel="noreferrer">
 							<span className="fa fa-external-link icon-external"/> {props.tournament}
 						</a>
-					</p> : 'Neuvedena'}
+					</p> : <p>Neuvedena</p>}
 					{props.tournament && props.group && <p>
 						<a href={getPSMFGroupUrl(props.tournament, props.group)} target='_blank' rel="noreferrer">
 							<span className="fa fa-external-link icon-external"/> {props.group}

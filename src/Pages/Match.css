@@ -91,9 +91,22 @@
 }
 
 @media (max-width: 767px) {
+	.Match-attendees > .col-md-4 {
+		padding-right: 8px;
+		padding-left: 8px;
+	}
+
+	.Match-attendees td {
+		padding: 6px 8px;
+	}
+
+	.Match-attendees .blockquote-footer {
+		margin: 0;
+		line-height: 1.25;
+	}
+
 	.Match-responseHistory {
-		display: block;
-		margin: 6px 0 0;
+		display: inline;
 	}
 
 	.Match-responseHistoryPanel {

@@ -3,9 +3,10 @@ import { act, useState } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { initializeApp } from '@firebase/app';
 import { User } from '@firebase/auth';
-import { startAfter } from '@firebase/firestore';
+import { disableNetwork, enableNetwork, startAfter } from '@firebase/firestore';
+import { FIRESTORE_READ_TIMEOUT_MS } from '../React/firestoreRead';
 import { useMatch, usePastMatches, useUpcomingMatches } from './matchFacade';
-import { useCurrentUser, usePossibleAttendees } from './userFacade';
+import { useCurrentUser, usePossibleAttendees, useShowPlayerLinkingModal } from './userFacade';
 
 const mockGetDocs = jest.fn<() => Promise<{ docs: { id: string; data: () => { startsAt: { toDate: () => Date } } }[] }>>();
 const mockGetDoc = jest.fn<() => Promise<unknown>>();
@@ -14,6 +15,7 @@ jest.mock('@firebase/firestore', () => ({
 	getFirestore: jest.fn(), collection: jest.fn(), query: jest.fn(),
 	where: jest.fn(), orderBy: jest.fn(), limit: jest.fn(), startAfter: jest.fn(),
 	doc: jest.fn(), getDocs: () => mockGetDocs(), getDoc: () => mockGetDoc(),
+	disableNetwork: jest.fn<() => Promise<void>>(), enableNetwork: jest.fn<() => Promise<void>>(),
 }));
 jest.mock('./psmfFacade', () => ({}));
 jest.mock('./mailFacade', () => ({}));
@@ -51,11 +53,14 @@ describe('authenticated match reads', () => {
 		container = document.createElement('div');
 		root = createRoot(container);
 		errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+		jest.mocked(disableNetwork).mockResolvedValue(undefined);
+		jest.mocked(enableNetwork).mockResolvedValue(undefined);
 	});
 
 	afterEach(async () => {
 		await act(async () => root.unmount());
 		errorSpy.mockRestore();
+		jest.useRealTimers();
 	});
 
 	it('does not read protected collections before auth restores', async () => {
@@ -130,6 +135,51 @@ describe('authenticated match reads', () => {
 		expect(container.textContent).toBe('0');
 		expect(startAfter).toHaveBeenCalledTimes(1);
 		expect(getDocs).toHaveBeenCalledTimes(3);
+	});
+
+	it('recovers all match-screen reads together after returning from background', async () => {
+		const MatchScreen = () => {
+			const [error, setError] = useState<string>();
+			const { match } = useMatch('match', firebaseApp, user, setError);
+			const [players] = usePossibleAttendees(firebaseApp, user, setError);
+			const [player] = useCurrentUser(firebaseApp, user, setError);
+			return <div>{error || (match && players && player ? 'loaded' : 'waiting')}</div>;
+		};
+		getDocs.mockImplementation(() => new Promise(() => {}));
+		mockGetDoc.mockImplementation(() => new Promise(() => {}));
+		await act(async () => root.render(<MatchScreen />));
+		expect(container.textContent).toBe('waiting');
+		getDocs.mockResolvedValue({ docs: [{ id: 'player', data: () => ({ startsAt: { toDate: () => new Date(0) } }) }] });
+		mockGetDoc.mockResolvedValue({ id: 'match', data: () => ({ startsAt: { toDate: () => new Date(0) } }) });
+		Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+		await act(async () => document.dispatchEvent(new Event('visibilitychange')));
+		expect(container.textContent).toBe('loaded');
+		expect(disableNetwork).toHaveBeenCalledTimes(1);
+		expect(enableNetwork).toHaveBeenCalledTimes(1);
+	});
+
+	it('does not show player linking when the current-user read times out', async () => {
+		jest.useFakeTimers();
+		getDocs.mockImplementation(() => new Promise(() => {}));
+		const Linking = () => {
+			const [, setError] = useState<string>();
+			const show = useShowPlayerLinkingModal(firebaseApp, user, setError);
+			return <div>{show ? 'linking' : 'closed'}</div>;
+		};
+		await act(async () => root.render(<Linking />));
+		await act(async () => jest.advanceTimersByTime(FIRESTORE_READ_TIMEOUT_MS));
+		expect(container.textContent).toBe('closed');
+	});
+
+	it('reports a missing match instead of leaving spinners indefinitely', async () => {
+		mockGetDoc.mockResolvedValue({ data: () => undefined });
+		const Missing = () => {
+			const [error, setError] = useState<string>();
+			useMatch('missing', firebaseApp, user, setError);
+			return <div>{error || 'waiting'}</div>;
+		};
+		await act(async () => root.render(<Missing />));
+		expect(container.textContent).toBe('Zápas nebyl nalezen.');
 	});
 
 });

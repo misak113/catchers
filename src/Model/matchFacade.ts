@@ -7,6 +7,7 @@ import { getErrorMessage } from '../Util/error';
 import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection, getMailsCollection, IMail } from "./collections";
 import { safeObjectKeys } from '../Util/object';
 import { useAsyncEffect } from '../React/async';
+import { useFirestoreRead } from '../React/firestoreRead';
 import { IMatchImport } from './psmfFacade';
 
 export const PAST_MATCHES_PAGE_SIZE = 10;
@@ -117,35 +118,20 @@ export function useMatch(
 	user: FirebaseUser | null,
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
-	const [reloadIndex, setReloadIndex] = useState(0);
-	const [match, setMatch] = useState<IMatch | null>(null);
-	useEffect(() => {
-		let active = true;
-		setMatch(null);
-		if (!user) {
-			return;
-		}
-		setErrorMessage(undefined);
-		const load = async () => {
-			try {
-				const doc = await firestore.getDoc(firestore.doc(getMatchesCollection(firebaseApp), matchId));
-				if (!active) {
-					return;
-				}
-				const match = mapMatch(doc);
-				setMatch(match);
-			} catch (error) {
-				if (active) {
-					console.error(error);
-					setErrorMessage(getErrorMessage(error));
-				}
+	const { data, reload, retry } = useFirestoreRead(
+		firebaseApp,
+		Boolean(user),
+		async () => {
+			const match = mapMatch(await firestore.getDoc(firestore.doc(getMatchesCollection(firebaseApp), matchId)));
+			if (!match) {
+				throw new Error('Zápas nebyl nalezen.');
 			}
-		};
-		void load();
-		return () => { active = false; };
-	}, [matchId, firebaseApp, user, setErrorMessage, reloadIndex]);
-
-	return { match, reloadMatch: () => setReloadIndex(reloadIndex + 1) };
+			return match;
+		},
+		[matchId, user],
+		setErrorMessage,
+	);
+	return { match: data || null, reloadMatch: reload, retryMatch: retry };
 }
 
 export async function addAttendee(
@@ -205,32 +191,14 @@ export function useUpcomingMatches({ firebaseApp, user, setErrorMessage }: {
 	user: FirebaseUser | null;
 	setErrorMessage: (errorMessage: string | undefined) => void;
 }) {
-	const [upcomingMatches, setUpcomingMatches] = useState<IMatch[]>();
-	useEffect(() => {
-		let active = true;
-		setUpcomingMatches(undefined);
-		if (!user) {
-			return;
-		}
-		setErrorMessage(undefined);
-		const load = async () => {
-			try {
-				const matches = await getUpcomingMatches(firebaseApp);
-				if (active) {
-					setUpcomingMatches(matches);
-				}
-			} catch (error) {
-				if (active) {
-					console.error(error);
-					setErrorMessage(getErrorMessage(error));
-				}
-			}
-		};
-		void load();
-		return () => { active = false; };
-	}, [firebaseApp, user, setErrorMessage]);
-
-	return upcomingMatches;
+	const { data } = useFirestoreRead(
+		firebaseApp,
+		Boolean(user),
+		() => getUpcomingMatches(firebaseApp),
+		[user],
+		setErrorMessage,
+	);
+	return data;
 }
 
 export function didUserRespondMatch(match: IMatch | null, currentUser: IUser | undefined) {

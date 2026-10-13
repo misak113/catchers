@@ -58,9 +58,9 @@ const ResponseHistory = ({ entries }: IResponseHistoryProps) => {
 
 const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & IFirebaseValue & IAuthValue) => {
 	const [errorMessage, setErrorMessage] = useState<string>();
-	const [possibleAttendees] = usePossibleAttendees(props.firebaseApp, props.auth.user, setErrorMessage);
-	const [currentUser] = useCurrentUser(props.firebaseApp, props.auth.user, setErrorMessage);
-	const { match, reloadMatch } = useMatch(props.matchId, props.firebaseApp, props.auth.user, setErrorMessage);
+	const [possibleAttendees, retryAttendees] = usePossibleAttendees(props.firebaseApp, props.auth.user, setErrorMessage);
+	const [currentUser, , retryUser] = useCurrentUser(props.firebaseApp, props.auth.user, setErrorMessage);
+	const { match, reloadMatch, retryMatch } = useMatch(props.matchId, props.firebaseApp, props.auth.user, setErrorMessage);
 	const mapPersonResultToUser = createMapPersonResultToUser(possibleAttendees);
 
 	const attendees = match?.attendees || [];
@@ -106,7 +106,14 @@ const Match: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & I
 
 	return <>
 		<h1>Zápas</h1>
-		{errorMessage ? <div className="alert alert-danger">{errorMessage}</div> : <>
+		{errorMessage ? <div className="alert alert-danger" role="alert">
+			{errorMessage}
+			<button type="button" className="btn btn-outline-danger ml-2" onClick={() => {
+				retryAttendees();
+				retryUser();
+				retryMatch();
+			}}>Zkusit znovu</button>
+		</div> : <>
 			{currentUser?.player && !currentUserResponded && <div className="Match-unresponded jumbotron alert alert-warning">
 				<AttendanceResponseForm
 					title="K tomuto zápasu ses ještě nevyjádřil"

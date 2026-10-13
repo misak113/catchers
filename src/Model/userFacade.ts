@@ -22,6 +22,7 @@ import { generateHash } from '../Components/Util/hash';
 import { Creatable } from './types';
 import moment from 'moment-timezone';
 import { useAsyncEffect } from '../React/async';
+import { useFirestoreRead } from '../React/firestoreRead';
 import { AuthProviderName } from '../Context/SettleUpContext';
 import { sendMail } from './mailFacade';
 
@@ -83,32 +84,15 @@ export function usePossibleAttendees(
 	firebaseApp: firebase.FirebaseApp,
 	user: FirebaseUser | null,
 	setErrorMessage: (errorMessage: string | undefined) => void,
-) {
-	const [possibleAttendees, setPossibleAttendees] = useState<IUser[]>();
-	useEffect(() => {
-		let active = true;
-		setPossibleAttendees(undefined);
-		if (!user) {
-			return;
-		}
-		setErrorMessage(undefined);
-		const load = async () => {
-			try {
-				const possibleAttendees = await getPossibleAttendees(firebaseApp);
-				if (active) {
-					setPossibleAttendees(possibleAttendees);
-				}
-			} catch (error) {
-				if (active) {
-					console.error(error);
-					setErrorMessage(getErrorMessage(error));
-				}
-			}
-		};
-		void load();
-		return () => { active = false; };
-	}, [firebaseApp, user, setErrorMessage]);
-	return [possibleAttendees];
+): [IUser[] | undefined, () => void] {
+	const { data, retry } = useFirestoreRead(
+		firebaseApp,
+		Boolean(user),
+		() => getPossibleAttendees(firebaseApp),
+		[user],
+		setErrorMessage,
+	);
+	return [data, retry];
 }
 
 export async function getPossibleAttendees(firebaseApp: firebase.FirebaseApp) {
@@ -142,38 +126,21 @@ export function useCurrentUser(
 	firebaseApp: firebase.FirebaseApp,
 	user: FirebaseUser | null,
 	setErrorMessage: (errorMessage: string | undefined) => void,
-) {
-	const [currentUser, setCurrentUser] = useState<IUser>();
-	const [loading, setLoading] = useState<boolean>(true);
-	useEffect(() => {
-		let active = true;
-		setCurrentUser(undefined);
-		setLoading(Boolean(user));
-		if (!user) {
-			return;
-		}
-		setErrorMessage(undefined);
-		const load = async () => {
-			try {
-				const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp), firestore.where('linkedUserUids', 'array-contains', user.uid)));
-				if (active && docs.length > 0) {
-					setCurrentUser(mapUser(docs[0]));
-				}
-			} catch (error) {
-				if (active) {
-					console.error(error);
-					setErrorMessage(getErrorMessage(error));
-				}
-			} finally {
-				if (active) {
-					setLoading(false);
-				}
+): [IUser | undefined, boolean, () => void, boolean] {
+	const { data, loading, retry, hasLoaded } = useFirestoreRead(
+		firebaseApp,
+		Boolean(user),
+		async () => {
+			if (!user) {
+				return undefined;
 			}
-		};
-		void load();
-		return () => { active = false; };
-	}, [firebaseApp, user, setErrorMessage]);
-	return [currentUser, loading] as const;
+			const { docs } = await firestore.getDocs(firestore.query(getUsersCollection(firebaseApp), firestore.where('linkedUserUids', 'array-contains', user.uid)));
+			return docs.length > 0 ? mapUser(docs[0]) : undefined;
+		},
+		[user],
+		setErrorMessage,
+	);
+	return [data, loading, retry, hasLoaded];
 }
 
 export function useShowPlayerLinkingModal(
@@ -182,15 +149,15 @@ export function useShowPlayerLinkingModal(
 	setErrorMessage: (errorMessage: string | undefined) => void,
 ) {
 	const [showModal, setShowModal] = useState(false);
-	const [currentUser, loading] = useCurrentUser(firebaseApp, user, setErrorMessage);
+	const [currentUser, loading, , hasLoaded] = useCurrentUser(firebaseApp, user, setErrorMessage);
 
 	useEffect(() => {
-		if (user && !currentUser && !loading) {
+		if (user && hasLoaded && !currentUser && !loading) {
 			setShowModal(true);
 		} else {
 			setShowModal(false);
 		}
-	}, [firebaseApp, user, currentUser, loading]);
+	}, [firebaseApp, user, currentUser, loading, hasLoaded]);
 
 	return showModal;
 }

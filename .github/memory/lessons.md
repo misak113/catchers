@@ -4,7 +4,7 @@
 
 - **Mistake:** Checked workspace `.env.secrets`, but asked for preview credentials without checking repository-local `.env.secrets`.
 - **Correction:** Check `.env.secrets` first.
-- **Rule:** Before asking for test credentials, inspect key names in both workspace and repository-local `.env.secrets`; never print values.
+- **Rule:** Before asking for test credentials, inspect key names in both workspace and repository-local `.env.secrets`; never print values. When directed to Vercel, use its existing login and inspect preview configuration before asking again.
 
 ## 2026-09-30 — Secret paths
 

@@ -176,10 +176,20 @@ export async function createTransaction(
 	type: SettleUpType,
 	transaction: SettleUpTransaction,
 ) {
+	await prepareTransaction(settleUp, type, transaction)();
+}
+
+// Allocate once, then reuse the same path and payload if a write needs retrying.
+// A rejected write may already have reached the server; a new push could duplicate it.
+export function prepareTransaction(
+	settleUp: SettleUp,
+	type: SettleUpType,
+	transaction: SettleUpTransaction,
+) {
 	const db = database.getDatabase(settleUp.firebaseApp);
 	const transactionRef = database.ref(db, `${Collection.Transactions}/${settleUpConfig[type].groupId}`);
 	const newTransactionRef = database.push(transactionRef);
-	await database.set(newTransactionRef, transaction);
+	return () => database.set(newTransactionRef, transaction);
 }
 
 export function useSettleUpTransactions(

@@ -4,6 +4,7 @@ import { formatCurrencyAmountHumanized } from "../../Util/currency";
 
 interface IFinesProps {
 	onSetFine?: (fine: IFineDefinition) => void;
+	disabled?: boolean;
 }
 
 const FinesTable = (props: IFinesProps) => {
@@ -23,7 +24,7 @@ const FinesTable = (props: IFinesProps) => {
 						<tr key={fine.label}>
 							<td>{fine.label} <i><small>({fine.detail})</small></i></td>
 							<td>{formatCurrencyAmountHumanized(fine)}</td>
-							{props.onSetFine && <td><button className='btn btn-primary' onClick={() => props.onSetFine?.(fine)}>Přidat</button></td>}
+							{props.onSetFine && <td><button type='button' className='btn btn-primary' disabled={props.disabled} onClick={() => props.onSetFine?.(fine)}>Přidat</button></td>}
 						</tr>
 					);
 				})}

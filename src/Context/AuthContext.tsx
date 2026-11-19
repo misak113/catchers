@@ -1,6 +1,10 @@
 import React from 'react';
 import * as firebaseAuth from '@firebase/auth';
 import { withFirebase, IFirebaseValue } from './FirebaseContext';
+import { reportLoadingFailure } from '../monitoring';
+
+export const AUTH_RESTORE_TIMEOUT_MS = 15000;
+type AuthStatus = 'restoring' | 'error' | 'signed-out' | 'signed-in';
 
 interface IOwnProps {
 	children: React.ReactNode;
@@ -8,6 +12,7 @@ interface IOwnProps {
 type IProps = IOwnProps & IFirebaseValue;
 
 interface IState {
+	status: AuthStatus;
 	signingIn: boolean;
 	user: firebaseAuth.User | null;
 }
@@ -19,6 +24,8 @@ export interface ICredentials {
 
 export interface IAuthValue {
 	auth: {
+		status: AuthStatus;
+		retryRestore(): void;
 		loginFacebook(): Promise<void>;
 		loginEmail(credentials: ICredentials): Promise<void>;
 		registerEmail(credentials: ICredentials): Promise<void>;
@@ -33,10 +40,12 @@ export const AuthContext = React.createContext<IAuthValue>({} as IAuthValue);
 class AuthProviderLOC extends React.Component<IProps, IState> {
 
 	private readonly firebaseAuth: firebaseAuth.Auth;
-	private unsubscribeAuthStateChanged: (() => void) | undefined;
+	private retryRestore: (() => void) | undefined;
+	private stopRestore: (() => void) | undefined;
 	private readonly facebookAuthProvider = new firebaseAuth.FacebookAuthProvider();
 	public state: IState = {
 		signingIn: false,
+		status: 'restoring',
 		user: null,
 	};
 
@@ -49,23 +58,67 @@ class AuthProviderLOC extends React.Component<IProps, IState> {
 	}
 
 	public componentDidMount() {
-		this.unsubscribeAuthStateChanged = this.firebaseAuth.onAuthStateChanged((user) => {
-			console.log('auth state changed', user);
-			this.setState({ user });
-		});
+		this.observeAuth();
 	}
 
 	public componentWillUnmount() {
-		if (this.unsubscribeAuthStateChanged) {
-			this.unsubscribeAuthStateChanged();
-			this.unsubscribeAuthStateChanged = undefined;
-		}
+		this.stopRestore?.();
+	}
+
+	private observeAuth() {
+		this.stopRestore?.();
+		this.setState({ status: 'restoring', user: null });
+		let active = true;
+		let waiting = true;
+		const deadline = Date.now() + AUTH_RESTORE_TIMEOUT_MS;
+		const fail = (reason: 'timeout' | 'request') => {
+			if (!active || !waiting) {
+				return;
+			}
+			stopWaiting();
+			this.setState({ status: 'error' });
+			this.retryRestore = () => {
+				this.retryRestore = undefined;
+				this.observeAuth();
+			};
+			if (window.location.pathname.replace(/\/$/, '') === '/zapasy') {
+				reportLoadingFailure('auth', reason);
+			}
+		};
+		const checkDeadline = () => {
+			if (Date.now() >= deadline) {
+				fail('timeout');
+			}
+		};
+		const timer = setTimeout(() => fail('timeout'), AUTH_RESTORE_TIMEOUT_MS);
+		const stopWaiting = () => {
+			waiting = false;
+			clearTimeout(timer);
+			document.removeEventListener('visibilitychange', checkDeadline);
+			window.removeEventListener('pageshow', checkDeadline);
+		};
+		document.addEventListener('visibilitychange', checkDeadline);
+		window.addEventListener('pageshow', checkDeadline);
+		const unsubscribe = this.firebaseAuth.onAuthStateChanged((user) => {
+			if (active) {
+				stopWaiting();
+				this.retryRestore = undefined;
+				this.setState({ status: user ? 'signed-in' : 'signed-out', user });
+			}
+		}, () => fail('request'));
+		this.stopRestore = () => {
+			active = false;
+			stopWaiting();
+			unsubscribe();
+		};
 	}
 
 	public render() {
 		return (
 			<AuthContext.Provider value={{
 				auth: {
+					status: this.state.status,
+					retryRestore: () => this.retryRestore?.(),
 					loginFacebook: () => this.loginFacebook(),
 					loginEmail: (credentials: ICredentials) => this.loginEmail(credentials),
 					registerEmail: (credentials: ICredentials) => this.registerEmail(credentials),

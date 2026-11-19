@@ -83,16 +83,16 @@ export function getUnrespondedUsers(props: {
 export function usePossibleAttendees(
 	firebaseApp: firebase.FirebaseApp,
 	user: FirebaseUser | null,
-	setErrorMessage: (errorMessage: string | undefined) => void,
-): [IUser[] | undefined, () => void] {
-	const { data, retry } = useFirestoreRead(
+	setErrorMessage?: (errorMessage: string | undefined) => void,
+): [IUser[] | undefined, () => void, string | undefined] {
+	const { data, retry, error } = useFirestoreRead(
 		firebaseApp,
 		Boolean(user),
 		() => getPossibleAttendees(firebaseApp),
 		[user],
 		setErrorMessage,
 	);
-	return [data, retry];
+	return [data, retry, error];
 }
 
 export async function getPossibleAttendees(firebaseApp: firebase.FirebaseApp) {
@@ -125,9 +125,9 @@ export function useAllUsers(
 export function useCurrentUser(
 	firebaseApp: firebase.FirebaseApp,
 	user: FirebaseUser | null,
-	setErrorMessage: (errorMessage: string | undefined) => void,
-): [IUser | undefined, boolean, () => void, boolean] {
-	const { data, loading, retry, hasLoaded } = useFirestoreRead(
+	setErrorMessage?: (errorMessage: string | undefined) => void,
+): [IUser | undefined, boolean, () => void, boolean, string | undefined] {
+	const { data, loading, retry, hasLoaded, error } = useFirestoreRead(
 		firebaseApp,
 		Boolean(user),
 		async () => {
@@ -140,7 +140,7 @@ export function useCurrentUser(
 		[user],
 		setErrorMessage,
 	);
-	return [data, loading, retry, hasLoaded];
+	return [data, loading, retry, hasLoaded, error];
 }
 
 export function useShowPlayerLinkingModal(

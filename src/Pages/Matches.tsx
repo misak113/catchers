@@ -17,7 +17,7 @@ import Anchor from '../Components/Anchor';
 import { withFirebase, IFirebaseValue } from '../Context/FirebaseContext';
 import Loading from '../Components/Loading';
 import Attendees from '../Components/Match/Attendees';
-import { didUserRespondMatch, getMatchEventName, PAST_MATCHES_PAGE_SIZE, usePastMatches, useUpcomingMatches } from '../Model/matchFacade';
+import { didUserRespondMatch, getMatchEventName, PAST_MATCHES_PAGE_SIZE, usePastMatches, useUpcomingMatchesRead } from '../Model/matchFacade';
 import { hasPrivilege, useCurrentUser, usePossibleAttendees } from '../Model/userFacade';
 import { withAuth, IAuthValue } from '../Context/AuthContext';
 import MatchDate from '../Components/Match/MatchDate';
@@ -48,20 +48,22 @@ interface IProps {}
 ChartJS.register(CategoryScale, LinearScale, BarElement, ChartTooltip, ChartLegend);
 
 const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps & IFirebaseValue & IAuthValue) => {
-	const [errorMessage, setErrorMessage] = useState<string>();
 	const [selectedSeason, setSelectedSeason] = useState<IPSMFSeason>(() => getCurrentPSMFSeason());
-	const [possibleAttendees] = usePossibleAttendees(props.firebaseApp, props.auth.user, setErrorMessage);
-	const [currentUser] = useCurrentUser(props.firebaseApp, props.auth.user, setErrorMessage);
-	const upcomingMatches = useUpcomingMatches({ firebaseApp: props.firebaseApp, user: props.auth.user, setErrorMessage });
-	const pastMatchesPagination = usePastMatches(props.firebaseApp, props.auth.user, setErrorMessage);
+	const [possibleAttendees, , attendeesError] = usePossibleAttendees(props.firebaseApp, props.auth.user);
+	const [currentUser, , , , playerError] = useCurrentUser(props.firebaseApp, props.auth.user);
+	const upcoming = useUpcomingMatchesRead(props.firebaseApp, props.auth.user);
+	const pastMatchesPagination = usePastMatches(props.firebaseApp, props.auth.user);
 	const seasonHistory = useSeasonMatchHistory(selectedSeason);
 	const currentSeason = getCurrentPSMFSeason();
 
+	const tableProps = { auth: props.auth, possibleAttendees, currentUser };
 	return <>
 		<h1>Zápasy</h1>
+		{props.auth.status === 'signed-in' && (attendeesError || playerError) &&
+			<p role="status">Údaje o hráčích se nepodařilo načíst. Výsledky zápasů se načítají samostatně.</p>}
 
 		<h2>Nadcházející</h2>
-		<MatchesTable matches={upcomingMatches} possibleAttendees={possibleAttendees} errorMessage={errorMessage} currentUser={currentUser}/>
+		<MatchesTable {...tableProps} matches={upcoming.data} error={upcoming.error} retry={upcoming.retry}/>
 
 		{hasPrivilege(currentUser, Privilege.SyncMatches) && <SyncMatches/>}
 
@@ -74,15 +76,15 @@ const Matches: React.FC<IProps & IFirebaseValue & IAuthValue> = (props: IProps &
 		/>
 
 		<h2 className="Matches-pastHeader">Minulé</h2>
-		<MatchesTable matches={pastMatchesPagination.matches} possibleAttendees={possibleAttendees} errorMessage={errorMessage} currentUser={currentUser}/>
-		<PastMatchesPagination
+		<MatchesTable {...tableProps} {...pastMatchesPagination}/>
+		{props.auth.status === 'signed-in' && <PastMatchesPagination
 			pageIndex={pastMatchesPagination.pageIndex}
 			hasPreviousPage={pastMatchesPagination.hasPreviousPage}
 			hasNextPage={pastMatchesPagination.hasNextPage}
 			onPreviousPage={pastMatchesPagination.goToPreviousPage}
 			onNextPage={pastMatchesPagination.goToNextPage}
 			matches={pastMatchesPagination.matches}
-		/>
+		/>}
 	</>;
 };
 export default withFirebase(withAuth(Matches));
@@ -90,11 +92,29 @@ export default withFirebase(withAuth(Matches));
 interface IMatchesTableProps {
 	matches: IMatch[] | undefined;
 	possibleAttendees: IUser[] | undefined;
-	errorMessage?: string;
+	auth: IAuthValue['auth'];
+	error?: string;
+	retry: () => void;
 	currentUser: IUser | undefined;
 }
 
-function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }: IMatchesTableProps) {
+function MatchesTable({ auth, matches, possibleAttendees, error, retry, currentUser }: IMatchesTableProps) {
+	const retryButton = (onClick: () => void) => <button type="button" className="btn btn-secondary ms-2" onClick={onClick}>Zkusit znovu</button>;
+	let status: React.ReactNode;
+	if (auth.status === 'restoring') {
+		status = <span role="status">Ověřuji přihlášení…</span>;
+	} else if (auth.status === 'signed-out') {
+		status = <span role="status">Pro zobrazení zápasů se přihlas pomocí nabídky v záhlaví.</span>;
+	} else if (auth.status === 'error') {
+		status = <><span role="alert">Přihlášení se nepodařilo ověřit.</span> {retryButton(auth.retryRestore)}</>;
+	} else if (error) {
+		status = <><span role="alert">Zápasy se nepodařilo načíst. Zkontroluj připojení.</span> {retryButton(retry)}</>;
+	} else if (!matches) {
+		status = <div role="status"><Loading size="50px"/> Načítám zápasy…</div>;
+	} else if (matches.length === 0) {
+		status = <span role="status">Žádné zápasy k zobrazení.</span>;
+	}
+
 	const now = new Date();
 	return <div className="table-responsive-md">
 		<table className="Matches-table table table-light table-bordered table-hover table-striped">
@@ -109,17 +129,14 @@ function MatchesTable({ matches, possibleAttendees, errorMessage, currentUser }:
 				</tr>
 			</thead>
 			<tbody>
-				{errorMessage
-				? <tr><td colSpan={6}>{errorMessage}</td></tr>
-				: matches
-					? matches.map((match) => <MatchRow
-						key={match.id}
-						match={match}
-						currentUser={currentUser}
-						now={now}
-						possibleAttendees={possibleAttendees}
-					/>)
-					: <tr><td colSpan={6}><Loading size='50px'/></td></tr>}
+				{status && <tr><td colSpan={6}>{status}</td></tr>}
+				{auth.status === 'signed-in' && matches?.map((match) => <MatchRow
+					key={match.id}
+					match={match}
+					currentUser={currentUser}
+					now={now}
+					possibleAttendees={possibleAttendees}
+				/>)}
 			</tbody>
 		</table>
 	</div>;
@@ -147,7 +164,7 @@ function PastMatchesPagination({
 			type="button"
 			className="btn btn-secondary"
 			onClick={onPreviousPage}
-			disabled={!hasPreviousPage || !matches}
+			disabled={!hasPreviousPage}
 		>
 			Novější
 		</button>

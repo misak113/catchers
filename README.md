@@ -36,6 +36,8 @@ Production builds can report browser errors, failed page loads, navigation timin
 
 Create a Sentry project for a browser JavaScript app and add its **DSN** to Vercel's production environment variables. DSN is public frontend configuration; do not create or expose Sentry auth token. `REACT_APP_SENTRY_TRACE_SAMPLE_RATE` controls sampled performance traces and defaults to `0.1`.
 
+Match-page loading warnings report only the failed stage and reason, without account, request, or breadcrumb data. Vercel builds use `VERCEL_GIT_COMMIT_SHA` as the Sentry release; other builds can set `REACT_APP_SENTRY_RELEASE`.
+
 ## Development documentation
 
 - [Development docs index](docs/README.md)

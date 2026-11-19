@@ -2,7 +2,7 @@ import moment from "moment-timezone";
 import * as firebase from '@firebase/app';
 import * as firestore from '@firebase/firestore';
 import { User as FirebaseUser } from '@firebase/auth';
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { getErrorMessage } from '../Util/error';
 import { IMatch, mapMatch, IUser, IPersonResult, getMatchesCollection, getMailsCollection, IMail } from "./collections";
 import { safeObjectKeys } from '../Util/object';
@@ -38,75 +38,62 @@ export function useMatches(
 export function usePastMatches(
 	firebaseApp: firebase.FirebaseApp,
 	user: FirebaseUser | null,
-	setErrorMessage: (errorMessage: string | undefined) => void,
+	setErrorMessage?: (errorMessage: string | undefined) => void,
 	pageSize = PAST_MATCHES_PAGE_SIZE,
 ) {
-	const [pageIndex, setPageIndex] = useState(0);
-	const [matches, setMatches] = useState<IMatch[]>();
-	const [hasNextPage, setHasNextPage] = useState(false);
-	const pageCursors = useRef<(firestore.QueryDocumentSnapshot<IMatch> | undefined)[]>([undefined]);
-	const paginationUser = useRef(user?.uid);
-
-	useEffect(() => {
-		let active = true;
-		if (paginationUser.current !== user?.uid || !user) {
-			paginationUser.current = user?.uid;
-			pageCursors.current = [undefined];
-			setMatches(undefined);
-			setHasNextPage(false);
-			setPageIndex(0);
-			if (!user || pageIndex !== 0) {
-				return;
+	const [pagination, setPagination] = useState<{
+		firebaseApp: firebase.FirebaseApp;
+		uid: string | undefined;
+		pageSize: number;
+		cursors: (firestore.QueryDocumentSnapshot<IMatch> | undefined)[];
+	}>({ firebaseApp, uid: user?.uid, pageSize, cursors: [undefined] });
+	const sameIdentity = pagination.firebaseApp === firebaseApp && pagination.uid === user?.uid && pagination.pageSize === pageSize;
+	if (!sameIdentity) {
+		setPagination({ firebaseApp, uid: user?.uid, pageSize, cursors: [undefined] });
+	}
+	const pageIndex = sameIdentity ? pagination.cursors.length - 1 : 0;
+	const cursor = sameIdentity ? pagination.cursors[pageIndex] : undefined;
+	const { data, error, loading, retry } = useFirestoreRead(
+		firebaseApp,
+		Boolean(user),
+		async () => {
+			const constraints: firestore.QueryConstraint[] = [
+				firestore.where('startsAt', '<', new Date()),
+				firestore.orderBy('startsAt', 'desc'),
+			];
+			if (cursor) {
+				constraints.push(firestore.startAfter(cursor));
 			}
-		}
-		setErrorMessage(undefined);
-		const load = async () => {
-			try {
-				setMatches(undefined);
-				const cursor = pageCursors.current[pageIndex];
-				const constraints: firestore.QueryConstraint[] = [
-					firestore.where('startsAt', '<', new Date()),
-					firestore.orderBy('startsAt', 'desc'),
-				];
-				if (cursor) {
-					constraints.push(firestore.startAfter(cursor));
-				}
-				constraints.push(firestore.limit(pageSize + 1));
-
-				const query = firestore.query(getMatchesCollection(firebaseApp), ...constraints);
-				const { docs } = await firestore.getDocs(query);
-				if (!active) {
-					return;
-				}
-				const pageDocs = docs.slice(0, pageSize);
-				const matches = pageDocs.map(mapMatch);
-				setMatches(matches);
-				setHasNextPage(docs.length > pageSize);
-				const newPageCursors = pageCursors.current.slice(0, pageIndex + 1);
-				if (docs.length > pageSize && pageDocs.length > 0) {
-					newPageCursors[pageIndex + 1] = pageDocs[pageDocs.length - 1];
-				}
-				pageCursors.current = newPageCursors;
-			} catch (error) {
-				if (active) {
-					console.error(error);
-					setErrorMessage(getErrorMessage(error));
-				}
-			}
-		};
-		void load();
-		return () => { active = false; };
-	}, [firebaseApp, user, setErrorMessage, pageIndex, pageSize]);
+			constraints.push(firestore.limit(pageSize + 1));
+			const query = firestore.query(getMatchesCollection(firebaseApp), ...constraints);
+			const { docs } = await firestore.getDocs(query);
+			const pageDocs = docs.slice(0, pageSize);
+			return {
+				matches: pageDocs.map(mapMatch),
+				nextCursor: docs.length > pageSize ? pageDocs[pageDocs.length - 1] : undefined,
+			};
+		},
+		[user, pageIndex, cursor, pageSize],
+		setErrorMessage,
+		'past',
+	);
 
 	return {
-		matches,
+		matches: data?.matches,
+		error,
+		loading,
+		retry,
 		pageIndex,
 		hasPreviousPage: pageIndex > 0,
-		hasNextPage,
-		goToPreviousPage: () => setPageIndex((currentPageIndex) => Math.max(0, currentPageIndex - 1)),
+		hasNextPage: Boolean(data?.nextCursor),
+		goToPreviousPage: () => {
+			if (pageIndex > 0) {
+				setPagination({ ...pagination, cursors: pagination.cursors.slice(0, -1) });
+			}
+		},
 		goToNextPage: () => {
-			if (hasNextPage) {
-				setPageIndex((currentPageIndex) => currentPageIndex + 1);
+			if (data?.nextCursor) {
+				setPagination({ ...pagination, cursors: [...pagination.cursors, data.nextCursor] });
 			}
 		},
 	};
@@ -191,14 +178,22 @@ export function useUpcomingMatches({ firebaseApp, user, setErrorMessage }: {
 	user: FirebaseUser | null;
 	setErrorMessage: (errorMessage: string | undefined) => void;
 }) {
-	const { data } = useFirestoreRead(
+	return useUpcomingMatchesRead(firebaseApp, user, setErrorMessage).data;
+}
+
+export function useUpcomingMatchesRead(
+	firebaseApp: firebase.FirebaseApp,
+	user: FirebaseUser | null,
+	setErrorMessage?: (errorMessage: string | undefined) => void,
+) {
+	return useFirestoreRead(
 		firebaseApp,
 		Boolean(user),
 		() => getUpcomingMatches(firebaseApp),
 		[user],
 		setErrorMessage,
+		setErrorMessage ? undefined : 'upcoming',
 	);
-	return data;
 }
 
 export function didUserRespondMatch(match: IMatch | null, currentUser: IUser | undefined) {

@@ -56,6 +56,33 @@ describe('resumable Firestore reads', () => {
 		expect(enableNetwork).toHaveBeenCalledTimes(1);
 	});
 
+	it('shares one deadline across repeated resume events and retries', async () => {
+		let complete: ((value: string) => void) | undefined;
+		load.mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }))
+			.mockImplementation(() => new Promise(() => {}));
+		await act(async () => root.render(<Screen />));
+		for (let i = 0; i < 4; i++) {
+			await act(async () => {
+				jest.advanceTimersByTime(FIRESTORE_READ_TIMEOUT_MS / 4);
+				window.dispatchEvent(new Event('online'));
+				visibility('visible');
+			});
+		}
+		expect(container.textContent).toContain('Zkontroluj připojení');
+		expect(load).toHaveBeenCalledTimes(2);
+		await act(async () => complete?.('stale'));
+		expect(container.textContent).toContain('Zkontroluj připojení');
+		await act(async () => {
+			container.querySelector('button')?.click();
+			container.querySelector('button')?.click();
+		});
+		expect(load).toHaveBeenCalledTimes(3);
+		jest.setSystemTime(Date.now() + FIRESTORE_READ_TIMEOUT_MS + 1);
+		await act(async () => visibility('visible'));
+		expect(container.textContent).toContain('Zkontroluj připojení');
+		expect(load).toHaveBeenCalledTimes(3);
+	});
+
 	it('refetches on foreground return and ignores an older suspended result', async () => {
 		let finish: ((result: string) => void) | undefined;
 		load.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; })).mockResolvedValue('fresh');
